@@ -1,0 +1,52 @@
+# secretGPT Hub Docker Compose
+# Phase 1: Single container deployment for SecretVM
+# REFERENCE: DETAILED_BUILD_PLAN.md Single Container (Phases 1-3)
+
+version: '3.8'
+
+services:
+  secretgpt:
+    build: .
+    container_name: secretgpt-hub
+    ports:
+      - "8000:8000"
+    environment:
+      # REFERENCE: secretAI-setting-up-environment.txt
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
+      
+      # Hub Configuration
+      - SECRETGPT_HUB_HOST=0.0.0.0
+      - SECRETGPT_HUB_PORT=8000
+      
+      # Environment settings
+      - ENVIRONMENT=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Phase 2: Web UI configuration (enabled for Phase 2)
+      - SECRETGPT_ENABLE_WEB_UI=${SECRETGPT_ENABLE_WEB_UI:-true}
+      
+      
+      # Phase 4: MCP configuration (disabled for Phase 1)
+      - MCP_ENABLED=${MCP_ENABLED:-false}
+      - MCP_SECRET_NETWORK_URL=${MCP_SECRET_NETWORK_URL:-}
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits (adjust based on SecretVM specs)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M

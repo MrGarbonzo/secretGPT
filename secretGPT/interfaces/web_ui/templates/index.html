@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1><i class="fas fa-comments"></i> secretGPT</h1>
+            <p class="lead">Secure conversations with attestation-verified AI</p>
+        </div>
+
+        <!-- System Status -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div id="secretai-status" class="status-indicator">
+                            <i class="fas fa-circle text-secondary"></i>
+                            <span>Secret AI</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div id="attestation-status" class="status-indicator">
+                            <i class="fas fa-circle text-secondary"></i>
+                            <span>Attestation</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div id="hub-status" class="status-indicator">
+                            <i class="fas fa-circle text-secondary"></i>
+                            <span>Hub Router</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 style="color: black; text-align: left;">secretGPT</h5>
+                <div class="current-model-display" style="color: black; font-weight: 600; font-size: 16px;">
+                    <span id="header-model-display">Loading...</span>
+                </div>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-dark btn-sm" id="clear-chat">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" id="generate-proof">
+                        <i class="fas fa-certificate"></i> Generate Proof
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="chat-container mb-3">
+                    <!-- Welcome message removed -->
+                </div>
+
+
+
+                <!-- Message Input -->
+                <div class="input-group">
+                    <textarea class="form-control" id="message-input" placeholder="Type your message..." rows="2"></textarea>
+                    <button class="btn btn-primary" type="button" id="send-button">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Proof Generation Modal -->
+<div class="modal fade" id="proofModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-certificate"></i> Generate Attestation Proof</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="proof-form">
+                    <div class="mb-3">
+                        <label for="proof-question" class="form-label">Question</label>
+                        <textarea class="form-control" id="proof-question" rows="3" readonly></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="proof-answer" class="form-label">Answer</label>
+                        <textarea class="form-control" id="proof-answer" rows="5" readonly></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="proof-password" class="form-label">Encryption Password</label>
+                        <input type="password" class="form-control" id="proof-password" required>
+                        <div class="form-text">This password will be used to encrypt your proof file.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="generate-proof-submit">
+                    <i class="fas fa-download"></i> Generate & Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 mb-0">Processing your request...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/chat.js') }}"></script>
+{% endblock %}

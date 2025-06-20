@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}VM Attestation Verification - {{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1><i class="fas fa-certificate"></i> VM Attestation Verification</h1>
+            <p class="lead">Verify the integrity and authenticity of virtual machines</p>
+        </div>
+
+        <!-- Dual Attestation Overview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-server"></i> Dual VM Attestation Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="attestation-box" id="self-vm-box">
+                            <h6><i class="fas fa-desktop"></i> secretGPT VM</h6>
+                            <div class="status-indicator">
+                                <i class="fas fa-circle text-secondary" id="self-vm-status"></i>
+                                <span id="self-vm-text">Not Verified</span>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm mt-2" id="verify-self-vm">
+                                <i class="fas fa-sync"></i> Verify
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="attestation-box" id="secretai-vm-box">
+                            <h6><i class="fas fa-brain"></i> Secret AI VM</h6>
+                            <div class="status-indicator">
+                                <i class="fas fa-circle text-secondary" id="secretai-vm-status"></i>
+                                <span id="secretai-vm-text">Not Verified</span>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm mt-2" id="verify-secretai-vm">
+                                <i class="fas fa-sync"></i> Verify
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" id="verify-both-vms">
+                        <i class="fas fa-shield-alt"></i> Verify Both VMs
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attestation Details -->
+        <div class="row">
+            <!-- Self VM Attestation -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="fas fa-desktop"></i> secretGPT VM Attestation</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="self-vm-details" class="attestation-details" style="display: none;">
+                            <div class="mb-2">
+                                <strong>MRTD:</strong>
+                                <code class="d-block" id="self-mrtd">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR0:</strong>
+                                <code class="d-block" id="self-rtmr0">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR1:</strong>
+                                <code class="d-block" id="self-rtmr1">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR2:</strong>
+                                <code class="d-block" id="self-rtmr2">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR3:</strong>
+                                <code class="d-block" id="self-rtmr3">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Report Data:</strong>
+                                <code class="d-block small" id="self-report-data">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Certificate Fingerprint:</strong>
+                                <code class="d-block small" id="self-cert-fingerprint">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Timestamp:</strong>
+                                <span id="self-timestamp">-</span>
+                            </div>
+                        </div>
+                        <div id="self-vm-loading" class="text-center" style="display: none;">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span class="ms-2">Loading attestation...</span>
+                        </div>
+                        <div id="self-vm-error" class="text-danger" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secret AI VM Attestation -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="fas fa-brain"></i> Secret AI VM Attestation</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="secretai-vm-details" class="attestation-details" style="display: none;">
+                            <div class="mb-2">
+                                <strong>MRTD:</strong>
+                                <code class="d-block" id="secretai-mrtd">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR0:</strong>
+                                <code class="d-block" id="secretai-rtmr0">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR1:</strong>
+                                <code class="d-block" id="secretai-rtmr1">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR2:</strong>
+                                <code class="d-block" id="secretai-rtmr2">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>RTMR3:</strong>
+                                <code class="d-block" id="secretai-rtmr3">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Report Data:</strong>
+                                <code class="d-block small" id="secretai-report-data">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Certificate Fingerprint:</strong>
+                                <code class="d-block small" id="secretai-cert-fingerprint">-</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Timestamp:</strong>
+                                <span id="secretai-timestamp">-</span>
+                            </div>
+                        </div>
+                        <div id="secretai-vm-loading" class="text-center" style="display: none;">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span class="ms-2">Loading attestation...</span>
+                        </div>
+                        <div id="secretai-vm-error" class="text-danger" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proof Verification -->
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-file-signature"></i> Proof File Verification</h6>
+            </div>
+            <div class="card-body">
+                <form id="proof-verify-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="proof-file" class="form-label">Select Proof File (.attestproof)</label>
+                                <input type="file" class="form-control" id="proof-file" accept=".attestproof" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="proof-verify-password" class="form-label">Decryption Password</label>
+                                <input type="password" class="form-control" id="proof-verify-password" required>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check-circle"></i> Verify Proof
+                    </button>
+                </form>
+
+                <!-- Proof Verification Results -->
+                <div id="proof-results" class="mt-4" style="display: none;">
+                    <h6>Verification Results</h6>
+                    <div id="proof-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle"></i> About VM Attestation</h6>
+            </div>
+            <div class="card-body">
+                <p>VM attestation provides cryptographic proof that the virtual machine is running authentic, unmodified software in a trusted execution environment (TEE).</p>
+                
+                <h6>Key Components:</h6>
+                <ul>
+                    <li><strong>MRTD:</strong> Measurement of the TD (Trust Domain)</li>
+                    <li><strong>RTMR0-3:</strong> Runtime Measurement Registers</li>
+                    <li><strong>Report Data:</strong> Custom data included in the attestation</li>
+                    <li><strong>Certificate Fingerprint:</strong> TLS certificate hash for MITM protection</li>
+                </ul>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-shield-alt"></i>
+                    <strong>Dual VM Attestation:</strong> Both the secretGPT VM and Secret AI VM are independently verified to ensure complete trust chain.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/attestation.js') }}"></script>
+{% endblock %}
