@@ -1,13 +1,12 @@
-# secretGPT Hub Docker Compose
-# Phase 1: Single container deployment for SecretVM
-# REFERENCE: DETAILED_BUILD_PLAN.md Single Container (Phases 1-3)
+# secretGPT Hub Docker Compose - Development
+# For local development and testing
 
 version: '3.8'
 
 services:
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:latest
-    container_name: secretgpt-hub
+    build: .
+    container_name: secretgpt-hub-dev
     ports:
       - "8000:8000"
     environment:
@@ -19,8 +18,8 @@ services:
       - SECRETGPT_HUB_PORT=8000
       
       # Environment settings
-      - ENVIRONMENT=production
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=development
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       
       # Phase 2: Web UI configuration (enabled for Phase 2)
       - SECRETGPT_ENABLE_WEB_UI=${SECRETGPT_ENABLE_WEB_UI:-true}
@@ -29,6 +28,11 @@ services:
       # Phase 4: MCP configuration (disabled for Phase 1)
       - MCP_ENABLED=${MCP_ENABLED:-false}
       - MCP_SECRET_NETWORK_URL=${MCP_SECRET_NETWORK_URL:-}
+    
+    # Mount source code for development
+    volumes:
+      - ./secretGPT:/app/secretGPT
+      - ./requirements.txt:/app/requirements.txt
     
     # Health check
     healthcheck:
