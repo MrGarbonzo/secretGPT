@@ -9,7 +9,7 @@ services:
     image: ghcr.io/mrgarbonzo/secretgpt:latest
     container_name: secretgpt-hub
     ports:
-      - "8000:8000"
+      - "8003:8000"
     environment:
       # REFERENCE: secretAI-setting-up-environment.txt
       - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
@@ -18,6 +18,9 @@ services:
       - SECRETGPT_HUB_HOST=0.0.0.0
       - SECRETGPT_HUB_PORT=8000
       
+      # Run mode: service (production) or test (development)
+      - SECRETGPT_RUN_MODE=${SECRETGPT_RUN_MODE:-service}
+      
       # Environment settings
       - ENVIRONMENT=production
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -25,20 +28,19 @@ services:
       # Phase 2: Web UI configuration (enabled for Phase 2)
       - SECRETGPT_ENABLE_WEB_UI=${SECRETGPT_ENABLE_WEB_UI:-true}
       
-      
       # Phase 4: MCP configuration (disabled for Phase 1)
       - MCP_ENABLED=${MCP_ENABLED:-false}
       - MCP_SECRET_NETWORK_URL=${MCP_SECRET_NETWORK_URL:-}
     
-    # Health check
+    # Health check - updated for proper endpoint
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health", "||", "exit", "1"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     
-    # Restart policy
+    # Restart policy for production
     restart: unless-stopped
     
     # Resource limits (adjust based on SecretVM specs)
