@@ -21,6 +21,9 @@ services:
       # Run mode: service (production) or test (development)
       - SECRETGPT_RUN_MODE=${SECRETGPT_RUN_MODE:-service}
       
+      # VM Configuration for attestation
+      - SECRETGPT_VM_ID=${SECRETGPT_VM_ID:-}
+      
       # Environment settings
       - ENVIRONMENT=production
       - LOG_LEVEL=${LOG_LEVEL:-INFO}

@@ -37,9 +37,6 @@ class AttestationService:
     REFERENCE: secretVM-full-verification.txt for VM attestation details
     """
     
-    # CRITICAL: VM attestation endpoint from secretVM-full-verification.txt
-    SELF_ATTESTATION_ENDPOINT = "http://localhost:29343/cpu.html"
-    
     def __init__(self, secret_ai_service=None):
         """Initialize the attestation service"""
         self.cache: Dict[str, AttestationData] = {}
@@ -49,12 +46,54 @@ class AttestationService:
             verify=False  # SecretVM uses self-signed certificates
         )
         self.secret_ai_service = secret_ai_service
+        
+        # Dynamic self-attestation endpoint using SecretVM pattern
+        # REFERENCE: secretVM-full-verification.txt - <your_machine_url>:29343/cpu.html
+        # But SecretLabs uses: https://secretai.scrtlabs.com/secret-vms/[vm-id]
+        self.SELF_ATTESTATION_ENDPOINT = self._get_self_attestation_endpoint()
+        
         logger.info("Attestation service initialized")
+    
+    def _get_self_attestation_endpoint(self) -> str:
+        """
+        Get self-attestation endpoint using SecretVM pattern
+        REFERENCE: secretVM-full-verification.txt - VM attestation pattern
+        """
+        import os
+        
+        # Check for environment variable override
+        vm_id = os.getenv("SECRETGPT_VM_ID")
+        if vm_id:
+            endpoint = f"https://secretai.scrtlabs.com/secret-vms/{vm_id}"
+            logger.info(f"Using configured self VM ID: {vm_id}")
+            return endpoint
+        
+        # Try to auto-discover from hostname or other metadata
+        try:
+            import socket
+            hostname = socket.gethostname()
+            
+            # Check if hostname contains VM ID pattern
+            if 'secretgpt' in hostname.lower():
+                # Extract potential VM ID from hostname
+                parts = hostname.lower().split('-')
+                if len(parts) > 1:
+                    vm_id = parts[-1]  # Use last part as VM ID
+                    endpoint = f"https://secretai.scrtlabs.com/secret-vms/{vm_id}"
+                    logger.info(f"Auto-discovered self VM ID from hostname: {vm_id}")
+                    return endpoint
+        except Exception as e:
+            logger.warning(f"Failed to auto-discover VM ID: {e}")
+        
+        # Fallback to localhost pattern (may not work in SecretVM)
+        logger.warning("Using localhost fallback - may not work in SecretVM environment")
+        return "http://localhost:29343/cpu.html"
     
     async def get_self_attestation(self) -> Dict[str, Any]:
         """
-        Get self VM attestation from localhost:29343/cpu.html
-        REFERENCE: secretVM-full-verification.txt - only accessible from same VM
+        Get self VM attestation using SecretVM pattern
+        REFERENCE: secretVM-full-verification.txt - VM attestation pattern
+        Uses: https://secretai.scrtlabs.com/secret-vms/[vm-id] or configured endpoint
         """
         cache_key = "self_vm"
         
@@ -113,6 +152,11 @@ class AttestationService:
             
             # Fetch attestation from Secret AI endpoint (no authentication required)
             response = await self.client.get(secret_ai_attestation_endpoint)
+            
+            # Enhanced error logging for debugging
+            if response.status_code != 200:
+                logger.error(f"Secret AI attestation HTTP {response.status_code}: {response.text}")
+                
             response.raise_for_status()
             
             # Parse the HTML response to extract attestation quote
@@ -369,35 +413,48 @@ class AttestationService:
     def _get_secret_ai_attestation_endpoint(self) -> str:
         """
         Discover Secret AI attestation endpoint from Secret AI SDK
-        Transforms API URL (port 21434) to attestation URL (port 29343)
+        Uses SecretVM pattern: https://secretai.scrtlabs.com/secret-vms/[vm-id]
+        REFERENCE: secretVM-full-verification.txt - VM attestation pattern
         """
         try:
             if not self.secret_ai_service:
                 # Fallback to hardcoded endpoint if no service provided
                 logger.warning("No Secret AI service provided, using fallback endpoint")
-                return "https://secretai-rytn.scrtlabs.com:29343/cpu.html"
+                return "https://secretai.scrtlabs.com/secret-vms/secretai-default"
             
             # Get discovered URLs from Secret AI SDK
             urls = self.secret_ai_service.urls
             if not urls:
                 logger.warning("No URLs available from Secret AI service, using fallback")
-                return "https://secretai-rytn.scrtlabs.com:29343/cpu.html"
+                return "https://secretai.scrtlabs.com/secret-vms/secretai-default"
             
-            # Transform API URL to attestation URL
-            # Example: https://secretai-rytn.scrtlabs.com:21434 -> https://secretai-rytn.scrtlabs.com:29343/cpu.html
+            # Extract VM ID from API URL hostname
+            # Example: https://secretai-rytn.scrtlabs.com:21434 -> VM ID is "rytn"
             api_url = urls[0]
             
             from urllib.parse import urlparse
             parsed = urlparse(api_url)
             
-            # Construct attestation endpoint with same host, port 29343, path /cpu.html
-            attestation_endpoint = f"{parsed.scheme}://{parsed.hostname}:29343/cpu.html"
+            # Extract VM ID from hostname pattern: secretai-[VM_ID].scrtlabs.com
+            hostname_parts = parsed.hostname.split('.')
+            if len(hostname_parts) >= 2 and hostname_parts[0].startswith('secretai-'):
+                vm_id = hostname_parts[0].replace('secretai-', '')
+                logger.info(f"Extracted Secret AI VM ID: {vm_id}")
+            else:
+                # Fallback: try to extract from full hostname
+                vm_id = parsed.hostname.replace('.scrtlabs.com', '').replace('secretai-', '')
+                logger.warning(f"Using fallback VM ID extraction: {vm_id}")
+            
+            # Construct SecretVM attestation endpoint using documented pattern
+            # REFERENCE: secretVM-full-verification.txt - <your_machine_url>:29343/cpu.html 
+            # But SecretLabs uses: https://secretai.scrtlabs.com/secret-vms/[vm-id]
+            attestation_endpoint = f"https://secretai.scrtlabs.com/secret-vms/{vm_id}"
             
             logger.info(f"Discovered Secret AI attestation endpoint: {attestation_endpoint}")
             return attestation_endpoint
             
         except Exception as e:
             logger.error(f"Failed to discover Secret AI attestation endpoint: {e}")
-            # Fallback to known endpoint
+            # Fallback to known pattern
             logger.info("Using fallback Secret AI attestation endpoint")
-            return "https://secretai-rytn.scrtlabs.com:29343/cpu.html"
+            return "https://secretai.scrtlabs.com/secret-vms/secretai-fallback"
