@@ -56,36 +56,50 @@ class AttestationService:
     
     def _get_self_attestation_endpoint(self) -> str:
         """
-        Get self-attestation endpoint using SecretVM pattern
-        REFERENCE: secretVM-full-verification.txt - VM attestation pattern
+        Get self-attestation endpoint using VM IP + port pattern
+        REFERENCE: secretVM-full-verification.txt - <your_machine_url>:29343/cpu.html
         """
         import os
+        import socket
         
         # Check for environment variable override
-        vm_id = os.getenv("SECRETGPT_VM_ID")
-        if vm_id:
-            endpoint = f"https://secretai.scrtlabs.com/secret-vms/{vm_id}"
-            logger.info(f"Using configured self VM ID: {vm_id}")
-            return endpoint
+        vm_endpoint = os.getenv("SECRETGPT_ATTESTATION_ENDPOINT")
+        if vm_endpoint:
+            logger.info(f"Using configured self attestation endpoint: {vm_endpoint}")
+            return vm_endpoint
         
-        # Try to auto-discover from hostname or other metadata
+        # Get the actual VM IP address
         try:
-            import socket
-            hostname = socket.gethostname()
+            # Method 1: Get IP by connecting to external address (doesn't actually connect)
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("8.8.8.8", 80))
+                vm_ip = s.getsockname()[0]
+                
+            endpoint = f"http://{vm_ip}:29343/cpu.html"
+            logger.info(f"Auto-discovered self VM IP: {vm_ip}")
+            logger.info(f"Self attestation endpoint: {endpoint}")
+            return endpoint
             
-            # Check if hostname contains VM ID pattern
-            if 'secretgpt' in hostname.lower():
-                # Extract potential VM ID from hostname
-                parts = hostname.lower().split('-')
-                if len(parts) > 1:
-                    vm_id = parts[-1]  # Use last part as VM ID
-                    endpoint = f"https://secretai.scrtlabs.com/secret-vms/{vm_id}"
-                    logger.info(f"Auto-discovered self VM ID from hostname: {vm_id}")
-                    return endpoint
         except Exception as e:
-            logger.warning(f"Failed to auto-discover VM ID: {e}")
+            logger.warning(f"Failed to get VM IP address: {e}")
+            
+            # Method 2: Try to get IP from network interfaces
+            try:
+                import netifaces
+                # Get default gateway interface
+                gateways = netifaces.gateways()
+                default_interface = gateways['default'][netifaces.AF_INET][1]
+                addresses = netifaces.ifaddresses(default_interface)
+                vm_ip = addresses[netifaces.AF_INET][0]['addr']
+                
+                endpoint = f"http://{vm_ip}:29343/cpu.html"
+                logger.info(f"Discovered VM IP from interface {default_interface}: {vm_ip}")
+                return endpoint
+                
+            except Exception as e2:
+                logger.warning(f"Failed to get IP from interfaces: {e2}")
         
-        # Fallback to localhost pattern (may not work in SecretVM)
+        # Fallback to localhost (may not work in SecretVM)
         logger.warning("Using localhost fallback - may not work in SecretVM environment")
         return "http://localhost:29343/cpu.html"
     
