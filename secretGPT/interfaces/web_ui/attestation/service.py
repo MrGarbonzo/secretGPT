@@ -75,7 +75,8 @@ class AttestationService:
                 s.connect(("8.8.8.8", 80))
                 vm_ip = s.getsockname()[0]
                 
-            endpoint = f"http://{vm_ip}:29343/cpu.html"
+            # Use HTTPS for attestation endpoint as per SecretVM requirements
+            endpoint = f"https://{vm_ip}:29343/cpu.html"
             logger.info(f"Auto-discovered self VM IP: {vm_ip}")
             logger.info(f"Self attestation endpoint: {endpoint}")
             return endpoint
@@ -92,16 +93,17 @@ class AttestationService:
                 addresses = netifaces.ifaddresses(default_interface)
                 vm_ip = addresses[netifaces.AF_INET][0]['addr']
                 
-                endpoint = f"http://{vm_ip}:29343/cpu.html"
+                # Use HTTPS for attestation endpoint
+                endpoint = f"https://{vm_ip}:29343/cpu.html"
                 logger.info(f"Discovered VM IP from interface {default_interface}: {vm_ip}")
                 return endpoint
                 
             except Exception as e2:
                 logger.warning(f"Failed to get IP from interfaces: {e2}")
         
-        # Fallback to localhost (may not work in SecretVM)
+        # Fallback to localhost with HTTPS (may not work in SecretVM)
         logger.warning("Using localhost fallback - may not work in SecretVM environment")
-        return "http://localhost:29343/cpu.html"
+        return "https://localhost:29343/cpu.html"
     
     async def get_self_attestation(self) -> Dict[str, Any]:
         """
@@ -240,8 +242,9 @@ class AttestationService:
         Extract attestation quote from HTML response
         Parses HTML from SecretVM attestation endpoints to extract hex quote
         """
-        # Look for attestation quote in the HTML - it's typically in <pre> tags or raw text
-        quote_pattern = r'<pre[^>]*>(.*?)</pre>'
+        # Look for attestation quote in the HTML - it's typically in <pre> tags
+        # Updated pattern to handle class attribute in pre tag
+        quote_pattern = r'<pre[^>]*>([0-9a-fA-F]+)</pre>'
         matches = re.findall(quote_pattern, html_content, re.DOTALL)
         
         if matches:
@@ -253,8 +256,17 @@ class AttestationService:
                     logger.info(f"Found attestation quote in <pre> tag: {len(cleaned)} characters")
                     return cleaned
         
-        # Also try to find raw hex data in the HTML (sometimes not in <pre> tags)
-        # Look for long hex strings (2000+ characters)
+        # Also try to find hex data with id="quoteTextarea" pattern
+        textarea_pattern = r'id="quoteTextarea"[^>]*>([0-9a-fA-F]+)<'
+        textarea_matches = re.findall(textarea_pattern, html_content)
+        
+        if textarea_matches:
+            cleaned = textarea_matches[0].strip()
+            if len(cleaned) > 1000:
+                logger.info(f"Found attestation quote in textarea: {len(cleaned)} characters")
+                return cleaned
+        
+        # Fallback: Look for long hex strings (2000+ characters)
         hex_pattern = r'([0-9a-fA-F]{2000,})'
         hex_matches = re.findall(hex_pattern, html_content)
         
@@ -427,48 +439,34 @@ class AttestationService:
     def _get_secret_ai_attestation_endpoint(self) -> str:
         """
         Discover Secret AI attestation endpoint from Secret AI SDK
-        Uses SecretVM pattern: https://secretai.scrtlabs.com/secret-vms/[vm-id]
-        REFERENCE: secretVM-full-verification.txt - VM attestation pattern
+        REFERENCE: secretVM-full-verification.txt - <your_machine_url>:29343/cpu.html
         """
         try:
             if not self.secret_ai_service:
-                # Fallback to hardcoded endpoint if no service provided
-                logger.warning("No Secret AI service provided, using fallback endpoint")
-                return "https://secretai.scrtlabs.com/secret-vms/secretai-default"
+                logger.warning("No Secret AI service provided, cannot discover endpoint")
+                raise Exception("Secret AI service not available for endpoint discovery")
             
             # Get discovered URLs from Secret AI SDK
             urls = self.secret_ai_service.urls
             if not urls:
-                logger.warning("No URLs available from Secret AI service, using fallback")
-                return "https://secretai.scrtlabs.com/secret-vms/secretai-default"
+                logger.warning("No URLs available from Secret AI service")
+                raise Exception("No Secret AI URLs available for discovery")
             
-            # Extract VM ID from API URL hostname
-            # Example: https://secretai-rytn.scrtlabs.com:21434 -> VM ID is "rytn"
+            # Extract hostname from API URL
+            # Example: https://secretai-rytn.scrtlabs.com:21434 -> secretai-rytn.scrtlabs.com
             api_url = urls[0]
             
             from urllib.parse import urlparse
             parsed = urlparse(api_url)
-            
-            # Extract VM ID from hostname pattern: secretai-[VM_ID].scrtlabs.com
-            hostname_parts = parsed.hostname.split('.')
-            if len(hostname_parts) >= 2 and hostname_parts[0].startswith('secretai-'):
-                vm_id = hostname_parts[0].replace('secretai-', '')
-                logger.info(f"Extracted Secret AI VM ID: {vm_id}")
-            else:
-                # Fallback: try to extract from full hostname
-                vm_id = parsed.hostname.replace('.scrtlabs.com', '').replace('secretai-', '')
-                logger.warning(f"Using fallback VM ID extraction: {vm_id}")
+            hostname = parsed.hostname
             
             # Construct SecretVM attestation endpoint using documented pattern
-            # REFERENCE: secretVM-full-verification.txt - <your_machine_url>:29343/cpu.html 
-            # But SecretLabs uses: https://secretai.scrtlabs.com/secret-vms/[vm-id]
-            attestation_endpoint = f"https://secretai.scrtlabs.com/secret-vms/{vm_id}"
+            # REFERENCE: secretVM-full-verification.txt - <your_machine_url>:29343/cpu.html
+            attestation_endpoint = f"https://{hostname}:29343/cpu.html"
             
             logger.info(f"Discovered Secret AI attestation endpoint: {attestation_endpoint}")
             return attestation_endpoint
             
         except Exception as e:
             logger.error(f"Failed to discover Secret AI attestation endpoint: {e}")
-            # Fallback to known pattern
-            logger.info("Using fallback Secret AI attestation endpoint")
-            return "https://secretai.scrtlabs.com/secret-vms/secretai-fallback"
+            raise

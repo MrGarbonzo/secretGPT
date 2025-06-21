@@ -257,13 +257,13 @@ class WebUIInterface:
     
     def _get_attestation_service(self):
         """Get attestation service from hub router"""
-        # Will be implemented when attestation service is registered
-        return None
+        # Return the attestation service if available via monkey patching
+        return getattr(self, '_attestation_service_instance', None)
     
     def _get_proof_manager(self):
         """Get proof manager service"""
-        # Will be implemented when proof manager is created
-        return None
+        # Return the proof manager if available via monkey patching
+        return getattr(self, '_proof_manager_instance', None)
     
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance"""

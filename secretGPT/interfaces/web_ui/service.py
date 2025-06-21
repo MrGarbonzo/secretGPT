@@ -59,9 +59,9 @@ class WebUIService:
     
     def _configure_web_interface(self):
         """Configure the web interface to use our services"""
-        # Monkey patch the web interface methods to use our services
-        self.web_ui_interface._get_attestation_service = lambda: self.attestation_service
-        self.web_ui_interface._get_proof_manager = lambda: self.proof_manager
+        # Monkey patch the web interface to provide service instances
+        self.web_ui_interface._attestation_service_instance = self.attestation_service
+        self.web_ui_interface._proof_manager_instance = self.proof_manager
         
         logger.info("Web interface configured with services")
     
