@@ -74,12 +74,59 @@ class AttestationService:
             logger.info(f"Using configured self attestation endpoint: {vm_endpoint}")
             return vm_endpoint
         
-        # Get the actual VM IP address
+        # Get the actual VM IP address (not Docker container IP)
         try:
-            # Method 1: Get IP by connecting to external address (doesn't actually connect)
+            # Method 1: Try to get host VM IP by checking for SecretVM pattern
+            # In SecretVM, the container should use the host's IP for attestation
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.connect(("8.8.8.8", 80))
-                vm_ip = s.getsockname()[0]
+                discovered_ip = s.getsockname()[0]
+                
+            # Check if this looks like a Docker internal IP (172.x.x.x range)
+            if discovered_ip.startswith("172."):
+                logger.warning(f"Discovered Docker internal IP: {discovered_ip}")
+                logger.info("Attempting to find host VM IP...")
+                
+                # Method 1a: Try to get the default gateway (likely the host)
+                try:
+                    import subprocess
+                    result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                          capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        # Extract gateway IP from output like "default via 172.18.0.1 dev eth0"
+                        for line in result.stdout.split('\n'):
+                            if 'default via' in line:
+                                gateway_ip = line.split('via')[1].split()[0]
+                                logger.info(f"Found gateway IP: {gateway_ip}")
+                                # Gateway is usually host in Docker, but we need external IP
+                                break
+                except Exception as e:
+                    logger.warning(f"Could not get gateway IP: {e}")
+                
+                # Method 1b: Try to resolve hostname to external IP
+                try:
+                    import subprocess
+                    result = subprocess.run(['hostname', '-I'], 
+                                          capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        ips = result.stdout.strip().split()
+                        for ip in ips:
+                            # Look for non-Docker IPs (not 172.x.x.x or 127.x.x.x)
+                            if not ip.startswith(("172.", "127.", "169.254.")):
+                                logger.info(f"Found potential host IP: {ip}")
+                                vm_ip = ip
+                                break
+                        else:
+                            logger.warning("No suitable external IP found, using discovered IP")
+                            vm_ip = discovered_ip
+                    else:
+                        vm_ip = discovered_ip
+                except Exception as e:
+                    logger.warning(f"Could not resolve hostname IPs: {e}")
+                    vm_ip = discovered_ip
+            else:
+                # Not a Docker IP, use as-is
+                vm_ip = discovered_ip
                 
             # Use HTTPS for attestation endpoint as per SecretVM requirements
             endpoint = f"https://{vm_ip}:29343/cpu.html"
