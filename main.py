@@ -1,6 +1,6 @@
 """
-secretGPT Hub - Main Entry Point
-Phase 1: Core Foundation with Secret AI Integration
+secretGPT Hub - Unified Main Entry Point
+Supports both basic service mode and full Web UI with attestation
 """
 import asyncio
 import logging
@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from secretGPT.hub.core.router import HubRouter, ComponentType
 from secretGPT.services.secret_ai.client import SecretAIService
 from secretGPT.config.settings import settings, validate_settings
-
 
 # Configure logging
 logging.basicConfig(
@@ -69,7 +68,7 @@ async def test_secret_ai_integration():
 
 
 async def run_service_mode():
-    """Run the hub in persistent service mode"""
+    """Run the hub in persistent service mode without Web UI"""
     # Global hub instance for signal handling
     hub = None
     
@@ -124,10 +123,10 @@ async def run_service_mode():
 
 
 async def run_with_web_ui():
-    """Run the hub with integrated web UI"""
-    # Global hub instance for signal handling
+    """Run the hub with integrated Web UI and attestation service"""
+    # Global references for signal handling
     hub = None
-    web_ui = None
+    web_ui_service = None
     
     def signal_handler(sig, frame):
         """Handle shutdown signals gracefully"""
@@ -151,53 +150,123 @@ async def run_with_web_ui():
         # Initialize the hub
         await hub.initialize()
         
-        # Initialize Web UI if enabled
-        if os.getenv("SECRETGPT_ENABLE_WEB_UI", "false").lower() == "true":
-            logger.info("Initializing Web UI interface...")
-            try:
-                from secretGPT.interfaces.web_ui.app import WebUIInterface
-                web_ui = WebUIInterface(hub)
-                
-                # Start the web UI server
-                import uvicorn
-                config = uvicorn.Config(
-                    app=web_ui.get_app(),
-                    host=os.getenv("SECRETGPT_HUB_HOST", "0.0.0.0"),
-                    port=int(os.getenv("SECRETGPT_HUB_PORT", "8000")),
-                    log_level=settings.log_level.lower()
-                )
-                server = uvicorn.Server(config)
-                
-                # Get system status
-                status = await hub.get_system_status()
-                logger.info(f"System status: {status}")
-                
-                # Get available models
-                models = await hub.get_available_models()
-                logger.info(f"Available models: {models}")
-                
-                logger.info("secretGPT Hub with Web UI started successfully")
-                logger.info(f"Web UI available at http://{config.host}:{config.port}")
-                
-                # Run the server
-                await server.serve()
-                
-            except ImportError as e:
-                logger.error(f"Web UI dependencies not available: {e}")
-                logger.info("Falling back to service mode without Web UI")
-                await run_service_mode()
-        else:
-            logger.info("Web UI disabled, running in service mode only")
+        # Initialize Web UI service with proper attestation support
+        logger.info("Initializing Web UI interface...")
+        try:
+            from secretGPT.interfaces.web_ui.service import WebUIService
+            
+            # Use WebUIService (includes attestation) instead of WebUIInterface
+            web_ui_service = WebUIService(hub)
+            hub.register_component(ComponentType.WEB_UI, web_ui_service)
+            
+            # Start the web UI server
+            import uvicorn
+            
+            # Get the FastAPI app from web UI service
+            app = web_ui_service.get_fastapi_app()
+            
+            config = uvicorn.Config(
+                app=app,
+                host=os.getenv("SECRETGPT_HUB_HOST", "0.0.0.0"),
+                port=int(os.getenv("SECRETGPT_HUB_PORT", "8000")),
+                log_level=settings.log_level.lower(),
+                access_log=True
+            )
+            server = uvicorn.Server(config)
+            
+            # Get system status
+            status = await hub.get_system_status()
+            logger.info(f"System status: {status}")
+            
+            # Get available models
+            models = await hub.get_available_models()
+            logger.info(f"Available models: {models}")
+            
+            logger.info("secretGPT Hub with Web UI started successfully")
+            logger.info(f"Web UI available at http://{config.host}:{config.port}")
+            
+            # Run the server
+            await server.serve()
+            
+        except ImportError as e:
+            logger.error(f"Web UI dependencies not available: {e}")
+            logger.info("Falling back to service mode without Web UI")
             await run_service_mode()
             
     except Exception as e:
         logger.error(f"Service error: {e}")
         raise
     finally:
+        if web_ui_service:
+            await web_ui_service.cleanup()
         if hub:
             logger.info("Shutting down hub...")
             await hub.shutdown()
             logger.info("Hub shutdown complete")
+
+
+async def test_web_ui_integration():
+    """Test Web UI integration with attestation service"""
+    logger.info("Testing Web UI integration...")
+    
+    # Initialize hub router
+    hub = HubRouter()
+    
+    # Initialize and register Secret AI service
+    logger.info("Initializing Secret AI service...")
+    secret_ai = SecretAIService()
+    hub.register_component(ComponentType.SECRET_AI, secret_ai)
+    
+    # Initialize and register Web UI service
+    logger.info("Initializing Web UI service...")
+    from secretGPT.interfaces.web_ui.service import WebUIService
+    web_ui_service = WebUIService(hub)
+    hub.register_component(ComponentType.WEB_UI, web_ui_service)
+    
+    # Initialize the hub
+    await hub.initialize()
+    
+    # Test hub routing
+    test_message = "What is the capital of France?"
+    logger.info(f"Testing hub routing with: {test_message}")
+    
+    response = await hub.route_message(
+        interface="web_ui",
+        message=test_message,
+        options={
+            "temperature": 0.7,
+            "system_prompt": "You are a helpful geography assistant."
+        }
+    )
+    
+    if response["success"]:
+        logger.info(f"Hub routing test: SUCCESS")
+        logger.info(f"Response length: {len(response['content'])} characters")
+    else:
+        logger.error(f"Hub routing test: FAILED - {response['error']}")
+    
+    # Test attestation service
+    logger.info("Testing attestation service...")
+    try:
+        attestation_status = await web_ui_service.attestation_service.get_status()
+        logger.info(f"Attestation service status: {attestation_status}")
+        
+        # Test self attestation (will work in SecretVM)
+        self_attestation = await web_ui_service.attestation_service.get_self_attestation()
+        logger.info(f"Self attestation test: {'SUCCESS' if self_attestation['success'] else 'FAILED'}")
+        
+    except Exception as e:
+        logger.error(f"Attestation service test failed: {e}")
+    
+    # Test Web UI service status
+    web_ui_status = await web_ui_service.get_status()
+    logger.info(f"Web UI service status: {web_ui_status}")
+    
+    # Cleanup
+    await web_ui_service.cleanup()
+    await hub.shutdown()
+    
+    logger.info("Web UI integration test complete")
 
 
 async def main():
@@ -213,16 +282,24 @@ async def main():
     
     # Determine run mode
     run_mode = os.getenv("SECRETGPT_RUN_MODE", "service").lower()
+    web_ui_enabled = os.getenv("SECRETGPT_ENABLE_WEB_UI", "false").lower() == "true"
     
     if run_mode == "test":
         logger.info("Running in test mode")
-        await test_secret_ai_integration()
+        if web_ui_enabled:
+            await test_web_ui_integration()
+        else:
+            await test_secret_ai_integration()
     elif run_mode == "service":
         logger.info("Running in service mode")
-        await run_with_web_ui()
+        if web_ui_enabled:
+            await run_with_web_ui()
+        else:
+            await run_service_mode()
     else:
         logger.error(f"Unknown run mode: {run_mode}")
         logger.info("Valid modes: test, service")
+        logger.info("Set SECRETGPT_ENABLE_WEB_UI=true for Web UI with attestation")
         return
 
 
