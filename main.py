@@ -151,7 +151,7 @@ async def run_with_web_ui():
         await hub.initialize()
         
         # Initialize Web UI service with proper attestation support
-        logger.info("Initializing Web UI interface...")
+        logger.info("Initializing Web UI service...")
         try:
             from secretGPT.interfaces.web_ui.service import WebUIService
             
