@@ -19,7 +19,7 @@ services:
       
       # VM Configuration for attestation  
       - SECRETGPT_VM_ID=${SECRETGPT_VM_ID:-}
-      - SECRETGPT_ATTESTATION_ENDPOINT=${SECRETGPT_ATTESTATION_ENDPOINT:-}
+      - SECRETGPT_ATTESTATION_ENDPOINT=${SECRETGPT_ATTESTATION_ENDPOINT:-https://67.215.13.108:29343/cpu.html}
       
       # Environment settings
       - ENVIRONMENT=production
