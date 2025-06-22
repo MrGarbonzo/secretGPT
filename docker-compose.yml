@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    image: ghcr.io/mrgarbonzo/secretgpt:chatee
     container_name: secretgpt-hub
     ports:
       - "8003:8000"
