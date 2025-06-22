@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}VM Attestation Verification - {{ title }}{% endblock %}
+{% block title %}ChaTEE Attestation Verification - {{ title }}{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-lg-10 mx-auto">
         <!-- Header -->
         <div class="text-center mb-4">
-            <h1><i class="fas fa-certificate"></i> VM Attestation Verification</h1>
-            <p class="lead">Verify the integrity and authenticity of virtual machines</p>
+            <h1><i class="fas fa-certificate"></i> ChaTEE Attestation Verification</h1>
+            <p class="lead">Verify the integrity and authenticity of confidential computing</p>
         </div>
 
         <!-- Dual Attestation Overview -->
@@ -20,9 +20,9 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="attestation-box" id="self-vm-box">
-                            <h6><i class="fas fa-desktop"></i> secretGPT VM</h6>
+                            <h6><i class="fas fa-leaf"></i> ChaTEE VM</h6>
                             <div class="status-indicator">
-                                <i class="fas fa-circle text-secondary" id="self-vm-status"></i>
+                                <span class="status-circle status-unknown" id="self-vm-status"></span>
                                 <span id="self-vm-text">Not Verified</span>
                             </div>
                             <button class="btn btn-outline-primary btn-sm mt-2" id="verify-self-vm">
@@ -34,7 +34,7 @@
                         <div class="attestation-box" id="secretai-vm-box">
                             <h6><i class="fas fa-brain"></i> Secret AI VM</h6>
                             <div class="status-indicator">
-                                <i class="fas fa-circle text-secondary" id="secretai-vm-status"></i>
+                                <span class="status-circle status-unknown" id="secretai-vm-status"></span>
                                 <span id="secretai-vm-text">Not Verified</span>
                             </div>
                             <button class="btn btn-outline-primary btn-sm mt-2" id="verify-secretai-vm">
@@ -57,7 +57,7 @@
             <div class="col-lg-6 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <h6><i class="fas fa-desktop"></i> secretGPT VM Attestation</h6>
+                        <h6><i class="fas fa-leaf"></i> ChaTEE VM Attestation</h6>
                     </div>
                     <div class="card-body">
                         <div id="self-vm-details" class="attestation-details" style="display: none;">
@@ -206,7 +206,7 @@
 
                 <div class="alert alert-info">
                     <i class="fas fa-shield-alt"></i>
-                    <strong>Dual VM Attestation:</strong> Both the secretGPT VM and Secret AI VM are independently verified to ensure complete trust chain.
+                    <strong>Dual VM Attestation:</strong> Both the ChaTEE VM and Secret AI VM are independently verified to ensure complete trust chain.
                 </div>
             </div>
         </div>

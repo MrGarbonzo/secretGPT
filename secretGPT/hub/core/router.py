@@ -4,7 +4,7 @@ Implements the core hub architecture for secretGPT
 """
 import asyncio
 import logging
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, Optional, Callable, List, AsyncGenerator
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -119,6 +119,66 @@ class HubRouter:
         
         return secret_ai.get_available_models()
     
+    async def stream_message(self, interface: str, message: str, options: Optional[Dict[str, Any]] = None) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Stream a message response from an interface through the appropriate service
+        
+        Args:
+            interface: Source interface (web_ui, telegram_bot, etc.)
+            message: The user's message
+            options: Optional parameters (temperature, model, etc.)
+            
+        Yields:
+            Dict containing streaming chunks and metadata
+        """
+        logger.info(f"Streaming message from {interface}: {message[:50]}...")
+        
+        # Get Secret AI service
+        secret_ai = self.get_component(ComponentType.SECRET_AI)
+        if not secret_ai:
+            logger.error("Secret AI service not registered")
+            yield {
+                "success": False,
+                "error": "Secret AI service not available",
+                "interface": interface,
+                "chunk": {
+                    "type": "stream_error",
+                    "data": "Secret AI service not available",
+                    "metadata": {"error": True}
+                }
+            }
+            return
+        
+        try:
+            # Use default options if not provided
+            if options is None:
+                options = {}
+            
+            # Format messages using Secret AI's helper method
+            system_prompt = options.get("system_prompt", "You are a helpful assistant.")
+            messages = secret_ai.format_messages(system_prompt, message)
+            
+            # Stream through Secret AI service
+            async for chunk_response in secret_ai.stream_invoke(messages):
+                # Add interface metadata to each chunk
+                chunk_response["interface"] = interface
+                chunk_response["options"] = options
+                
+                yield chunk_response
+                
+        except Exception as e:
+            logger.error(f"Error streaming message: {e}")
+            yield {
+                "success": False,
+                "error": str(e),
+                "interface": interface,
+                "chunk": {
+                    "type": "stream_error",
+                    "data": str(e),
+                    "metadata": {"error": True}
+                }
+            }
+
     async def get_system_status(self) -> Dict[str, Any]:
         """
         Get overall system status

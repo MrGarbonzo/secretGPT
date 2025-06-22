@@ -1,6 +1,6 @@
 """
 Attestation Service for secretGPT Web UI
-REFERENCE: F:\coding\attest_ai\src\attestation\ (existing attestation logic)
+REFERENCE: F:/coding/attest_ai/src/attestation/ (existing attestation logic)
 REFERENCE: secretVM-full-verification.txt (VM attestation endpoint)
 """
 import asyncio

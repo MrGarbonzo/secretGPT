@@ -1,6 +1,6 @@
 """
 Proof Manager for secretGPT Web UI
-REFERENCE: F:\coding\attest_ai\src\encryption\proof_manager.py
+REFERENCE: F:/coding/attest_ai/src/encryption/proof_manager.py
 MIGRATE: Existing proof generation logic but integrate with hub's Secret AI service
 """
 import json
