@@ -74,9 +74,38 @@ class AttestationService:
             logger.info(f"Using configured self attestation endpoint: {vm_endpoint}")
             return vm_endpoint
         
+        # Method 1: Try host.docker.internal first (added via extra_hosts in docker-compose)
+        try:
+            # Check if host.docker.internal resolves
+            host_ip = socket.gethostbyname('host.docker.internal')
+            if host_ip and not host_ip.startswith('127.'):
+                endpoint = f"https://{host_ip}:29343/cpu.html"
+                logger.info(f"Using host.docker.internal IP: {host_ip}")
+                logger.info(f"Self attestation endpoint: {endpoint}")
+                return endpoint
+        except Exception as e:
+            logger.debug(f"host.docker.internal not available: {e}")
+        
+        # Method 2: Try to get the Docker host gateway IP
+        try:
+            import subprocess
+            result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                # Extract gateway IP from output like "default via 172.18.0.1 dev eth0"
+                for line in result.stdout.split('\n'):
+                    if 'default via' in line:
+                        gateway_ip = line.split('via')[1].split()[0]
+                        endpoint = f"https://{gateway_ip}:29343/cpu.html"
+                        logger.info(f"Using Docker gateway IP: {gateway_ip}")
+                        logger.info(f"Self attestation endpoint: {endpoint}")
+                        return endpoint
+        except Exception as e:
+            logger.warning(f"Could not get gateway IP: {e}")
+        
         # Get the actual VM IP address (not Docker container IP)
         try:
-            # Method 1: Try to get host VM IP by checking for SecretVM pattern
+            # Method 3: Try to get host VM IP by checking for SecretVM pattern
             # In SecretVM, the container should use the host's IP for attestation
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.connect(("8.8.8.8", 80))
