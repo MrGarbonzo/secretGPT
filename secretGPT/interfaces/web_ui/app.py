@@ -1,7 +1,7 @@
-r"""
+"""
 Web UI Interface for secretGPT
 Migrated from attest_ai following DETAILED_BUILD_PLAN.md patterns
-REFERENCE: F:\coding\attest_ai\src\main.py (FastAPI app structure)
+REFERENCE: F:/coding/attest_ai/src/main.py (FastAPI app structure)
 """
 import logging
 from pathlib import Path
@@ -10,8 +10,9 @@ from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, HTTPException, Form, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 from secretGPT.hub.core.router import HubRouter, ComponentType
 
@@ -139,6 +140,79 @@ class WebUIInterface:
                 logger.error(f"Chat endpoint error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
         
+        @self.app.post("/api/v1/chat/stream")
+        async def chat_stream_endpoint(request: Request):
+            """
+            Server-Sent Events streaming chat endpoint
+            Routes through hub to Secret AI for real-time streaming responses
+            """
+            try:
+                data = await request.json()
+                message = data.get("message", "")
+                temperature = data.get("temperature", 0.7)
+                system_prompt = data.get("system_prompt", "You are a helpful assistant.")
+                
+                if not message:
+                    raise HTTPException(status_code=400, detail="Message is required")
+                
+                async def event_generator():
+                    """Generate Server-Sent Events for streaming response"""
+                    try:
+                        # Stream through hub router
+                        async for chunk_response in self.hub_router.stream_message(
+                            interface="web_ui",
+                            message=message,
+                            options={
+                                "temperature": temperature,
+                                "system_prompt": system_prompt
+                            }
+                        ):
+                            # Format as SSE event
+                            event_data = {
+                                "success": chunk_response.get("success", True),
+                                "chunk": chunk_response.get("chunk", {}),
+                                "model": chunk_response.get("model"),
+                                "interface": chunk_response.get("interface"),
+                                "stream_id": chunk_response.get("stream_id")
+                            }
+                            
+                            if not chunk_response.get("success", True):
+                                event_data["error"] = chunk_response.get("error")
+                            
+                            # Send as SSE format
+                            sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            yield sse_data
+                            
+                    except Exception as e:
+                        logger.error(f"Streaming error: {e}")
+                        error_event = {
+                            "success": False,
+                            "error": str(e),
+                            "chunk": {
+                                "type": "stream_error",
+                                "data": str(e),
+                                "metadata": {"error": True}
+                            }
+                        }
+                        yield f"data: {json.dumps(error_event)}\n\n"
+                
+                return StreamingResponse(
+                    event_generator(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Headers": "*"
+                    }
+                )
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Stream endpoint error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
         @self.app.get("/api/v1/models")
         async def get_models():
             """Get available models from Secret AI via hub"""
@@ -212,7 +286,7 @@ class WebUIInterface:
         ):
             """
             Generate encrypted proof file with dual VM attestation
-            REFERENCE: F:\coding\attest_ai\src\encryption\proof_manager.py
+            REFERENCE: F:/coding/attest_ai/src/encryption/proof_manager.py
             """
             try:
                 proof_manager = self._get_proof_manager()

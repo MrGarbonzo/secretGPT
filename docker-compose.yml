@@ -2,10 +2,12 @@ version: '3.8'
 
 services:
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    image: ghcr.io/mrgarbonzo/secretgpt:chatee
     container_name: secretgpt-hub
     ports:
       - "8003:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # REFERENCE: secretAI-setting-up-environment.txt
       - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
@@ -19,7 +21,7 @@ services:
       
       # VM Configuration for attestation  
       - SECRETGPT_VM_ID=${SECRETGPT_VM_ID:-}
-      - SECRETGPT_ATTESTATION_ENDPOINT=${SECRETGPT_ATTESTATION_ENDPOINT:-https://67.215.13.108:29343/cpu.html}
+      - SECRETGPT_ATTESTATION_ENDPOINT=${SECRETGPT_ATTESTATION_ENDPOINT:-}
       
       # Environment settings
       - ENVIRONMENT=production

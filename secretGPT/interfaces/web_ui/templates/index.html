@@ -3,63 +3,109 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-8 mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-4">
-            <h1><i class="fas fa-comments"></i> secretGPT</h1>
-            <p class="lead">Secure conversations with attestation-verified AI</p>
-        </div>
+<!-- Header -->
+<div class="text-center mb-4">
+    <h1><i class="fas fa-leaf"></i> ChaTEE</h1>
+    <p class="lead">Professional confidential AI conversations with attestation</p>
+</div>
 
-        <!-- System Status -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-4">
-                        <div id="secretai-status" class="status-indicator">
-                            <i class="fas fa-circle text-secondary"></i>
-                            <span>Secret AI</span>
-                        </div>
+<div class="row">
+    <!-- Left Sidebar (Attestation Status Panel) -->
+    <div class="col-lg-3">
+        <div class="sidebar">
+            <!-- ChaTEE Attestation Status -->
+            <div class="mb-4">
+                <h6>ChaTEE Attestation</h6>
+                <div id="chatee-attestation-status" class="status-indicator">
+                    <span class="status-circle status-unknown"></span>
+                    <span>Checking...</span>
+                </div>
+            </div>
+
+            <!-- Secret AI Attestation Status -->
+            <div class="mb-4">
+                <h6>Secret AI Attestation</h6>
+                <div id="secretai-attestation-status" class="status-indicator">
+                    <span class="status-circle status-unknown"></span>
+                    <span>Checking...</span>
+                </div>
+            </div>
+
+            <!-- Model Information -->
+            <div class="mb-4">
+                <h6>Model Information</h6>
+                <div class="card">
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Model:</strong></p>
+                        <p id="current-model-display" class="text-muted mb-0">Loading...</p>
                     </div>
-                    <div class="col-md-4">
-                        <div id="attestation-status" class="status-indicator">
-                            <i class="fas fa-circle text-secondary"></i>
-                            <span>Attestation</span>
+                </div>
+            </div>
+
+            <!-- Streaming Controls -->
+            <div class="mb-4">
+                <h6>Streaming Settings</h6>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="streaming-toggle" checked>
+                            <label class="form-check-label" for="streaming-toggle">
+                                <i class="fas fa-stream"></i> Enable Streaming
+                            </label>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div id="hub-status" class="status-indicator">
-                            <i class="fas fa-circle text-secondary"></i>
-                            <span>Hub Router</span>
+                        <div class="text-muted small">
+                            Real-time responses with typing effects
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Chat Interface -->
+            <!-- Generate Proof Section -->
+            <div class="mb-4">
+                <h6>Generate Proof</h6>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="proof-password-sidebar" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="proof-password-sidebar" placeholder="Enter password">
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" id="generate-proof">
+                            <i class="fas fa-certificate"></i> Generate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Central Chat Area -->
+    <div class="col-lg-9">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 style="color: black; text-align: left;">secretGPT</h5>
-                <div class="current-model-display" style="color: black; font-weight: 600; font-size: 16px;">
-                    <span id="header-model-display">Loading...</span>
-                </div>
+                <h5>Conversation</h5>
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-outline-dark btn-sm" id="clear-chat">
                         <i class="fas fa-trash"></i> Clear
-                    </button>
-                    <button type="button" class="btn btn-outline-success btn-sm" id="generate-proof">
-                        <i class="fas fa-certificate"></i> Generate Proof
                     </button>
                 </div>
             </div>
             <div class="card-body">
                 <!-- Chat Messages -->
                 <div id="chat-messages" class="chat-container mb-3">
-                    <!-- Welcome message removed -->
+                    <!-- Messages will be added here -->
                 </div>
 
-
+                <!-- Stream Controls (shown during active streams) -->
+                <div id="stream-controls" class="alert alert-info d-none mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-stream"></i> <strong>Streaming response...</strong>
+                        </div>
+                        <button id="stop-stream" class="btn btn-sm btn-danger">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Message Input -->
                 <div class="input-group">
@@ -78,7 +124,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-certificate"></i> Generate Attestation Proof</h5>
+                <h5 class="modal-title"><i class="fas fa-certificate"></i> ChaTEE Attestation Proof</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

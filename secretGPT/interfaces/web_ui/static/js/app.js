@@ -1,6 +1,6 @@
-// secretGPT Web UI - Main JavaScript
+// ChaTEE Web UI - Main JavaScript
 
-class SecretGPTApp {
+class ChaTEEApp {
     constructor() {
         this.API_BASE = '/api/v1';
         this.isLoading = false;
@@ -32,66 +32,72 @@ class SecretGPTApp {
             const response = await fetch(`${this.API_BASE}/models`);
             const data = await response.json();
             
-            const modelDisplay = document.getElementById('model-display');
-            const headerModelDisplay = document.getElementById('header-model-display');
+            const currentModelDisplay = document.getElementById('current-model-display');
             
             if (data.models && data.models.length > 0) {
                 const currentModel = data.models[0];
                 
-                // Update both displays
-                if (modelDisplay) {
-                    modelDisplay.value = currentModel;
-                }
-                if (headerModelDisplay) {
-                    headerModelDisplay.textContent = currentModel;
+                if (currentModelDisplay) {
+                    currentModelDisplay.textContent = currentModel;
                 }
             }
         } catch (error) {
             console.error('Failed to load models:', error);
-            const modelDisplay = document.getElementById('model-display');
-            const headerModelDisplay = document.getElementById('header-model-display');
+            const currentModelDisplay = document.getElementById('current-model-display');
             
-            if (modelDisplay) {
-                modelDisplay.value = 'Error loading model';
-            }
-            if (headerModelDisplay) {
-                headerModelDisplay.textContent = 'Error loading model';
+            if (currentModelDisplay) {
+                currentModelDisplay.textContent = 'Error loading model';
             }
         }
     }
 
     updateStatusIndicators(status) {
-        // Update Secret AI status
-        const secretAIStatus = document.getElementById('secretai-status');
-        if (secretAIStatus) {
-            const icon = secretAIStatus.querySelector('i');
+        // Update ChaTEE Attestation status (self VM)
+        const chateeAttestationStatus = document.getElementById('chatee-attestation-status');
+        if (chateeAttestationStatus) {
+            const circle = chateeAttestationStatus.querySelector('.status-circle');
+            const text = chateeAttestationStatus.querySelector('span:last-child');
+            
+            // Set initial checking state
+            circle.className = 'status-circle status-checking';
+            text.textContent = 'Checking...';
+            
+            // Check self attestation
+            this.checkSelfAttestation(circle, text);
+        }
+
+        // Update Secret AI Attestation status
+        const secretaiAttestationStatus = document.getElementById('secretai-attestation-status');
+        if (secretaiAttestationStatus) {
+            const circle = secretaiAttestationStatus.querySelector('.status-circle');
+            const text = secretaiAttestationStatus.querySelector('span:last-child');
+            
             if (status.components && status.components.secret_ai === 'operational') {
-                icon.className = 'fas fa-circle text-success';
+                circle.className = 'status-circle status-connected';
+                text.textContent = 'Connected';
             } else {
-                icon.className = 'fas fa-circle text-danger';
+                circle.className = 'status-circle status-error';
+                text.textContent = 'Error';
             }
         }
+    }
 
-        // Update Hub status
-        const hubStatus = document.getElementById('hub-status');
-        if (hubStatus) {
-            const icon = hubStatus.querySelector('i');
-            if (status.hub === 'operational') {
-                icon.className = 'fas fa-circle text-success';
+    async checkSelfAttestation(circle, text) {
+        try {
+            const response = await fetch(`${this.API_BASE}/attestation/self`);
+            const data = await response.json();
+            
+            if (data.success) {
+                circle.className = 'status-circle status-connected';
+                text.textContent = 'Connected';
             } else {
-                icon.className = 'fas fa-circle text-danger';
+                circle.className = 'status-circle status-error';
+                text.textContent = 'Error';
             }
-        }
-
-        // Update Attestation status
-        const attestationStatus = document.getElementById('attestation-status');
-        if (attestationStatus) {
-            const icon = attestationStatus.querySelector('i');
-            if (status.attestation && status.attestation.status === 'operational') {
-                icon.className = 'fas fa-circle text-success';
-            } else {
-                icon.className = 'fas fa-circle text-warning';
-            }
+        } catch (error) {
+            console.log('Self attestation check failed (expected outside SecretVM):', error);
+            circle.className = 'status-circle status-unknown';
+            text.textContent = 'Unknown';
         }
     }
 
@@ -130,6 +136,26 @@ class SecretGPTApp {
         if (proofSubmitButton) {
             proofSubmitButton.addEventListener('click', () => this.generateProof());
         }
+
+        // Streaming toggle
+        const streamingToggle = document.getElementById('streaming-toggle');
+        if (streamingToggle) {
+            streamingToggle.addEventListener('change', (e) => {
+                if (window.chatManager) {
+                    window.chatManager.setStreamingEnabled(e.target.checked);
+                }
+            });
+        }
+
+        // Stream control buttons
+        const stopStreamButton = document.getElementById('stop-stream');
+        if (stopStreamButton) {
+            stopStreamButton.addEventListener('click', () => {
+                if (window.chatManager) {
+                    window.chatManager.stopCurrentStream();
+                }
+            });
+        }
     }
 
 
@@ -145,6 +171,31 @@ class SecretGPTApp {
         this.addMessage('user', message);
         messageInput.value = '';
 
+        // Store question for proof generation
+        this.lastQuestion = message;
+
+        // Check if streaming is enabled
+        const streamingToggle = document.getElementById('streaming-toggle');
+        const useStreaming = streamingToggle ? streamingToggle.checked : true;
+
+        if (useStreaming && window.chatManager && window.chatManager.streamingEnabled) {
+            // Use streaming mode
+            try {
+                await window.chatManager.sendStreamingMessage(message, {
+                    temperature: 0.7,
+                    system_prompt: "You are a helpful assistant."
+                });
+            } catch (error) {
+                console.error('Streaming failed, falling back to regular chat:', error);
+                this.sendRegularMessage(message);
+            }
+        } else {
+            // Use regular non-streaming mode
+            this.sendRegularMessage(message);
+        }
+    }
+
+    async sendRegularMessage(message) {
         // Show loading
         this.setLoading(true);
         const loadingMessage = this.addMessage('assistant', 'Thinking...');
@@ -174,7 +225,6 @@ class SecretGPTApp {
                 });
                 
                 // Store last Q&A for proof generation
-                this.lastQuestion = message;
                 this.lastAnswer = data.response;
             } else {
                 this.addMessage('error', `Error: ${data.error || 'Unknown error'}`);
@@ -245,23 +295,37 @@ class SecretGPTApp {
             return;
         }
 
-        document.getElementById('proof-question').value = this.lastQuestion;
-        document.getElementById('proof-answer').value = this.lastAnswer;
-        
-        const modal = new bootstrap.Modal(document.getElementById('proofModal'));
-        modal.show();
+        // Check if password is provided in sidebar
+        const sidebarPassword = document.getElementById('proof-password-sidebar').value;
+        if (sidebarPassword) {
+            // Generate proof directly
+            this.generateProof(sidebarPassword);
+        } else {
+            // Show modal for password input
+            document.getElementById('proof-question').value = this.lastQuestion;
+            document.getElementById('proof-answer').value = this.lastAnswer;
+            
+            const modal = new bootstrap.Modal(document.getElementById('proofModal'));
+            modal.show();
+        }
     }
 
-    async generateProof() {
-        const password = document.getElementById('proof-password').value;
+    async generateProof(password = null) {
+        // Get password from parameter or modal
+        if (!password) {
+            password = document.getElementById('proof-password').value;
+        }
         
         if (!password) {
             this.showError('Please enter a password for proof encryption.');
             return;
         }
 
+        // Hide modal if it's open
         const modal = bootstrap.Modal.getInstance(document.getElementById('proofModal'));
-        modal.hide();
+        if (modal) {
+            modal.hide();
+        }
 
         const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
         loadingModal.show();
@@ -282,7 +346,7 @@ class SecretGPTApp {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `secretgpt_proof_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.attestproof`;
+                a.download = `chatee_proof_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.attestproof`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -333,5 +397,5 @@ class SecretGPTApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.secretGPTApp = new SecretGPTApp();
+    window.chaTEEApp = new ChaTEEApp();
 });
