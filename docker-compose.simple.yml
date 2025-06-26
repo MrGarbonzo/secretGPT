@@ -1,0 +1,46 @@
+version: '3.8'
+
+networks:
+  traefik-net:
+    driver: bridge
+
+# Simplified configuration without SSL to test basic routing
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik-simple
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8081:8080"  # Traefik dashboard
+    networks:
+      - traefik-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - --api.insecure=true  # Enable dashboard on 8081
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik-net
+      - --entrypoints.web.address=:80
+      - --log.level=DEBUG  # Debug logging
+
+  secretgpt:
+    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    container_name: attestai-hub-simple
+    restart: unless-stopped
+    networks:
+      - traefik-net
+    environment:
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
+      - SECRETGPT_HUB_HOST=0.0.0.0
+      - SECRETGPT_HUB_PORT=8000
+      - SECRETGPT_RUN_MODE=service
+      - SECRETGPT_ENABLE_WEB_UI=true
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.attestai.rule=Host(`attestai.io`) || Host(`67.215.13.101`)"
+      - "traefik.http.routers.attestai.entrypoints=web"
+      - "traefik.http.services.attestai.loadbalancer.server.port=8000"

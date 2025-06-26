@@ -1,230 +1,185 @@
-# secretGPT Resources
+# Intel DCAP Integration Resources
 
-This folder contains essential documentation and examples copied from `F:/coding/documents` to support the secretGPT implementation. These resources provide official documentation, working examples, and critical implementation details for all project components.
+## 📁 **Resource Directory Overview**
 
-## 📁 Folder Structure
+This directory contains all documentation, guides, scripts, and reference materials needed to replace the current reverse-engineered TDX quote parsing with Intel's official DCAP libraries.
+
+## 🎯 **Project Goal**
+
+Replace hardcoded byte offset parsing in `attestation/service.py` with proper Intel DCAP library integration for spec-compliant TDX quote parsing.
+
+## 📚 **Directory Structure**
 
 ```
 resources/
-├── secretAI/                    # Secret AI SDK documentation and examples
-├── secretVM/                    # SecretVM deployment and management docs
-└── README.md                    # This file
+├── TECHNICAL_ROADMAP.md           # Master implementation plan (2-3 weeks)
+├── REFERENCE_LINKS.md             # Curated links to Intel docs and tools
+├── integration-guides/            # Step-by-step implementation guides
+│   ├── dcap-installation.md       # Installing Intel DCAP libraries
+│   ├── ctypes-patterns.md          # Python ctypes wrapper implementation
+│   └── testing-strategies.md      # Comprehensive testing approach
+├── current-system/                # Analysis of existing implementation
+│   └── system-analysis.md         # Current parsing logic analysis
+└── scripts/                       # Automation scripts
+    ├── setup-environment.sh       # Development environment setup
+    ├── install-dcap.sh            # Intel DCAP library installation
+    └── validate-installation.sh   # Installation verification
 ```
 
----
+## 🚀 **Quick Start Guide**
 
-## 🤖 secretAI Resources
+### **1. Read the Roadmap**
+Start with [`TECHNICAL_ROADMAP.md`](TECHNICAL_ROADMAP.md) for the complete implementation plan and timeline.
 
-### **Core Documentation**
-- **`secretAI-setting-up-environment.txt`** - Official Secret AI SDK setup guide
-- **`secretAI-running-application.txt`** - Detailed explanation of Secret AI usage patterns
-- **`secret-ai-sdk-README.md`** - Complete SDK documentation and API reference
+### **2. Understand Current System**
+Review [`current-system/system-analysis.md`](current-system/system-analysis.md) to understand what needs to be replaced.
 
-### **Working Examples**
-- **`secret-ai-getting-started-example.py`** - Basic Secret AI integration example
-- **`secret-ai-streaming-example.py`** - Advanced streaming implementation with custom handlers
-- **`secret-ai-sdk-requirements.txt`** - Complete dependency list for Secret AI SDK
-
-### **Key Implementation Details**
-
-**Environment Setup:**
+### **3. Set Up Environment**
 ```bash
-export SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1
-pip install secret-ai-sdk
-pip install 'secret-sdk>=1.8.1'
+# Make scripts executable
+chmod +x scripts/*.sh
+
+# Run setup scripts in order
+./scripts/setup-environment.sh
+./scripts/install-dcap.sh
+./scripts/validate-installation.sh
 ```
 
-**Basic Usage Pattern:**
+### **4. Follow Integration Guides**
+Work through the guides in [`integration-guides/`](integration-guides/) in this order:
+1. **dcap-installation.md** - Intel library setup
+2. **ctypes-patterns.md** - Python wrapper implementation  
+3. **testing-strategies.md** - Validation and testing
+
+### **5. Implementation Phase**
+Follow the roadmap phases:
+- **Phase 1**: Environment setup (2-3 days)
+- **Phase 2**: API analysis (2-3 days)
+- **Phase 3**: Python wrapper (4-5 days)
+- **Phase 4**: Service integration (3-4 days)
+- **Phase 5**: Production deployment (2-3 days)
+
+## 🔧 **Key Files to Modify**
+
+**Primary Target:**
+- `secretGPT/interfaces/web_ui/attestation/service.py:_parse_attestation_quote()`
+
+**Current Problematic Code:**
 ```python
-from secret_ai_sdk.secret_ai import ChatSecret
-from secret_ai_sdk.secret import Secret
-
-# Model discovery
-secret_client = Secret()
-models = secret_client.get_models()
-urls = secret_client.get_urls(model=models[0])
-
-# Chat client
-secret_ai_llm = ChatSecret(
-    base_url=urls[0],
-    model=models[0],
-    temperature=1.0
-)
-
-# Message format
-messages = [
-    ("system", "You are a helpful assistant."),
-    ("human", "Hello world"),
-]
-
-response = secret_ai_llm.invoke(messages, stream=False)
+# REPLACE THIS - Hardcoded byte offsets
+mrtd_bytes = quote_bytes[184:232]     # 48 bytes at offset 184
+rtmr0_bytes = quote_bytes[376:424]    # 48 bytes at offset 376
+# etc...
 ```
 
-**Critical for secretGPT Implementation:**
-- Model discovery with `get_models()` and `get_urls()`
-- LangChain-based architecture with `ChatSecret`
-- Message format: list of tuples `("role", "content")`
-- Streaming support with custom callback handlers
-- Environment variable configuration
+**Target Implementation:**
+```python
+# GOAL - Spec-compliant DCAP parsing
+result = dcap_wrapper.verify_quote(quote_bytes)
+mrtd = result.measurements.mrtd
+rtmr0 = result.measurements.rtmr0
+# etc...
+```
+
+## ⚠️ **Critical Success Factors**
+
+**Must Maintain:**
+- ✅ Exact same API response format
+- ✅ AttestationData structure compatibility
+- ✅ Dual VM attestation workflow
+- ✅ Error handling patterns
+
+**Must Improve:**
+- ✅ Parse all quote formats correctly (not just reversed sample)
+- ✅ Handle different TDX versions automatically
+- ✅ Provide proper quote structure validation
+- ✅ Use Intel-specification-compliant parsing
+
+## 📊 **Progress Tracking**
+
+Use this checklist to track implementation progress:
+
+### **Environment Setup**
+- [ ] Development environment configured
+- [ ] Intel DCAP libraries installed
+- [ ] Installation validated successfully
+- [ ] Python development dependencies ready
+
+### **Implementation**
+- [ ] DCAP API analysis completed
+- [ ] Python ctypes wrapper created
+- [ ] Quote parsing functions implemented
+- [ ] Error handling integrated
+- [ ] Unit tests written and passing
+
+### **Integration**
+- [ ] AttestationService updated
+- [ ] Dual VM workflow tested
+- [ ] Performance benchmarked
+- [ ] Regression tests passing
+- [ ] Documentation updated
+
+### **Deployment**
+- [ ] Staging environment tested
+- [ ] Production deployment successful
+- [ ] Monitoring and alerts configured
+- [ ] Rollback procedures validated
+
+## 🆘 **Troubleshooting Resources**
+
+**Common Issues:**
+- **DCAP libraries not found**: Run `validate-installation.sh` to diagnose
+- **Permission errors**: Check user permissions and library paths
+- **Python import errors**: Verify ctypes wrapper implementation
+- **Quote parsing failures**: Validate quote format and structure
+
+**Support Resources:**
+- Intel DCAP GitHub issues: https://github.com/intel/SGXDataCenterAttestationPrimitives/issues
+- Intel Developer Forums: https://community.intel.com/t5/Intel-Software-Guard-Extensions/bd-p/sgx
+- Reference implementations: See [`REFERENCE_LINKS.md`](REFERENCE_LINKS.md)
+
+## 🔗 **External Dependencies**
+
+**Required Libraries:**
+- `libsgx-dcap-ql-dev` - Quote generation library with headers
+- `libsgx-dcap-quote-verify-dev` - Quote verification library with headers
+- `python3-dev` - Python development headers for ctypes
+
+**Optional Tools:**
+- Intel Trust Authority CLI - For validation and testing
+- Reference parsers (Rust/Go) - For validation comparison
+
+## 📈 **Expected Benefits**
+
+**Technical Improvements:**
+- ✅ Spec-compliant parsing (no more reverse engineering)
+- ✅ Support for all TDX quote versions automatically
+- ✅ Proper quote structure validation
+- ✅ Intel-certified verification process
+
+**Operational Benefits:**
+- ✅ Reduced maintenance burden
+- ✅ Compatibility with future TDX versions
+- ✅ Industry-standard implementation
+- ✅ Production-ready verification
+
+## 🎉 **Success Criteria**
+
+**Functional Success:**
+- All existing tests pass without modification
+- Accurate parsing of all TDX quote formats
+- No regressions in attestation workflow
+
+**Performance Success:**
+- Parsing latency ≤ 2x current implementation
+- Memory usage remains stable
+- Concurrent request handling maintained
+
+**Quality Success:**
+- Code follows Intel DCAP patterns
+- Comprehensive error handling
+- Production-ready monitoring and logging
 
 ---
 
-## 🔐 secretVM Resources
-
-### **Core Documentation**
-- **`secretVM-full-verification.txt`** - Complete VM attestation verification process
-- **`secretVM-authentication-commands.txt`** - CLI authentication management
-- **`secretVM-virtual-machine-commands.txt`** - VM lifecycle management commands
-- **`secretvm-cli-README.md`** - CLI tool setup and usage
-
-### **Key Implementation Details**
-
-**VM Creation Command:**
-```bash
-secretvm-cli vm create \
-  --name "secretgpt-poc" \
-  --type "medium" \
-  --docker-compose docker-compose.yaml
-```
-
-**Attestation Access:**
-- **VM Attestation Endpoint**: `<your_machine_url>:29343/cpu.html`
-- **Attestation Fields**: MRTD, RTMR0, RTMR1, RTMR2, RTMR3, report_data
-- **Certificate Fingerprint**: For TLS verification
-
-**VM Management:**
-```bash
-secretvm-cli vm ls                    # List VMs
-secretvm-cli vm status <vmUUID>       # VM details
-secretvm-cli vm logs <vmId>           # Docker logs
-secretvm-cli vm attestation <vmId>    # Attestation data
-secretvm-cli vm start/stop <vmId>     # VM control
-```
-
-**Critical for secretGPT Implementation:**
-- Docker-compose based deployment
-- Attestation available at localhost:29343
-- VM types: small, medium, large
-- Complete lifecycle management via CLI
-- Multi-VM deployment support (Phase 4)
-
----
-
-## 🎯 Implementation Guidance by Phase
-
-### **Phase 1: Secret AI Integration**
-**Use these resources:**
-- `secretAI-setting-up-environment.txt` - Environment setup
-- `secret-ai-getting-started-example.py` - Basic integration pattern
-- `secret-ai-sdk-README.md` - Complete API reference
-
-**Key Implementation Points:**
-- Use model discovery pattern for production
-- Handle SDK errors gracefully
-- Implement both sync and async patterns
-- Environment variable configuration
-
-### **Phase 2: Web UI with Attestation**
-**Use these resources:**
-- `secretVM-full-verification.txt` - Attestation implementation
-- `secret-ai-streaming-example.py` - Streaming patterns for web UI
-
-**Key Implementation Points:**
-- Access VM attestation at localhost:29343/cpu.html
-- Parse MRTD, RTMR0-3 fields for proof generation
-- Implement dual VM attestation coordination
-- TLS certificate fingerprint extraction
-
-### **Phase 3: Telegram Bot**
-**Use these resources:**
-- `secret-ai-getting-started-example.py` - Simple chat patterns
-- `secretAI-running-application.txt` - Message handling
-
-**Key Implementation Points:**
-- Use same Secret AI patterns as web UI
-- Simple message format for bot integration
-- Error handling for service outages
-
-### **Phase 4: MCP Integration**
-**Use these resources:**
-- `secretVM-virtual-machine-commands.txt` - Multi-VM deployment
-- `secretvm-cli-README.md` - CLI for separate MCP deployment
-
-**Key Implementation Points:**
-- Deploy secret-network-mcp as separate VM
-- Use VM-to-VM HTTP communication
-- Leverage existing secret-network-mcp server
-
----
-
-## 🚀 Quick Start Guides
-
-### **Secret AI Setup (5 minutes)**
-```bash
-# 1. Install dependencies
-pip install secret-ai-sdk 'secret-sdk>=1.8.1'
-
-# 2. Set API key
-export SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1
-
-# 3. Test basic connection
-python resources/secretAI/secret-ai-getting-started-example.py
-```
-
-### **SecretVM CLI Setup (5 minutes)**
-```bash
-# 1. Install Node.js 16+
-# 2. Clone and build CLI
-git clone https://github.com/scrtlabs/secretvm-cli.git
-cd secretvm-cli
-npm install && npm run build
-
-# 3. Test authentication
-./dist/cli.js auth login
-
-# 4. List VMs
-./dist/cli.js vm ls
-```
-
-### **Attestation Test (2 minutes)**
-```bash
-# Access your VM's attestation endpoint
-curl http://localhost:29343/cpu.html
-
-# Should return attestation data with MRTD, RTMR fields
-```
-
----
-
-## ⚠️ Critical Success Factors
-
-### **Secret AI Integration**
-1. **Model Discovery**: Always use `get_models()` and `get_urls()` 
-2. **Error Handling**: SDK can fail, implement graceful fallbacks
-3. **Message Format**: Strict tuple format `("role", "content")`
-4. **Environment**: API key must be set correctly
-
-### **SecretVM Deployment**
-1. **Docker-Compose**: All services must be containerized
-2. **Attestation**: localhost:29343 only accessible from same VM
-3. **Multi-VM**: Phase 4 requires VM-to-VM communication setup
-4. **Resource Planning**: Choose appropriate VM sizes for workload
-
-### **Implementation Order**
-1. **Test Secret AI locally** before SecretVM deployment
-2. **Verify attestation access** early in development
-3. **Docker-compose validation** before SecretVM upload
-4. **Multi-VM networking** testing for Phase 4
-
----
-
-## 📚 Additional Resources
-
-- **Secret Network Docs**: https://docs.scrt.network/
-- **Secret AI Portal**: https://aidev.scrtlabs.com/
-- **secretvm-cli Repository**: https://github.com/scrtlabs/secretvm-cli
-- **Secret AI SDK Issues**: https://github.com/scrtlabs/secret-ai-sdk/issues
-
----
-
-*This resources folder contains everything needed for successful secretGPT implementation. All examples are working code copied from official repositories and documentation.*
+This resource collection provides everything needed to successfully integrate Intel DCAP libraries and replace the reverse-engineered quote parsing with a robust, specification-compliant implementation.

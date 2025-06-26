@@ -29,7 +29,7 @@ class WebUIInterface:
         """Initialize the Web UI interface with hub router integration"""
         self.hub_router = hub_router  # Route through hub instead of direct Secret AI
         self.app = FastAPI(
-            title="secretGPT Web UI",
+            title="Attest AI - Trusted AI Platform",
             description="Confidential AI Web Interface with Attestation",
             version="2.0.0"
         )
@@ -85,7 +85,7 @@ class WebUIInterface:
             """Main page - chat interface"""
             return self.templates.TemplateResponse(
                 "index.html", 
-                {"request": request, "title": "secretGPT - Confidential AI Chat"}
+                {"request": request, "title": "Attest AI - Trusted AI Chat"}
             )
         
         @self.app.get("/health")
@@ -244,7 +244,7 @@ class WebUIInterface:
             """Attestation verification page"""
             return self.templates.TemplateResponse(
                 "attestation.html",
-                {"request": request, "title": "VM Attestation Verification"}
+                {"request": request, "title": "Attest AI - Attestation Verification"}
             )
         
         @self.app.get("/api/v1/attestation/self")
@@ -282,7 +282,8 @@ class WebUIInterface:
         async def generate_proof(
             question: str = Form(...),
             answer: str = Form(...),
-            password: str = Form(...)
+            password: str = Form(...),
+            conversation_history: str = Form(None)
         ):
             """
             Generate encrypted proof file with dual VM attestation
@@ -293,11 +294,20 @@ class WebUIInterface:
                 if not proof_manager:
                     raise HTTPException(status_code=503, detail="Proof manager not available")
                 
+                # Parse conversation history if provided
+                parsed_conversation_history = None
+                if conversation_history:
+                    try:
+                        parsed_conversation_history = json.loads(conversation_history)
+                    except json.JSONDecodeError:
+                        logger.warning("Invalid conversation history JSON, ignoring")
+                
                 # Generate proof with dual attestation
                 proof_file = await proof_manager.generate_proof(
                     question=question,
                     answer=answer,
-                    password=password
+                    password=password,
+                    conversation_history=parsed_conversation_history
                 )
                 
                 return FileResponse(

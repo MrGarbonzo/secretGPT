@@ -1,11 +1,54 @@
 version: '3.8'
 
+networks:
+  attestai:
+    driver: bridge
+
+volumes:
+  traefik_certs:
+    driver: local
+
 services:
+  traefik:
+    image: traefik:v3.0
+    container_name: attestai-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - attestai
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/etc/traefik/certs
+    command:
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=attestai
+      - --log.level=INFO
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=admin@attestai.io
+      # Add staging for testing (comment out for production)
+      #- --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/certs/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+    labels:
+      - "traefik.enable=false"
+
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:chatee
-    container_name: secretgpt-hub
+    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    container_name: attestai-hub
+    restart: unless-stopped
     ports:
       - "8003:8000"
+    networks:
+      - attestai
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -16,8 +59,8 @@ services:
       - SECRETGPT_HUB_HOST=0.0.0.0
       - SECRETGPT_HUB_PORT=8000
       
-      # Run mode: service (production) or test (development)
-      - SECRETGPT_RUN_MODE=${SECRETGPT_RUN_MODE:-service}
+      # Run mode: service (production)
+      - SECRETGPT_RUN_MODE=service
       
       # VM Configuration for attestation  
       - SECRETGPT_VM_ID=${SECRETGPT_VM_ID:-}
@@ -27,23 +70,20 @@ services:
       - ENVIRONMENT=production
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       
-      # Phase 2: Web UI configuration (enabled for Phase 2)
-      - SECRETGPT_ENABLE_WEB_UI=${SECRETGPT_ENABLE_WEB_UI:-true}
+      # Web UI configuration
+      - SECRETGPT_ENABLE_WEB_UI=true
       
-      # Phase 4: MCP configuration (disabled for Phase 1)
-      - MCP_ENABLED=${MCP_ENABLED:-false}
-      - MCP_SECRET_NETWORK_URL=${MCP_SECRET_NETWORK_URL:-}
+      # Domain configuration
+      - SECRETGPT_DOMAIN=attestai.io
+      - SECRETGPT_SECURE=true
     
-    # Health check - updated for proper endpoint
+    # Health check
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    
-    # Restart policy for production
-    restart: unless-stopped
     
     # Resource limits (adjust based on SecretVM specs)
     deploy:
@@ -54,3 +94,29 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+    
+    # Traefik labels for domain and SSL
+    labels:
+      - "traefik.enable=true"
+      # HTTP router for initial setup and redirect
+      - "traefik.http.routers.attestai-http.rule=Host(`attestai.io`)"
+      - "traefik.http.routers.attestai-http.entrypoints=web"
+      - "traefik.http.routers.attestai-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # HTTPS router
+      - "traefik.http.routers.attestai.rule=Host(`attestai.io`)"
+      - "traefik.http.routers.attestai.entrypoints=websecure"
+      - "traefik.http.routers.attestai.tls=true"
+      - "traefik.http.routers.attestai.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.attestai.service=attestai"
+      - "traefik.http.services.attestai.loadbalancer.server.port=8000"
+      - "traefik.http.routers.attestai.middlewares=security-headers"
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      # Debug: Add insecure API temporarily
+      - "traefik.http.routers.api.rule=Host(`67.215.13.101`) && PathPrefix(`/api`) || Host(`attestai.io`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.entrypoints=web"

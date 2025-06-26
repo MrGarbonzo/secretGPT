@@ -289,8 +289,8 @@ class ChatManager {
         this.addToHistory('assistant', content);
 
         // Store for proof generation
-        if (window.chaTEEApp) {
-            window.chaTEEApp.lastAnswer = content;
+        if (window.attestAIApp) {
+            window.attestAIApp.lastAnswer = content;
         }
     }
 

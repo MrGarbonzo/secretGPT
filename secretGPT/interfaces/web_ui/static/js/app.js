@@ -1,6 +1,6 @@
-// ChaTEE Web UI - Main JavaScript
+// Attest AI Web UI - Main JavaScript
 
-class ChaTEEApp {
+class AttestAIApp {
     constructor() {
         this.API_BASE = '/api/v1';
         this.isLoading = false;
@@ -125,10 +125,16 @@ class ChaTEEApp {
             clearButton.addEventListener('click', () => this.clearChat());
         }
 
-        // Generate proof button
+        // Generate proof buttons (both sidebar and header)
         const generateProofButton = document.getElementById('generate-proof');
+        const generateProofHeaderButton = document.getElementById('generate-proof-header');
+        
         if (generateProofButton) {
             generateProofButton.addEventListener('click', () => this.showProofModal());
+        }
+        
+        if (generateProofHeaderButton) {
+            generateProofHeaderButton.addEventListener('click', () => this.showProofModal());
         }
 
         // Proof modal submit
@@ -156,8 +162,16 @@ class ChaTEEApp {
                 }
             });
         }
-    }
 
+        // PROOF VERIFICATION FORM - MOVED FROM ATTESTATION PAGE
+        const proofVerifyForm = document.getElementById('proof-verify-form');
+        if (proofVerifyForm) {
+            proofVerifyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.verifyProof();
+            });
+        }
+    }
 
     async sendMessage() {
         if (this.isLoading) return;
@@ -173,6 +187,11 @@ class ChaTEEApp {
 
         // Store question for proof generation
         this.lastQuestion = message;
+        
+        // Add user message to conversation history
+        if (window.chatManager) {
+            window.chatManager.addToHistory('user', message);
+        }
 
         // Check if streaming is enabled
         const streamingToggle = document.getElementById('streaming-toggle');
@@ -226,6 +245,11 @@ class ChaTEEApp {
                 
                 // Store last Q&A for proof generation
                 this.lastAnswer = data.response;
+        
+        // Add to conversation history
+        if (window.chatManager) {
+            window.chatManager.addToHistory('assistant', data.response);
+        }
             } else {
                 this.addMessage('error', `Error: ${data.error || 'Unknown error'}`);
             }
@@ -272,6 +296,11 @@ class ChaTEEApp {
         this.currentConversation = [];
         this.lastQuestion = null;
         this.lastAnswer = null;
+        
+        // Clear conversation history in chat manager
+        if (window.chatManager) {
+            window.chatManager.clearHistory();
+        }
     }
 
     setLoading(loading) {
@@ -295,11 +324,16 @@ class ChaTEEApp {
             return;
         }
 
-        // Check if password is provided in sidebar
-        const sidebarPassword = document.getElementById('proof-password-sidebar').value;
+        // Check if password is provided in sidebar or header
+        const sidebarPassword = document.getElementById('proof-password-sidebar')?.value;
+        const headerPassword = document.getElementById('proof-password-header')?.value;
+        
         if (sidebarPassword) {
-            // Generate proof directly
+            // Generate proof directly from sidebar
             this.generateProof(sidebarPassword);
+        } else if (headerPassword) {
+            // Generate proof directly from header
+            this.generateProof(headerPassword);
         } else {
             // Show modal for password input
             document.getElementById('proof-question').value = this.lastQuestion;
@@ -335,6 +369,11 @@ class ChaTEEApp {
             formData.append('question', this.lastQuestion);
             formData.append('answer', this.lastAnswer);
             formData.append('password', password);
+            
+            // Include full conversation history if available
+            if (window.chatManager && window.chatManager.conversationHistory) {
+                formData.append('conversation_history', JSON.stringify(window.chatManager.conversationHistory));
+            }
 
             const response = await fetch(`${this.API_BASE}/proof/generate`, {
                 method: 'POST',
@@ -346,7 +385,7 @@ class ChaTEEApp {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `chatee_proof_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.attestproof`;
+                a.download = `attest-ai_proof_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.attestproof`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -364,6 +403,132 @@ class ChaTEEApp {
             loadingModal.hide();
             document.getElementById('proof-password').value = '';
         }
+    }
+
+    // PROOF VERIFICATION METHODS - MOVED FROM ATTESTATION.JS
+    async verifyProof() {
+        const fileInput = document.getElementById('proof-file');
+        const passwordInput = document.getElementById('proof-verify-password');
+        const resultsDiv = document.getElementById('proof-results');
+        const contentDiv = document.getElementById('proof-content');
+        
+        if (!fileInput.files[0] || !passwordInput.value) {
+            this.showError('Please select a proof file and enter the password.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('password', passwordInput.value);
+
+        try {
+            const response = await fetch(`${this.API_BASE}/proof/verify`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.verified) {
+                this.displayProofResults(data.proof_data, contentDiv);
+                resultsDiv.style.display = 'block';
+                this.showSuccess('Proof verified successfully!');
+            } else {
+                throw new Error(data.error || 'Proof verification failed');
+            }
+        } catch (error) {
+            console.error('Proof verification error:', error);
+            this.showError(`Proof verification failed: ${error.message}`);
+        }
+
+        // Clear form
+        fileInput.value = '';
+        passwordInput.value = '';
+    }
+
+    displayProofResults(proofData, container) {
+        // Check if full conversation is included
+        const hasFullConversation = proofData.conversation && proofData.conversation.full_history && proofData.conversation.full_history.length > 0;
+        
+        let conversationHtml = '';
+        if (hasFullConversation) {
+            conversationHtml = `
+                <div class="col-12 mt-3">
+                    <h6>Full Conversation History (${proofData.conversation.total_messages} messages)</h6>
+                    <div class="conversation-history" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa;">
+                        ${proofData.conversation.full_history.map(msg => `
+                            <div class="conversation-message mb-2">
+                                <strong class="${msg.role === 'user' ? 'text-primary' : 'text-success'}">${msg.role === 'user' ? 'User' : 'Assistant'}:</strong>
+                                <div class="message-content">${this.escapeHtml(msg.content)}</div>
+                                <small class="text-muted">${new Date(msg.timestamp).toLocaleString()}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <strong>Conversation Hash:</strong> <code>${proofData.conversation.conversation_hash}</code>
+                        </small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const html = `
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-check-circle text-success"></i> Verified Proof</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Latest Interaction</h6>
+                            <div class="mb-2">
+                                <strong>Question:</strong>
+                                <div class="border p-2 bg-light">${this.escapeHtml(proofData.interaction.question)}</div>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Answer:</strong>
+                                <div class="border p-2 bg-light">${this.escapeHtml(proofData.interaction.answer)}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Attestation Verification</h6>
+                            <div class="mb-2">
+                                <strong>Dual VM:</strong>
+                                <span class="badge bg-success">${proofData.attestation.dual_attestation ? 'Verified' : 'Failed'}</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Timestamp:</strong>
+                                <code>${new Date(proofData.timestamp).toLocaleString()}</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Generator:</strong>
+                                <code>${proofData.metadata.generator}</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Version:</strong>
+                                <code>${proofData.version}</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Full Conversation:</strong>
+                                <span class="badge ${hasFullConversation ? 'bg-success' : 'bg-warning'}">
+                                    ${hasFullConversation ? 'Included' : 'Not Included'}
+                                </span>
+                            </div>
+                        </div>
+                        ${conversationHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     showError(message) {
@@ -397,5 +562,5 @@ class ChaTEEApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.chaTEEApp = new ChaTEEApp();
+    window.attestAIApp = new AttestAIApp();
 });

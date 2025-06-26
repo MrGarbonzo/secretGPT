@@ -5,81 +5,59 @@
 {% block content %}
 <!-- Header -->
 <div class="text-center mb-4">
-    <h1><i class="fas fa-leaf"></i> ChaTEE</h1>
-    <p class="lead">Professional confidential AI conversations with attestation</p>
+    <h1><i class="fas fa-shield-alt"></i> Attest AI</h1>
+    <p class="lead">Trusted AI conversations secured by TEE attestation</p>
 </div>
 
-<div class="row">
-    <!-- Left Sidebar (Attestation Status Panel) -->
-    <div class="col-lg-3">
-        <div class="sidebar">
-            <!-- ChaTEE Attestation Status -->
-            <div class="mb-4">
-                <h6>ChaTEE Attestation</h6>
-                <div id="chatee-attestation-status" class="status-indicator">
+<!-- Horizontal Status Bar -->
+<div class="status-bar">
+    <div class="row g-3">
+        <div class="col-6 col-md-3">
+            <div class="status-item">
+                <div class="status-item-title">Attest AI</div>
+                <div class="status-item-content" id="chatee-attestation-status">
                     <span class="status-circle status-unknown"></span>
                     <span>Checking...</span>
                 </div>
             </div>
-
-            <!-- Secret AI Attestation Status -->
-            <div class="mb-4">
-                <h6>Secret AI Attestation</h6>
-                <div id="secretai-attestation-status" class="status-indicator">
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="status-item">
+                <div class="status-item-title">Secret AI</div>
+                <div class="status-item-content" id="secretai-attestation-status">
                     <span class="status-circle status-unknown"></span>
                     <span>Checking...</span>
                 </div>
             </div>
-
-            <!-- Model Information -->
-            <div class="mb-4">
-                <h6>Model Information</h6>
-                <div class="card">
-                    <div class="card-body">
-                        <p class="mb-1"><strong>Model:</strong></p>
-                        <p id="current-model-display" class="text-muted mb-0">Loading...</p>
-                    </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="status-item">
+                <div class="status-item-title">Model</div>
+                <div class="status-item-content">
+                    <span id="current-model-display">Loading...</span>
                 </div>
             </div>
-
-            <!-- Streaming Controls -->
-            <div class="mb-4">
-                <h6>Streaming Settings</h6>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="streaming-toggle" checked>
-                            <label class="form-check-label" for="streaming-toggle">
-                                <i class="fas fa-stream"></i> Enable Streaming
-                            </label>
-                        </div>
-                        <div class="text-muted small">
-                            Real-time responses with typing effects
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Generate Proof Section -->
-            <div class="mb-4">
-                <h6>Generate Proof</h6>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="proof-password-sidebar" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="proof-password-sidebar" placeholder="Enter password">
-                        </div>
-                        <button type="button" class="btn btn-primary w-100" id="generate-proof">
-                            <i class="fas fa-certificate"></i> Generate
-                        </button>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="status-item">
+                <div class="status-item-title">Streaming</div>
+                <div class="status-item-content">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="streaming-toggle" checked>
+                        <label class="form-check-label" for="streaming-toggle">
+                            <span class="d-none d-sm-inline">Enabled</span>
+                            <span class="d-sm-none">On</span>
+                        </label>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Central Chat Area -->
-    <div class="col-lg-9">
+<!-- Chat Area -->
+<div class="row">
+    <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5>Conversation</h5>
@@ -89,10 +67,20 @@
                     </button>
                 </div>
             </div>
+            
             <div class="card-body">
                 <!-- Chat Messages -->
                 <div id="chat-messages" class="chat-container mb-3">
-                    <!-- Messages will be added here -->
+                    <!-- Welcome message -->
+                    <div class="message system-message">
+                        <div class="message-content">
+                            <i class="fas fa-shield-alt"></i> <strong>Welcome to Attest AI</strong><br>
+                            Your conversation is secured by trusted execution environment (TEE) attestation. 
+                            Both the interface and AI processing are running in verified, tamper-resistant environments 
+                            to ensure your privacy and data integrity.
+                        </div>
+                    </div>
+                    <!-- Additional messages will be added here -->
                 </div>
 
                 <!-- Stream Controls (shown during active streams) -->
@@ -116,6 +104,77 @@
                 </div>
             </div>
         </div>
+
+        <!-- Generate Proof Section - MOVED FROM TOP -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-certificate"></i> Generate Proof</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="flex-grow-1">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                            <input type="password" class="form-control" id="proof-password-header" placeholder="Enter password for proof generation">
+                            <button type="button" class="btn btn-primary" id="generate-proof-header">
+                                <i class="fas fa-certificate"></i> Generate Proof
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proof Verification Section - MOVED FROM ATTESTATION PAGE -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-file-signature"></i> Verify Proof File</h6>
+            </div>
+            <div class="card-body">
+                <form id="proof-verify-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="proof-file" class="form-label">Select Proof File (.attestproof)</label>
+                                <input type="file" class="form-control" id="proof-file" accept=".attestproof" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="proof-verify-password" class="form-label">Decryption Password</label>
+                                <input type="password" class="form-control" id="proof-verify-password" required>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check-circle"></i> Verify Proof
+                    </button>
+                </form>
+
+                <!-- Proof Verification Results -->
+                <div id="proof-results" class="mt-4" style="display: none;">
+                    <h6>Verification Results</h6>
+                    <div id="proof-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links Section -->
+<div class="row mt-4">
+    <div class="col-lg-12">
+        <div class="alert alert-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle"></i>
+                    <strong>New to attestation?</strong> Learn how TEE technology protects your conversations
+                </div>
+                <a href="/attestation" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-graduation-cap"></i> Learn More
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -124,7 +183,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-certificate"></i> ChaTEE Attestation Proof</h5>
+                <h5 class="modal-title"><i class="fas fa-certificate"></i> Attest AI Attestation Proof</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -171,4 +230,5 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', path='/js/chat.js') }}"></script>
+<script src="{{ url_for('static', path='/js/attestation.js') }}"></script>
 {% endblock %}

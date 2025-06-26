@@ -8,6 +8,7 @@ class AttestationManager {
 
     init() {
         this.setupEventListeners();
+        this.initializeProgressiveDisclosure();
     }
 
     setupEventListeners() {
@@ -277,6 +278,177 @@ class AttestationManager {
             }
         }, 5000);
     }
+
+    initializeProgressiveDisclosure() {
+        this.progressiveDisclosure = {
+            levels: {
+                mrtd: 1,
+                rtmr: 1,
+                report: 1,
+                cert: 1,
+                infra: 1
+            },
+            
+            toggleLevel(topic, targetLevel, element) {
+                const content = element.querySelector('.level-content');
+                const icon = element.querySelector('.expand-icon');
+                const isExpanded = content.classList.contains('show');
+                
+                if (isExpanded) {
+                    // Collapse current level
+                    content.classList.remove('show');
+                    icon.classList.remove('rotated');
+                    element.classList.remove('active');
+                } else {
+                    // Collapse any other open levels in this topic
+                    document.querySelectorAll(`[data-topic="${topic}"]`).forEach(otherLevel => {
+                        const otherContent = otherLevel.querySelector('.level-content');
+                        const otherIcon = otherLevel.querySelector('.expand-icon');
+                        if (otherContent && otherContent.classList.contains('show')) {
+                            otherContent.classList.remove('show');
+                            otherIcon.classList.remove('rotated');
+                            otherLevel.classList.remove('active');
+                        }
+                    });
+                    
+                    // Expand current level
+                    content.classList.add('show');
+                    icon.classList.add('rotated');
+                    element.classList.add('active');
+                    
+                    // Update current level and unlock next level
+                    this.levels[topic] = targetLevel;
+                    this.unlockNextLevel(topic, targetLevel);
+                    
+                    // Update technical data if available
+                    window.attestationManager.updateTechnicalData(topic, targetLevel);
+                }
+            },
+            
+            unlockNextLevel(topic, currentLevel) {
+                const nextLevel = currentLevel + 1;
+                const nextElement = document.querySelector(`[data-topic="${topic}"][data-level="${nextLevel}"]`);
+                
+                if (nextElement && nextElement.classList.contains('locked')) {
+                    nextElement.classList.remove('locked');
+                    
+                    // Add a subtle animation to highlight the newly unlocked level
+                    nextElement.style.opacity = '0.5';
+                    setTimeout(() => {
+                        nextElement.style.transition = 'opacity 0.5s ease';
+                        nextElement.style.opacity = '1';
+                    }, 100);
+                }
+            }
+        };
+        
+        // Add click handlers to drill-down levels
+        document.querySelectorAll('.drill-down-level').forEach(level => {
+            level.addEventListener('click', (e) => {
+                const topic = level.dataset.topic;
+                const targetLevel = parseInt(level.dataset.level);
+                const isLocked = level.classList.contains('locked');
+                
+                if (!isLocked) {
+                    this.progressiveDisclosure.toggleLevel(topic, targetLevel, level);
+                }
+            });
+        });
+    }
+    
+    updateTechnicalData(topic, level) {
+        if (level === 3) {
+            // Update technical data with real values when available
+            if (topic === 'mrtd') {
+                const mrtdElement = document.getElementById('current-mrtd');
+                const selfMrtd = document.getElementById('self-mrtd');
+                if (selfMrtd && selfMrtd.textContent !== '-') {
+                    mrtdElement.textContent = selfMrtd.textContent;
+                }
+            } else if (topic === 'rtmr') {
+                const rtmrElement = document.getElementById('current-rtmr');
+                const rtmr0 = document.getElementById('self-rtmr0');
+                const rtmr1 = document.getElementById('self-rtmr1');
+                if (rtmr0 && rtmr0.textContent !== '-') {
+                    rtmrElement.innerHTML = `
+                        RTMR0: ${rtmr0.textContent}<br>
+                        RTMR1: ${rtmr1.textContent}<br>
+                        RTMR2: ${document.getElementById('self-rtmr2').textContent}<br>
+                        RTMR3: ${document.getElementById('self-rtmr3').textContent}
+                    `;
+                }
+            } else if (topic === 'report') {
+                const reportElement = document.getElementById('current-report');
+                const selfReport = document.getElementById('self-report-data');
+                if (selfReport && selfReport.textContent !== '-') {
+                    reportElement.textContent = selfReport.textContent;
+                }
+            } else if (topic === 'cert') {
+                const certElement = document.getElementById('current-cert');
+                const selfCert = document.getElementById('self-cert-fingerprint');
+                if (selfCert && selfCert.textContent !== '-') {
+                    certElement.textContent = selfCert.textContent;
+                }
+            }
+        }
+    }
+}
+
+// Hash Timeline Functions
+function expandHashTimeline() {
+    document.getElementById('hash-explainer-compact').style.display = 'none';
+    document.getElementById('hash-timeline-expanded').style.display = 'block';
+    
+    // Smooth scroll to expanded content with slight delay for better UX
+    setTimeout(() => {
+        document.getElementById('hash-timeline-expanded').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+    }, 100);
+}
+
+function collapseHashTimeline() {
+    document.getElementById('hash-timeline-expanded').style.display = 'none';
+    document.getElementById('hash-explainer-compact').style.display = 'block';
+    
+    // Smooth scroll back to the section header
+    document.getElementById('hash-generation-section').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+function toggleVerticalDetails(step) {
+    const details = document.getElementById(`v-details-${step}`);
+    const isVisible = details.style.display !== 'none';
+    
+    details.style.display = isVisible ? 'none' : 'block';
+}
+
+// Verification Process Functions
+function expandVerificationProcess() {
+    document.getElementById('verification-explainer-compact').style.display = 'none';
+    document.getElementById('verification-process-expanded').style.display = 'block';
+    
+    // Smooth scroll to expanded content with slight delay for better UX
+    setTimeout(() => {
+        document.getElementById('verification-process-expanded').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+    }, 100);
+}
+
+function collapseVerificationProcess() {
+    document.getElementById('verification-process-expanded').style.display = 'none';
+    document.getElementById('verification-explainer-compact').style.display = 'block';
+    
+    // Smooth scroll back to the section header
+    document.getElementById('verification-generation-section').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
 }
 
 // Initialize attestation manager
