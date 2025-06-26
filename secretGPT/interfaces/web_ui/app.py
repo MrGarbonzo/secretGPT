@@ -29,7 +29,7 @@ class WebUIInterface:
         """Initialize the Web UI interface with hub router integration"""
         self.hub_router = hub_router  # Route through hub instead of direct Secret AI
         self.app = FastAPI(
-            title="secretGPT Web UI",
+            title="Attest AI - Trusted AI Platform",
             description="Confidential AI Web Interface with Attestation",
             version="2.0.0"
         )
@@ -85,7 +85,7 @@ class WebUIInterface:
             """Main page - chat interface"""
             return self.templates.TemplateResponse(
                 "index.html", 
-                {"request": request, "title": "secretGPT - Confidential AI Chat"}
+                {"request": request, "title": "Attest AI - Trusted AI Chat"}
             )
         
         @self.app.get("/health")
@@ -244,7 +244,7 @@ class WebUIInterface:
             """Attestation verification page"""
             return self.templates.TemplateResponse(
                 "attestation.html",
-                {"request": request, "title": "VM Attestation Verification"}
+                {"request": request, "title": "Attest AI - Attestation Verification"}
             )
         
         @self.app.get("/api/v1/attestation/self")

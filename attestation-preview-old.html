@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attest AI - Understanding Attestation</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Attest AI Web UI Styles - Trust & Security Theme */
+
+:root {
+    /* Attest AI Trust Color Palette */
+    --primary-green: #2d5016;       /* Deep forest green for headers/accents */
+    --secondary-green: #87a96b;     /* Sage green for status indicators */
+    --warm-brown: #8b4513;          /* Rich earth brown for text/borders */
+    --background-tan: #f5f5dc;      /* Light tan/cream for main background */
+    --card-background: #f0f0e8;     /* Slightly darker tan for contrast cards */
+    --accent-red: #cc5500;          /* Burnt orange-red for alerts/errors */
+    --text-primary: #3e2723;        /* Dark brown for primary text */
+    --text-secondary: #5d4037;      /* Medium brown for secondary text */
+    --proof-yellow: #DAA520;        /* Earthy yellow/orange for proof generation */
+    --proof-yellow-dark: #B8860B;   /* Darker version for hover states */
+    
+    /* Status Indicator Colors */
+    --status-connected: #4caf50;    /* Green circle */
+    --status-error: #f44336;        /* Red circle */
+    --status-checking: #ff9800;     /* Amber circle (with pulse animation) */
+    --status-unknown: #9e9e9e;      /* Gray circle */
+    
+    /* Additional earthy tones */
+    --hover-tan: #ece8d9;           /* Darker tan for hover states */
+    --border-brown: #d7cfc0;        /* Light brown for borders */
+    --shadow-brown: rgba(139, 69, 19, 0.1); /* Brown shadow */
+    
+    /* Streaming Colors */
+    --thinking-cyan: #00bcd4;       /* Cyan for thinking text */
+    --streaming-gradient: linear-gradient(90deg, var(--secondary-green) 0%, var(--primary-green) 100%);
+}
+
+/* General Styles */
+body {
+    background: var(--background-tan);
+    font-family: 'Inter', 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: var(--primary-green) !important;
+}
+
+/* Navigation Bar */
+.navbar-dark {
+    background-color: var(--primary-green) !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--background-tan) !important;
+    font-weight: 500;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffffff !important;
+}
+
+/* Legacy Status Indicators (for attestation page) */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    background: var(--card-background);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+    border: 1px solid var(--border-brown);
+    transition: all 0.3s ease;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.status-indicator:hover {
+    background: var(--hover-tan);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--shadow-brown);
+}
+
+/* Status Circles - Professional Design */
+.status-circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    transition: all 0.3s ease;
+}
+
+.status-connected { 
+    background-color: var(--status-connected);
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+}
+
+.status-error { 
+    background-color: var(--status-error);
+    box-shadow: 0 0 6px rgba(244, 67, 54, 0.4);
+}
+
+.status-checking { 
+    background-color: var(--status-checking);
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 6px rgba(255, 152, 0, 0.4);
+}
+
+.status-unknown { 
+    background-color: var(--status-unknown);
+    box-shadow: 0 0 6px rgba(158, 158, 158, 0.4);
+}
+
+/* Pulse animation for checking status */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Attestation Box Styles */
+.attestation-box {
+    background: var(--card-background);
+    border: 1px solid var(--border-brown);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.attestation-box.verified {
+    border-color: var(--status-connected);
+    background: rgba(76, 175, 80, 0.05);
+}
+
+.attestation-box.error {
+    border-color: var(--status-error);
+    background: rgba(244, 67, 54, 0.05);
+}
+
+.attestation-details {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+}
+
+.attestation-details code {
+    display: block;
+    padding: 0.25rem 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    word-break: break-all;
+}
+
+/* Button Styles */
+.btn-primary {
+    background: var(--primary-green);
+    border: none;
+    color: var(--background-tan);
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.btn-primary:hover {
+    background: #1e3a0f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--shadow-brown);
+    color: var(--background-tan);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.btn-outline-primary {
+    border: 2px solid var(--primary-green);
+    color: var(--primary-green);
+    background: transparent;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-green);
+    color: var(--background-tan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.btn-outline-dark {
+    border: 2px solid var(--warm-brown);
+    color: var(--warm-brown);
+    background: transparent;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-dark:hover {
+    background: var(--warm-brown);
+    color: var(--background-tan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+/* Card Improvements */
+.card {
+    border: 1px solid var(--border-brown);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-brown);
+    background: var(--card-background);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--shadow-brown);
+}
+
+.card-header {
+    background: var(--primary-green);
+    color: var(--background-tan);
+    border: none;
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+}
+
+.card-header h5, .card-header h6 {
+    margin: 0;
+    color: var(--background-tan);
+}
+
+.card-body {
+    padding: 1.5rem;
+    background: var(--card-background);
+}
+
+/* Form Improvements */
+.form-control, .form-select {
+    border: 1px solid var(--warm-brown);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    font-weight: 400;
+    background: var(--background-tan);
+    color: var(--text-primary);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(45, 80, 22, 0.15);
+    background: var(--background-tan);
+    color: var(--text-primary);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+/* Header Styling */
+.text-center h1 {
+    color: var(--primary-green);
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--primary-green);
+}
+
+.lead {
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+/* Progressive Disclosure Styles */
+.drill-down-container {
+    margin-bottom: 1rem;
+}
+
+.drill-down-level {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-brown);
+    border-radius: 6px;
+    background: var(--background-tan);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.drill-down-level:hover {
+    background: var(--hover-tan);
+    border-color: var(--primary-green);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.drill-down-level.active {
+    border-color: var(--primary-green);
+    background: rgba(45, 80, 22, 0.05);
+}
+
+.drill-down-level.locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--card-background);
+}
+
+.drill-down-level.locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border-brown);
+    background: var(--card-background);
+}
+
+.level-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.level-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: white;
+    font-weight: bold;
+    margin-right: 0.75rem;
+}
+
+.level-icon.level-1 { background: var(--status-connected); }
+.level-icon.level-2 { background: var(--proof-yellow); }
+.level-icon.level-3 { background: var(--warm-brown); }
+
+.level-content {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-brown);
+    color: var(--text-secondary);
+    display: none;
+}
+
+.level-content.show {
+    display: block;
+    animation: fadeInDown 0.3s ease-in-out;
+}
+
+.expand-icon {
+    transition: transform 0.3s ease;
+    color: var(--text-secondary);
+}
+
+.expand-icon.rotated {
+    transform: rotate(90deg);
+}
+
+.technical-data {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--card-background);
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-brown);
+    word-break: break-all;
+    margin-top: 0.5rem;
+}
+
+.analogy-highlight {
+    background: rgba(135, 169, 107, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid var(--secondary-green);
+    margin: 0.5rem 0;
+    font-style: italic;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="preview.html">
+                <i class="fas fa-shield-alt"></i> Attest AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="preview.html">
+                            <i class="fas fa-comments"></i> Chat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="attestation-preview.html">
+                            <i class="fas fa-certificate"></i> About Attestation
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text">
+                            <i class="fas fa-lock"></i> Confidential Computing
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <h1><i class="fas fa-certificate"></i> Understanding Attestation</h1>
+                    <p class="lead">Learn how TEE attestation protects your AI conversations</p>
+                    <div class="mt-3">
+                        <a href="preview.html" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Back to Chat
+                        </a>
+                    </div>
+                </div>
+
+
+
+                <!-- Attestation Overview -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> What is Attestation?</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead">Attestation is like a digital seal of authenticity for AI systems. Just as a notary verifies documents, attestation verifies that an AI system is running exactly the code it claims to be running, without any tampering or modifications.</p>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-lock"></i> Why Attestation Matters</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item"><strong>Trust:</strong> Know your AI hasn't been tampered with</li>
+                                    <li class="list-group-item"><strong>Privacy:</strong> Ensure your data stays confidential</li>
+                                    <li class="list-group-item"><strong>Integrity:</strong> Verify the AI runs legitimate code</li>
+                                    <li class="list-group-item"><strong>Compliance:</strong> Meet security requirements</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-microchip"></i> How It Works</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item"><strong>TEE Protection:</strong> Hardware-level security</li>
+                                    <li class="list-group-item"><strong>Cryptographic Proof:</strong> Mathematical verification</li>
+                                    <li class="list-group-item"><strong>Real-time Validation:</strong> Continuous trust</li>
+                                    <li class="list-group-item"><strong>Transparent Process:</strong> You can verify anytime</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dual VM Architecture -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-server"></i> Dual VM Architecture</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Double Layer of Trust:</strong> Attest AI uses two independent VMs - one for the interface and one for AI processing. Both are verified separately, creating enhanced security.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="attestation-box" id="self-vm-box">
+                                    <h6><i class="fas fa-shield-alt"></i> Attest AI VM</h6>
+                                    <p class="small text-muted">Handles user interface and proof generation</p>
+                                    <div class="status-indicator">
+                                        <span class="status-circle status-unknown" id="self-vm-status"></span>
+                                        <span id="self-vm-text">Not Verified</span>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm mt-2" id="verify-self-vm">
+                                        <i class="fas fa-sync"></i> Verify Now
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="attestation-box" id="secretai-vm-box">
+                                    <h6><i class="fas fa-brain"></i> Secret AI VM</h6>
+                                    <p class="small text-muted">Processes AI requests securely</p>
+                                    <div class="status-indicator">
+                                        <span class="status-circle status-unknown" id="secretai-vm-status"></span>
+                                        <span id="secretai-vm-text">Not Verified</span>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm mt-2" id="verify-secretai-vm">
+                                        <i class="fas fa-sync"></i> Verify Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-primary" id="verify-both-vms">
+                                <i class="fas fa-shield-alt"></i> Verify Both VMs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technical Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cogs"></i> Technical Components Explained</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-fingerprint"></i> Measurement Values</h6>
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item">
+                                        <strong>MRTD</strong> <span class="badge bg-primary">Measurement of Trust Domain</span>
+                                        <p class="small mt-1 mb-0">A unique fingerprint of the VM's initial state - like a birth certificate for the secure environment</p>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <strong>RTMR0-3</strong> <span class="badge bg-info">Runtime Measurement Registers</span>
+                                        <p class="small mt-1 mb-0">Real-time health checks that monitor the VM hasn't been compromised during operation</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-shield-alt"></i> Security Features</h6>
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item">
+                                        <strong>Report Data</strong> <span class="badge bg-success">Instance Proof</span>
+                                        <p class="small mt-1 mb-0">Custom information proving this specific VM instance is authentic</p>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <strong>Certificate Fingerprint</strong> <span class="badge bg-warning">MITM Protection</span>
+                                        <p class="small mt-1 mb-0">Ensures you're talking to the right VM, preventing impersonation attacks</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attestation Details -->
+                <div class="row">
+                    <!-- Self VM Attestation -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="fas fa-shield-alt"></i> Attest AI VM Details</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="self-vm-details" class="attestation-details" style="display: none;">
+                                    <div class="mb-2">
+                                        <strong>MRTD:</strong>
+                                        <code class="d-block" id="self-mrtd">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR0:</strong>
+                                        <code class="d-block" id="self-rtmr0">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR1:</strong>
+                                        <code class="d-block" id="self-rtmr1">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR2:</strong>
+                                        <code class="d-block" id="self-rtmr2">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR3:</strong>
+                                        <code class="d-block" id="self-rtmr3">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Report Data:</strong>
+                                        <code class="d-block small" id="self-report-data">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Certificate Fingerprint:</strong>
+                                        <code class="d-block small" id="self-cert-fingerprint">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Timestamp:</strong>
+                                        <span id="self-timestamp">-</span>
+                                    </div>
+                                </div>
+                                <div id="self-vm-loading" class="text-center" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    <span class="ms-2">Loading attestation...</span>
+                                </div>
+                                <div id="self-vm-error" class="text-danger" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Secret AI VM Attestation -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="fas fa-brain"></i> Secret AI VM Details</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="secretai-vm-details" class="attestation-details" style="display: none;">
+                                    <div class="mb-2">
+                                        <strong>MRTD:</strong>
+                                        <code class="d-block" id="secretai-mrtd">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR0:</strong>
+                                        <code class="d-block" id="secretai-rtmr0">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR1:</strong>
+                                        <code class="d-block" id="secretai-rtmr1">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR2:</strong>
+                                        <code class="d-block" id="secretai-rtmr2">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>RTMR3:</strong>
+                                        <code class="d-block" id="secretai-rtmr3">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Report Data:</strong>
+                                        <code class="d-block small" id="secretai-report-data">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Certificate Fingerprint:</strong>
+                                        <code class="d-block small" id="secretai-cert-fingerprint">-</code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Timestamp:</strong>
+                                        <span id="secretai-timestamp">-</span>
+                                    </div>
+                                </div>
+                                <div id="secretai-vm-loading" class="text-center" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    <span class="ms-2">Loading attestation...</span>
+                                </div>
+                                <div id="secretai-vm-error" class="text-danger" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progressive Disclosure Documentation -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-graduation-cap"></i> Understanding Your Attestation</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">Click each level to learn more about how your AI conversations are protected:</p>
+                
+                <!-- MRTD Explanation -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-fingerprint"></i> VM Integrity Verification (MRTD)</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="mrtd">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>VM integrity verified ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Your virtual machine has been verified as secure and unmodified.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="mrtd">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like a tamper-evident seal - proves nothing was modified since startup</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-shield-alt"></i> <strong>Think of it like:</strong> A tamper-evident seal on a product package. Just as you can tell if someone opened a sealed envelope, MRTD lets you verify that no one has modified the AI system since it was securely started.
+                            </div>
+                            <p>This cryptographic measurement is taken at the moment the virtual machine boots up, creating a unique fingerprint that would change if anyone tried to modify the system.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="mrtd">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>MRTD hash is your VM's unique fingerprint from secure boot</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong> The Measurement of Trust Domain (MRTD) is a SHA-384 hash that includes:</p>
+                            <ul>
+                                <li>Initial VM configuration and firmware</li>
+                                <li>Bootloader and operating system components</li>
+                                <li>Application binaries and dependencies</li>
+                            </ul>
+                            <div class="technical-data" id="current-mrtd">
+                                Click "Verify" above to see the actual MRTD value
+                            </div>
+                            <p class="mt-2"><small>This measurement is computed by Intel TDX hardware and cannot be forged or manipulated by software.</small></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Runtime Monitoring -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-heartbeat"></i> Runtime Security Monitoring (RTMR)</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="rtmr">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Runtime security active ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Continuous monitoring ensures your AI system remains secure while running.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="rtmr">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like a security camera system - continuously monitors for any changes</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-video"></i> <strong>Think of it like:</strong> A bank's security system that continuously monitors for unauthorized access. RTMR values act like security cameras, detecting any unauthorized changes to the system while it's running.
+                            </div>
+                            <p>These measurements update in real-time, so if anything suspicious happens, you'd know immediately.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="rtmr">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>RTMR registers track all system activities and modifications</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong> Runtime Measurement Registers (RTMR 0-3) each track different aspects:</p>
+                            <ul>
+                                <li><strong>RTMR0:</strong> Operating system and kernel activities</li>
+                                <li><strong>RTMR1:</strong> Application-level changes and updates</li>
+                                <li><strong>RTMR2:</strong> Configuration and policy modifications</li>
+                                <li><strong>RTMR3:</strong> Custom measurements and attestation data</li>
+                            </ul>
+                            <div class="technical-data" id="current-rtmr">
+                                Click "Verify" above to see the actual RTMR values
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Infrastructure Transparency -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-code-branch"></i> Infrastructure Transparency</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="infra">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Running verified code ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            The AI system is running verified, unmodified code from a trusted source.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="infra">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like checking the software version and publisher before installing</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-download"></i> <strong>Think of it like:</strong> Checking that an app download is from the official App Store and hasn't been modified. You can verify the exact version and that it came from the legitimate developer.
+                            </div>
+                            <p>This transparency lets you trace the running code back to its source and verify it matches what was intended to run.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="infra">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>Docker image and GitHub commit verification available</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Infrastructure Details:</strong></p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Current Deployment:</strong>
+                                    <div class="technical-data">
+                                        Image: attestai/chat-interface:v2.1.0<br>
+                                        SHA256: abc123def456...<br>
+                                        Built: 2024-06-24 14:30 UTC
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Source Code:</strong>
+                                    <div class="technical-data">
+                                        Repo: MrGarbonzo/secretGPT<br>
+                                        Branch: attest_ai<br>
+                                        Commit: def456789abc...
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mt-2">
+                                <a href="https://github.com/MrGarbonzo/secretGPT/tree/attest_ai" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-github"></i> View Source Code
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-sm ms-2">
+                                    <i class="fab fa-docker"></i> View Docker Image
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-World Analogy -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-lightbulb"></i> Real-World Analogy</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-mail-bulk"></i> Think of it like Certified Mail</h6>
+                            <p class="mb-2">If AI conversations were physical mail, attestation would be the combination of:</p>
+                            <ul class="mb-0">
+                                <li><strong>Tamper-evident seal</strong> → VM hasn't been modified</li>
+                                <li><strong>Postmark</strong> → Timestamp proving when it was processed</li>
+                                <li><strong>Certified delivery receipt</strong> → Proof your message reached the right AI securely</li>
+                                <li><strong>Return receipt</strong> → Verification that the response came from the authentic system</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Resources -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-external-link-alt"></i> Learn More</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-book"></i> Documentation</h6>
+                                <ul class="list-unstyled">
+                                    <li><a href="https://docs.secretnetwork.com/" target="_blank">Secret Network Docs</a></li>
+                                    <li><a href="https://intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html" target="_blank">Intel TDX Overview</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fab fa-github"></i> Source Code</h6>
+                                <ul class="list-unstyled">
+                                    <li><a href="https://github.com/scrtlabs/SecretNetwork" target="_blank">Secret Network</a></li>
+                                    <li><a href="#" target="_blank">Attest AI (Coming Soon)</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-question-circle"></i> Support</h6>
+                                <ul class="list-unstyled">
+                                    <li><a href="https://discord.gg/secret-network" target="_blank">Discord Community</a></li>
+                                    <li><a href="https://forum.scrt.network/" target="_blank">Forum</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Demo attestation functionality - same as main attestation.js
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verification buttons
+            const verifySelfButton = document.getElementById('verify-self-vm');
+            const verifySecretAIButton = document.getElementById('verify-secretai-vm');
+            const verifyBothButton = document.getElementById('verify-both-vms');
+
+            // Demo attestation data
+            const demoAttestationData = {
+                self: {
+                    mrtd: "d1b2c3a4f5e6d7c8b9a0f1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0d1c2",
+                    rtmr0: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+                    rtmr1: "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+                    rtmr2: "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+                    rtmr3: "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+                    report_data: "41747465737441490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                    certificate_fingerprint: "sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+                    timestamp: new Date().toISOString()
+                },
+                secretai: {
+                    mrtd: "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+                    rtmr0: "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7",
+                    rtmr1: "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8",
+                    rtmr2: "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9",
+                    rtmr3: "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0",
+                    report_data: "536563726574414900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                    certificate_fingerprint: "sha256:2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3",
+                    timestamp: new Date().toISOString()
+                }
+            };
+
+            function setLoadingState(vmType, loading) {
+                const loadingDiv = document.getElementById(`${vmType}-vm-loading`);
+                const detailsDiv = document.getElementById(`${vmType}-vm-details`);
+                const errorDiv = document.getElementById(`${vmType}-vm-error`);
+                
+                if (loading) {
+                    if (loadingDiv) loadingDiv.style.display = 'block';
+                    if (detailsDiv) detailsDiv.style.display = 'none';
+                    if (errorDiv) errorDiv.style.display = 'none';
+                } else {
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                }
+            }
+
+            function updateVMStatus(vmId, status) {
+                const statusIcon = document.getElementById(`${vmId}-status`);
+                const statusText = document.getElementById(`${vmId}-text`);
+                const vmBox = document.getElementById(`${vmId}-box`);
+                
+                if (statusIcon && statusText && vmBox) {
+                    switch (status) {
+                        case 'verified':
+                            statusIcon.className = 'status-circle status-connected';
+                            statusText.textContent = 'Verified';
+                            vmBox.classList.add('verified');
+                            vmBox.classList.remove('error');
+                            break;
+                        case 'error':
+                            statusIcon.className = 'status-circle status-error';
+                            statusText.textContent = 'Verification Failed';
+                            vmBox.classList.add('error');
+                            vmBox.classList.remove('verified');
+                            break;
+                        case 'checking':
+                            statusIcon.className = 'status-circle status-checking';
+                            statusText.textContent = 'Verifying...';
+                            break;
+                        default:
+                            statusIcon.className = 'status-circle status-unknown';
+                            statusText.textContent = 'Not Verified';
+                            vmBox.classList.remove('verified', 'error');
+                    }
+                }
+            }
+
+            function displayAttestationData(vmType, attestation) {
+                const detailsDiv = document.getElementById(`${vmType}-vm-details`);
+                if (!detailsDiv) return;
+
+                // Update all attestation fields
+                document.getElementById(`${vmType}-mrtd`).textContent = attestation.mrtd;
+                document.getElementById(`${vmType}-rtmr0`).textContent = attestation.rtmr0;
+                document.getElementById(`${vmType}-rtmr1`).textContent = attestation.rtmr1;
+                document.getElementById(`${vmType}-rtmr2`).textContent = attestation.rtmr2;
+                document.getElementById(`${vmType}-rtmr3`).textContent = attestation.rtmr3;
+                document.getElementById(`${vmType}-report-data`).textContent = attestation.report_data;
+                document.getElementById(`${vmType}-cert-fingerprint`).textContent = attestation.certificate_fingerprint;
+                
+                // Format timestamp
+                const timestamp = new Date(attestation.timestamp).toLocaleString();
+                document.getElementById(`${vmType}-timestamp`).textContent = timestamp;
+
+                // Show details
+                detailsDiv.style.display = 'block';
+            }
+
+            function verifyVM(vmType) {
+                setLoadingState(vmType, true);
+                updateVMStatus(`${vmType}-vm`, 'checking');
+                
+                // Simulate verification delay
+                setTimeout(() => {
+                    try {
+                        const attestationData = demoAttestationData[vmType];
+                        displayAttestationData(vmType, attestationData);
+                        updateVMStatus(`${vmType}-vm`, 'verified');
+                        showAlert(`${vmType === 'self' ? 'Attest AI' : 'Secret AI'} VM verified successfully!`, 'success');
+                    } catch (error) {
+                        updateVMStatus(`${vmType}-vm`, 'error');
+                        showAlert(`${vmType === 'self' ? 'Attest AI' : 'Secret AI'} VM verification failed!`, 'danger');
+                    } finally {
+                        setLoadingState(vmType, false);
+                    }
+                }, 2000);
+            }
+
+            // Event listeners
+            if (verifySelfButton) {
+                verifySelfButton.addEventListener('click', () => verifyVM('self'));
+            }
+            
+            if (verifySecretAIButton) {
+                verifySecretAIButton.addEventListener('click', () => verifyVM('secretai'));
+            }
+            
+            if (verifyBothButton) {
+                verifyBothButton.addEventListener('click', () => {
+                    verifyVM('self');
+                    setTimeout(() => verifyVM('secretai'), 1000);
+                });
+            }
+
+            function showAlert(message, type) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                document.body.appendChild(alertDiv);
+
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

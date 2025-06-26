@@ -1,0 +1,29 @@
+version: '3.8'
+
+# Debug configuration to test without domain/SSL complexity
+services:
+  secretgpt:
+    image: ghcr.io/mrgarbonzo/secretgpt:attest_ai
+    container_name: attestai-hub-debug
+    ports:
+      - "8003:8000"
+    environment:
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
+      - SECRETGPT_HUB_HOST=0.0.0.0
+      - SECRETGPT_HUB_PORT=8000
+      - SECRETGPT_RUN_MODE=service
+      - SECRETGPT_ENABLE_WEB_UI=true
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+
+  # Simple nginx test to verify domain routing works
+  nginx-test:
+    image: nginx:alpine
+    container_name: nginx-test
+    ports:
+      - "8080:80"
+    volumes:
+      - /dev/null:/usr/share/nginx/html/index.html:ro
+    command: |
+      sh -c 'echo "<h1>Nginx Test - Domain routing works!</h1>" > /usr/share/nginx/html/index.html && nginx -g "daemon off;"'

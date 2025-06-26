@@ -1,44 +1,88 @@
 {% extends "base.html" %}
 
-{% block title %}ChaTEE Attestation Verification - {{ title }}{% endblock %}
+{% block title %}Attest AI - Understanding Attestation{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-lg-10 mx-auto">
         <!-- Header -->
         <div class="text-center mb-4">
-            <h1><i class="fas fa-certificate"></i> ChaTEE Attestation Verification</h1>
-            <p class="lead">Verify the integrity and authenticity of confidential computing</p>
+            <h1><i class="fas fa-certificate"></i> Understanding Attestation</h1>
+            <p class="lead">Learn how TEE attestation protects your secure computing environment</p>
+            <div class="mt-3">
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Chat
+                </a>
+            </div>
         </div>
 
-        <!-- Dual Attestation Overview -->
+        <!-- Attestation Overview -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5><i class="fas fa-server"></i> Dual VM Attestation Status</h5>
+                <h5><i class="fas fa-info-circle"></i> What is Attestation?</h5>
             </div>
             <div class="card-body">
+                <p class="lead">Attestation is like a digital seal of authenticity for secure systems. Just as a notary verifies documents, attestation verifies that a system is running exactly the code it claims to be running, without any tampering or modifications.</p>
+                
+                <div class="row mt-4">
+                <div class="col-md-6">
+                <h6><i class="fas fa-lock"></i> Why Attestation Matters</h6>
+                <ul class="list-unstyled">
+                <li><strong>Trust:</strong> Know your system hasn't been tampered with</li>
+                <li><strong>Privacy:</strong> Ensure your data stays confidential</li>
+                <li><strong>Integrity:</strong> Verify the system runs legitimate code</li>
+                <li><strong>Compliance:</strong> Meet security requirements</li>
+                <li><strong>Auditability:</strong> Complete verification history</li>
+                </ul>
+                </div>
+                <div class="col-md-6">
+                <h6><i class="fas fa-microchip"></i> How It Works</h6>
+                <ul class="list-unstyled">
+                <li><strong>TEE Protection:</strong> Hardware-level security</li>
+                <li><strong>Cryptographic Proof:</strong> Signatures that prove the code hasn't been altered</li>
+                <li><strong>Remote Attestation:</strong> Receive verifiable evidence that the system is running in a trusted state</li>
+                <li><strong>Sealed Execution:</strong> Code runs in protected isolation</li>
+                </ul>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dual VM Architecture -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-server"></i> Dual VM Architecture</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Double Layer of Trust:</strong> Attest AI uses two independent VMs - one for the interface and one for AI processing. Both are verified separately, creating enhanced security.
+                </div>
+                
                 <div class="row">
                     <div class="col-md-6">
                         <div class="attestation-box" id="self-vm-box">
-                            <h6><i class="fas fa-leaf"></i> ChaTEE VM</h6>
+                            <h6><i class="fas fa-shield-alt"></i> Attest AI VM</h6>
+                            <p class="small text-muted">Handles user interface and proof generation</p>
                             <div class="status-indicator">
                                 <span class="status-circle status-unknown" id="self-vm-status"></span>
                                 <span id="self-vm-text">Not Verified</span>
                             </div>
                             <button class="btn btn-outline-primary btn-sm mt-2" id="verify-self-vm">
-                                <i class="fas fa-sync"></i> Verify
+                                <i class="fas fa-sync"></i> Verify Now
                             </button>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="attestation-box" id="secretai-vm-box">
                             <h6><i class="fas fa-brain"></i> Secret AI VM</h6>
+                            <p class="small text-muted">Processes AI requests securely</p>
                             <div class="status-indicator">
                                 <span class="status-circle status-unknown" id="secretai-vm-status"></span>
                                 <span id="secretai-vm-text">Not Verified</span>
                             </div>
                             <button class="btn btn-outline-primary btn-sm mt-2" id="verify-secretai-vm">
-                                <i class="fas fa-sync"></i> Verify
+                                <i class="fas fa-sync"></i> Verify Now
                             </button>
                         </div>
                     </div>
@@ -57,7 +101,7 @@
             <div class="col-lg-6 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <h6><i class="fas fa-leaf"></i> ChaTEE VM Attestation</h6>
+                        <h6><i class="fas fa-shield-alt"></i> Attest AI VM Details</h6>
                     </div>
                     <div class="card-body">
                         <div id="self-vm-details" class="attestation-details" style="display: none;">
@@ -107,7 +151,7 @@
             <div class="col-lg-6 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <h6><i class="fas fa-brain"></i> Secret AI VM Attestation</h6>
+                        <h6><i class="fas fa-brain"></i> Secret AI VM Details</h6>
                     </div>
                     <div class="card-body">
                         <div id="secretai-vm-details" class="attestation-details" style="display: none;">
@@ -154,59 +198,687 @@
             </div>
         </div>
 
-        <!-- Proof Verification -->
-        <div class="card">
+        <!-- How Attestation Hashes Are Created -->
+        <div class="card mb-4" id="hash-generation-section">
             <div class="card-header">
-                <h6><i class="fas fa-file-signature"></i> Proof File Verification</h6>
+                <h5><i class="fas fa-calculator"></i> How Attestation Hashes Are Created</h5>
             </div>
             <div class="card-body">
-                <form id="proof-verify-form">
-                    <div class="row">
+                <!-- Compact Explainer -->
+                <div id="hash-explainer-compact">
+                    <p class="lead">Attestation hashes are cryptographic fingerprints created at each stage of your VM's lifecycle - from hardware boot to runtime monitoring.</p>
+                    
+                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="proof-file" class="form-label">Select Proof File (.attestproof)</label>
-                                <input type="file" class="form-control" id="proof-file" accept=".attestproof" required>
-                            </div>
+                            <h6><i class="fas fa-microchip"></i> Boot-Time Creation</h6>
+                            <p class="mb-2">Intel TDX hardware measures each component as it loads:</p>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-arrow-right text-primary"></i> Hardware → Firmware → OS → Applications</li>
+                                <li><i class="fas fa-arrow-right text-primary"></i> Each step extends the cryptographic chain</li>
+                            </ul>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="proof-verify-password" class="form-label">Decryption Password</label>
-                                <input type="password" class="form-control" id="proof-verify-password" required>
+                            <h6><i class="fas fa-heartbeat"></i> Runtime Updates</h6>
+                            <p class="mb-2">System continuously updates hash values:</p>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-arrow-right text-success"></i> MRTD: Fixed at boot (like a birth certificate)</li>
+                                <li><i class="fas fa-arrow-right text-success"></i> RTMR: Live updates (like a security camera)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button class="btn btn-primary" onclick="expandHashTimeline()">
+                            <i class="fas fa-plus-circle"></i> Show Detailed Timeline Process
+                        </button>
+                        <small class="d-block mt-2 text-muted">See the step-by-step hash generation process with technical details</small>
+                    </div>
+                </div>
+
+                <!-- Expanded Timeline Section (Hidden by Default) -->
+                <div id="hash-timeline-expanded" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-1">Step-by-Step Hash Generation Process</h6>
+                            <small class="text-muted">Click any step to see technical implementation details</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="collapseHashTimeline()">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vertical Timeline -->
+                    <div class="vertical-timeline">
+                        <!-- Step 1: Hardware Boot -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(1)">
+                            <div class="vertical-step-node step-1">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-microchip"></i>
+                                    Hardware Boot & TDX Initialization
+                                </div>
+                                <div class="timeline-description">
+                                    Intel TDX hardware validates itself and creates the foundation for all future measurements. This is like the "birth certificate" of your secure environment.
+                                </div>
+                                <div class="hash-info" id="v-details-1" style="display: none;">
+                                    <div class="hash-algorithm">Process: Hardware-validated security initialization</div>
+                                    <div class="hash-output">Creates cryptographic foundation for MRTD calculation</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>CPU microcode signatures</li>
+                                        <li>TDX firmware version and configuration</li>
+                                        <li>Hardware security features and capabilities</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Firmware Load -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(2)">
+                            <div class="vertical-step-node step-2">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-cog"></i>
+                                    Firmware Load & Bootloader Measurement
+                                </div>
+                                <div class="timeline-description">
+                                    UEFI firmware and bootloader components are measured using SHA-384 hashing. Each component's binary data contributes to the growing MRTD value.
+                                </div>
+                                <div class="hash-info" id="v-details-2" style="display: none;">
+                                    <div class="hash-algorithm">Algorithm: SHA-384 cryptographic hashing</div>
+                                    <div class="hash-output">MRTD = SHA384(hardware_foundation + firmware_binaries + bootloader_code)</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>UEFI firmware binary and configuration</li>
+                                        <li>Bootloader executable (GRUB, systemd-boot, etc.)</li>
+                                        <li>Boot configuration and security policies</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: OS Launch -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(3)">
+                            <div class="vertical-step-node step-3">
+                                <i class="fas fa-desktop"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-desktop"></i>
+                                    Operating System Launch & MRTD Finalization
+                                </div>
+                                <div class="timeline-description">
+                                    The kernel and core OS components complete the MRTD calculation. This creates your VM's unique fingerprint that proves its integrity from boot.
+                                </div>
+                                <div class="hash-info" id="v-details-3" style="display: none;">
+                                    <div class="hash-algorithm">Algorithm: SHA-384 final MRTD calculation + RTMR0 initialization</div>
+                                    <div class="hash-output">MRTD finalized (immutable), RTMR0 = SHA384(kernel_image + initrd + system_config)</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>Linux kernel binary and command line</li>
+                                        <li>Initial ramdisk (initrd/initramfs)</li>
+                                        <li>Core system configuration files</li>
+                                        <li>Essential system services and modules</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Application Start -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(4)">
+                            <div class="vertical-step-node step-4">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-rocket"></i>
+                                    Application Launch & RTMR Updates
+                                </div>
+                                <div class="timeline-description">
+                                    Applications and services start up, with each component extending the appropriate RTMR register. This tracks what software is actually running.
+                                </div>
+                                <div class="hash-info" id="v-details-4" style="display: none;">
+                                    <div class="hash-algorithm">Algorithm: SHA-384 extending (RTMR_new = SHA384(RTMR_current + new_measurement))</div>
+                                    <div class="hash-output">RTMR1 tracks applications, RTMR2 tracks configs, RTMR3 tracks custom data</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>Application binaries (AttestAI, SecretAI, etc.)</li>
+                                        <li>Shared libraries and dependencies</li>
+                                        <li>Application configuration files</li>
+                                        <li>Security policies and network settings</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Runtime Monitoring -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(5)">
+                            <div class="vertical-step-node step-5">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-heartbeat"></i>
+                                    Runtime Monitoring & Continuous Updates
+                                </div>
+                                <div class="timeline-description">
+                                    The system continuously monitors and measures runtime events, extending RTMR values in real-time. Any changes are immediately reflected in the attestation.
+                                </div>
+                                <div class="hash-info" id="v-details-5" style="display: none;">
+                                    <div class="hash-algorithm">Algorithm: Live SHA-384 extending for each measured event</div>
+                                    <div class="hash-output">RTMRx = SHA384(current_value + event_data + timestamp)</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Events:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>System calls and process executions</li>
+                                        <li>Configuration file modifications</li>
+                                        <li>Network connection events</li>
+                                        <li>Security policy changes</li>
+                                        <li>Custom application measurements</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-check-circle"></i> Verify Proof
-                    </button>
-                </form>
-
-                <!-- Proof Verification Results -->
-                <div id="proof-results" class="mt-4" style="display: none;">
-                    <h6>Verification Results</h6>
-                    <div id="proof-content"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Documentation -->
-        <div class="card mt-4">
+        <!-- Technical Details -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h6><i class="fas fa-info-circle"></i> About VM Attestation</h6>
+                <h5><i class="fas fa-cogs"></i> Technical Components Explained</h5>
             </div>
             <div class="card-body">
-                <p>VM attestation provides cryptographic proof that the virtual machine is running authentic, unmodified software in a trusted execution environment (TEE).</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-fingerprint"></i> Measurement Values</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item">
+                                <strong>MRTD</strong> <span class="badge bg-primary">Measurement of Trust Domain</span>
+                                <p class="small mt-1 mb-0">A unique fingerprint of the VM's initial state - like a birth certificate for the secure environment</p>
+                            </div>
+                            <div class="list-group-item">
+                                <strong>RTMR0-3</strong> <span class="badge bg-info">Runtime Measurement Registers</span>
+                                <p class="small mt-1 mb-0">Real-time health checks that monitor the VM hasn't been compromised during operation</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-shield-alt"></i> Security Features</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item">
+                                <strong>Report Data</strong> <span class="badge bg-success">Instance Proof</span>
+                                <p class="small mt-1 mb-0">Custom information proving this specific VM instance is authentic</p>
+                            </div>
+                            <div class="list-group-item">
+                                <strong>Certificate Fingerprint</strong> <span class="badge bg-warning">MITM Protection</span>
+                                <p class="small mt-1 mb-0">Ensures you're talking to the right VM, preventing impersonation attacks</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progressive Disclosure Documentation -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-graduation-cap"></i> Understanding Your Attestation</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">Click each level to learn more about how your secure environment is protected:</p>
                 
-                <h6>Key Components:</h6>
-                <ul>
-                    <li><strong>MRTD:</strong> Measurement of the TD (Trust Domain)</li>
-                    <li><strong>RTMR0-3:</strong> Runtime Measurement Registers</li>
-                    <li><strong>Report Data:</strong> Custom data included in the attestation</li>
-                    <li><strong>Certificate Fingerprint:</strong> TLS certificate hash for MITM protection</li>
-                </ul>
+                <!-- MRTD Explanation -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-fingerprint"></i> VM Integrity Verification (MRTD)</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="mrtd">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>VM integrity verified ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Your virtual machine has been verified as secure and unmodified.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="mrtd">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like a tamper-evident seal - proves nothing was modified since startup</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-shield-alt"></i> <strong>Think of it like:</strong> A tamper-evident seal on a product package. Just as you can tell if someone opened a sealed envelope, MRTD lets you verify that no one has modified the system since it was securely started.
+                            </div>
+                            <p>This cryptographic measurement is taken at the moment the virtual machine boots up, creating a unique fingerprint that would change if anyone tried to modify the system.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="mrtd">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>MRTD hash is your VM's unique fingerprint from secure boot</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong> The Measurement of Trust Domain (MRTD) is a SHA-384 hash that includes:</p>
+                            <ul>
+                                <li>Initial VM configuration and firmware</li>
+                                <li>Bootloader and operating system components</li>
+                                <li>Application binaries and dependencies</li>
+                            </ul>
+                            <div class="technical-data" id="current-mrtd">
+                                Click "Verify" above to see the actual MRTD value
+                            </div>
+                            <p class="mt-2"><small>This measurement is computed by Intel TDX hardware and cannot be forged or manipulated by software.</small></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Runtime Monitoring -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-heartbeat"></i> Runtime Security Monitoring (RTMR)</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="rtmr">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Runtime security active ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Continuous monitoring ensures your system remains secure while running.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="rtmr">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like a security camera system - continuously monitors for any changes</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-video"></i> <strong>Think of it like:</strong> A bank's security system that continuously monitors for unauthorized access. RTMR values act like security cameras, detecting any unauthorized changes to the system while it's running.
+                            </div>
+                            <p>These measurements update in real-time, so if anything suspicious happens, you'd know immediately.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="rtmr">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>RTMR registers track all system activities and modifications</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong> Runtime Measurement Registers (RTMR 0-3) each track different aspects:</p>
+                            <ul>
+                                <li><strong>RTMR0:</strong> Operating system and kernel activities</li>
+                                <li><strong>RTMR1:</strong> Application-level changes and updates</li>
+                                <li><strong>RTMR2:</strong> Configuration and policy modifications</li>
+                                <li><strong>RTMR3:</strong> Custom measurements and attestation data</li>
+                            </ul>
+                            <div class="technical-data" id="current-rtmr">
+                                Click "Verify" above to see the actual RTMR values
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Data Explanation -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-file-signature"></i> Report Data (Instance Proof)</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="report">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Instance proof verified ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Custom data proving this specific VM instance is authentic and unmodified.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="report">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like a unique serial number - proves this exact instance</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-barcode"></i> <strong>Think of it like:</strong> A unique serial number on a piece of hardware. Just as each device has a specific serial number to identify it, Report Data contains custom information that proves you're talking to this exact VM instance.
+                            </div>
+                            <p>This data can include application-specific identifiers, configuration hashes, or other custom proof data that helps verify the VM's identity and state.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="report">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>Custom attestation data embedded during VM creation</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong> Report Data is a 64-byte field that can contain:</p>
+                            <ul>
+                                <li>Application-specific identifiers (like "AttestAI")</li>
+                                <li>Configuration or policy hashes</li>
+                                <li>Nonces for replay attack prevention</li>
+                                <li>Custom challenge-response data</li>
+                            </ul>
+                            <div class="technical-data" id="current-report">
+                                Click "Verify" above to see the actual Report Data
+                            </div>
+                            <p class="mt-2"><small>This data is embedded during attestation generation and cannot be modified without invalidating the cryptographic signature.</small></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certificate Fingerprint Explanation -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-certificate"></i> Certificate Fingerprint (MITM Protection)</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="cert">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Certificate verified ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Cryptographic proof that you're communicating with the authentic VM, not an imposter.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="cert">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like an ID card photo - prevents identity theft</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-id-card"></i> <strong>Think of it like:</strong> The photo on an ID card that prevents someone else from using your identity. The certificate fingerprint ensures that no one can impersonate the VM or intercept your communications.
+                            </div>
+                            <p>This prevents man-in-the-middle attacks where an attacker might try to pose as the legitimate VM to steal your data or provide false responses.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="cert">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>SHA-256 hash of the VM's TLS certificate</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong> The Certificate Fingerprint is a SHA-256 hash of:</p>
+                            <ul>
+                                <li>The VM's TLS/SSL certificate public key</li>
+                                <li>Certificate metadata and extensions</li>
+                                <li>Issuer and validity information</li>
+                            </ul>
+                            <div class="technical-data" id="current-cert">
+                                Click "Verify" above to see the actual Certificate Fingerprint
+                            </div>
+                            <p class="mt-2"><small>This fingerprint is cryptographically bound to the attestation, ensuring the certificate cannot be swapped or modified.</small></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Infrastructure Transparency -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-code-branch"></i> Infrastructure Transparency</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="infra">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Running verified code ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            The system is running verified, unmodified code from a trusted source.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="infra">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like checking the software version and publisher before installing</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-download"></i> <strong>Think of it like:</strong> Checking that an app download is from the official App Store and hasn't been modified. You can verify the exact version and that it came from the legitimate developer.
+                            </div>
+                            <p>This transparency lets you trace the running code back to its source and verify it matches what was intended to run.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="infra">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>Docker image and GitHub commit verification available</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Infrastructure Details:</strong></p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Current Deployment:</strong>
+                                    <div class="technical-data">
+                                        Image: attestai/chat-interface:v2.1.0<br>
+                                        SHA256: abc123def456...<br>
+                                        Built: 2024-06-24 14:30 UTC
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Source Code:</strong>
+                                    <div class="technical-data">
+                                        Repo: MrGarbonzo/secretGPT<br>
+                                        Branch: attest_ai<br>
+                                        Commit: def456789abc...
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mt-2">
+                                <a href="https://github.com/MrGarbonzo/secretGPT/tree/attest_ai" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-github"></i> View Source Code
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-sm ms-2">
+                                    <i class="fab fa-docker"></i> View Docker Image
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verifying Your Attestation -->
+        <div class="card mb-4" id="verification-generation-section">
+            <div class="card-header">
+                <h5><i class="fas fa-search"></i> Verifying Your Attestation</h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">Verification proves your attestation measurements are cryptographically authentic and match expected values for a secure system.</p>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle"></i> Chain of Trust</h6>
+                        <p class="mb-2">Cryptographic validation from Intel to your VM:</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-arrow-right text-primary"></i> Intel Root CA validates platform certificates</li>
+                            <li><i class="fas fa-arrow-right text-primary"></i> Platform certificates sign your VM's measurements</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-balance-scale"></i> Measurement Validation</h6>
+                        <p class="mb-2">Compare actual vs expected values:</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-arrow-right text-success"></i> MRTD: Matches known-good boot configuration</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> RTMRs: Current runtime state is legitimate</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- What Verification Proves -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle"></i> What Verification Proves</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-arrow-right text-success"></i> Measurements are cryptographically authentic</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> System matches known-good configuration</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> No tampering since secure boot</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> Hardware and software integrity confirmed</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-exclamation-triangle"></i> What Verification Catches</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-arrow-right text-danger"></i> Malware injection attempts</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Unauthorized code modifications</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Configuration tampering</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Replay attacks with old measurements</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Certificate Chain of Trust -->
+                <h6><i class="fas fa-link"></i> Certificate Chain of Trust</h6>
+                <p class="mb-3">Attestation verification follows a chain of cryptographic trust back to Intel:</p>
+                
+                <div class="cert-chain">
+                    <div class="cert-level root">
+                        <i class="fas fa-certificate"></i>
+                        <div><strong>Intel Root CA</strong></div>
+                        <small>Hardware manufacturer</small>
+                    </div>
+                    <div class="cert-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="cert-level intermediate">
+                        <i class="fas fa-microchip"></i>
+                        <div><strong>TDX Platform</strong></div>
+                        <small>Specific CPU/motherboard</small>
+                    </div>
+                    <div class="cert-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="cert-level leaf">
+                        <i class="fas fa-server"></i>
+                        <div><strong>Your VM</strong></div>
+                        <small>Attestation report</small>
+                    </div>
+                </div>
 
                 <div class="alert alert-info">
-                    <i class="fas fa-shield-alt"></i>
-                    <strong>Dual VM Attestation:</strong> Both the ChaTEE VM and Secret AI VM are independently verified to ensure complete trust chain.
+                    <i class="fas fa-info-circle"></i> <strong>Root of Trust:</strong> 
+                    Intel's root certificates are embedded in TDX hardware during manufacturing and cannot be modified. This creates an unbreakable chain of trust from your VM back to Intel's secure facilities.
+                </div>
+
+                <!-- Verification Steps -->
+                <h6 class="mt-4"><i class="fas fa-list-ol"></i> Step-by-Step Verification Process</h6>
+                
+                <div class="verification-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Certificate Validation</div>
+                        <div class="step-description">
+                            Verify the attestation report's digital signature using Intel's certificate chain. This proves the measurements came from genuine Intel TDX hardware, not a fake or compromised system.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="verification-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Measurement Comparison</div>
+                        <div class="step-description">
+                            Compare actual MRTD and RTMR values against known-good "golden" measurements for your specific system configuration. Exact matches prove no unauthorized changes occurred.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="verification-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Freshness Check</div>
+                        <div class="step-description">
+                            Verify the attestation timestamp and nonce to prevent replay attacks. This ensures you're seeing current measurements, not old ones from a compromised system.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Resources -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-external-link-alt"></i> Learn More</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6><i class="fas fa-book"></i> Documentation</h6>
+                        <ul class="list-unstyled">
+                            <li><a href="https://docs.secretnetwork.com/" target="_blank">Secret Network Docs</a></li>
+                            <li><a href="https://intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html" target="_blank">Intel TDX Overview</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="fab fa-github"></i> Source Code</h6>
+                        <ul class="list-unstyled">
+                            <li><a href="https://github.com/scrtlabs/SecretNetwork" target="_blank">Secret Network</a></li>
+                            <li><a href="#" target="_blank">Attest AI (Coming Soon)</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="fas fa-question-circle"></i> Support</h6>
+                        <ul class="list-unstyled">
+                            <li><a href="https://discord.gg/secret-network" target="_blank">Discord Community</a></li>
+                            <li><a href="https://forum.scrt.network/" target="_blank">Forum</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
