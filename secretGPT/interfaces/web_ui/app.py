@@ -282,7 +282,8 @@ class WebUIInterface:
         async def generate_proof(
             question: str = Form(...),
             answer: str = Form(...),
-            password: str = Form(...)
+            password: str = Form(...),
+            conversation_history: str = Form(None)
         ):
             """
             Generate encrypted proof file with dual VM attestation
@@ -293,11 +294,20 @@ class WebUIInterface:
                 if not proof_manager:
                     raise HTTPException(status_code=503, detail="Proof manager not available")
                 
+                # Parse conversation history if provided
+                parsed_conversation_history = None
+                if conversation_history:
+                    try:
+                        parsed_conversation_history = json.loads(conversation_history)
+                    except json.JSONDecodeError:
+                        logger.warning("Invalid conversation history JSON, ignoring")
+                
                 # Generate proof with dual attestation
                 proof_file = await proof_manager.generate_proof(
                     question=question,
                     answer=answer,
-                    password=password
+                    password=password,
+                    conversation_history=parsed_conversation_history
                 )
                 
                 return FileResponse(

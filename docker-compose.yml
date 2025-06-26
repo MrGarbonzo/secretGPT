@@ -42,7 +42,7 @@ services:
       - "traefik.enable=false"
 
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:attest_ai
+    image: ghcr.io/mrgarbonzo/secretgpt:latest
     container_name: attestai-hub
     restart: unless-stopped
     ports:

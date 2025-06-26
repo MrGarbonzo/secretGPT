@@ -33,14 +33,15 @@ class ProofManager:
         self.proof_directory.mkdir(exist_ok=True)
         logger.info("Proof manager initialized")
     
-    async def generate_proof(self, question: str, answer: str, password: str) -> Path:
+    async def generate_proof(self, question: str, answer: str, password: str, conversation_history: list = None) -> Path:
         """
         Generate encrypted proof file with dual VM attestation
         
         Args:
-            question: The question asked to Secret AI
-            answer: The response from Secret AI
+            question: The most recent question asked to Secret AI
+            answer: The most recent response from Secret AI
             password: Password for encrypting the proof file
+            conversation_history: Optional full conversation history
             
         Returns:
             Path to the generated .attestproof file
@@ -61,11 +62,17 @@ class ProofManager:
                     "question_hash": self._hash_string(question),
                     "answer_hash": self._hash_string(answer)
                 },
+                "conversation": {
+                    "full_history": conversation_history or [],
+                    "total_messages": len(conversation_history) if conversation_history else 0,
+                    "conversation_hash": self._hash_conversation(conversation_history) if conversation_history else None
+                },
                 "attestation": dual_attestation,
                 "metadata": {
                     "generator": "secretGPT",
                     "proof_type": "dual_vm_attestation",
-                    "encryption": "Fernet_PBKDF2"
+                    "encryption": "Fernet_PBKDF2",
+                    "includes_full_conversation": bool(conversation_history)
                 }
             }
             
@@ -195,6 +202,15 @@ class ProofManager:
     def _hash_string(self, text: str) -> str:
         """Generate SHA-256 hash of string"""
         return hashlib.sha256(text.encode()).hexdigest()
+    
+    def _hash_conversation(self, conversation_history: list) -> str:
+        """Generate SHA-256 hash of entire conversation"""
+        if not conversation_history:
+            return None
+        
+        # Create a canonical representation of the conversation
+        conversation_text = json.dumps(conversation_history, sort_keys=True)
+        return hashlib.sha256(conversation_text.encode()).hexdigest()
     
     def _verify_proof_structure(self, proof_data: Dict[str, Any]) -> None:
         """Verify that proof data has the required structure"""

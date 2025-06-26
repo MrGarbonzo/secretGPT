@@ -26,7 +26,7 @@ services:
       - --log.level=DEBUG  # Debug logging
 
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:attest_ai
+    image: ghcr.io/mrgarbonzo/secretgpt:latest
     container_name: attestai-hub-simple
     restart: unless-stopped
     networks:

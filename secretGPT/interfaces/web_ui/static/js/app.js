@@ -187,6 +187,11 @@ class AttestAIApp {
 
         // Store question for proof generation
         this.lastQuestion = message;
+        
+        // Add user message to conversation history
+        if (window.chatManager) {
+            window.chatManager.addToHistory('user', message);
+        }
 
         // Check if streaming is enabled
         const streamingToggle = document.getElementById('streaming-toggle');
@@ -240,6 +245,11 @@ class AttestAIApp {
                 
                 // Store last Q&A for proof generation
                 this.lastAnswer = data.response;
+        
+        // Add to conversation history
+        if (window.chatManager) {
+            window.chatManager.addToHistory('assistant', data.response);
+        }
             } else {
                 this.addMessage('error', `Error: ${data.error || 'Unknown error'}`);
             }
@@ -286,6 +296,11 @@ class AttestAIApp {
         this.currentConversation = [];
         this.lastQuestion = null;
         this.lastAnswer = null;
+        
+        // Clear conversation history in chat manager
+        if (window.chatManager) {
+            window.chatManager.clearHistory();
+        }
     }
 
     setLoading(loading) {
@@ -354,6 +369,11 @@ class AttestAIApp {
             formData.append('question', this.lastQuestion);
             formData.append('answer', this.lastAnswer);
             formData.append('password', password);
+            
+            // Include full conversation history if available
+            if (window.chatManager && window.chatManager.conversationHistory) {
+                formData.append('conversation_history', JSON.stringify(window.chatManager.conversationHistory));
+            }
 
             const response = await fetch(`${this.API_BASE}/proof/generate`, {
                 method: 'POST',
@@ -427,6 +447,32 @@ class AttestAIApp {
     }
 
     displayProofResults(proofData, container) {
+        // Check if full conversation is included
+        const hasFullConversation = proofData.conversation && proofData.conversation.full_history && proofData.conversation.full_history.length > 0;
+        
+        let conversationHtml = '';
+        if (hasFullConversation) {
+            conversationHtml = `
+                <div class="col-12 mt-3">
+                    <h6>Full Conversation History (${proofData.conversation.total_messages} messages)</h6>
+                    <div class="conversation-history" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa;">
+                        ${proofData.conversation.full_history.map(msg => `
+                            <div class="conversation-message mb-2">
+                                <strong class="${msg.role === 'user' ? 'text-primary' : 'text-success'}">${msg.role === 'user' ? 'User' : 'Assistant'}:</strong>
+                                <div class="message-content">${this.escapeHtml(msg.content)}</div>
+                                <small class="text-muted">${new Date(msg.timestamp).toLocaleString()}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <strong>Conversation Hash:</strong> <code>${proofData.conversation.conversation_hash}</code>
+                        </small>
+                    </div>
+                </div>
+            `;
+        }
+        
         const html = `
             <div class="card">
                 <div class="card-header">
@@ -435,7 +481,7 @@ class AttestAIApp {
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Interaction</h6>
+                            <h6>Latest Interaction</h6>
                             <div class="mb-2">
                                 <strong>Question:</strong>
                                 <div class="border p-2 bg-light">${this.escapeHtml(proofData.interaction.question)}</div>
@@ -463,7 +509,14 @@ class AttestAIApp {
                                 <strong>Version:</strong>
                                 <code>${proofData.version}</code>
                             </div>
+                            <div class="mb-2">
+                                <strong>Full Conversation:</strong>
+                                <span class="badge ${hasFullConversation ? 'bg-success' : 'bg-warning'}">
+                                    ${hasFullConversation ? 'Included' : 'Not Included'}
+                                </span>
+                            </div>
                         </div>
+                        ${conversationHtml}
                     </div>
                 </div>
             </div>
