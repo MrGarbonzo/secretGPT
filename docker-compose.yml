@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:attest-tools
+    image: ghcr.io/mrgarbonzo/secretgpt:latest
     container_name: secretgpt-hub
     restart: unless-stopped
     ports:
