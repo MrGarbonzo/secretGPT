@@ -20,15 +20,10 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Determine which service to build and install dependencies
-RUN if [ -f "services/attestation_hub/requirements.txt" ] && [ -f "services/attestation_hub/main.py" ]; then \
-      echo "Building Attestation Hub Service"; \
-      cd services/attestation_hub && pip install --no-cache-dir -r requirements.txt; \
-      echo "attestation_hub" > /app/service_type; \
-    else \
-      echo "Building secretGPT Hub Service"; \
-      pip install --no-cache-dir -r requirements.txt; \
-      echo "secretgpt" > /app/service_type; \
-    fi
+# Always build secretGPT Hub Service (main application)
+RUN echo "Building secretGPT Hub Service"; \
+    pip install --no-cache-dir -r requirements.txt; \
+    echo "secretgpt" > /app/service_type;
 
 # Set environment variables for production
 ENV PYTHONPATH=/app
