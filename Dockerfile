@@ -1,5 +1,5 @@
-# secretGPT Hub Dockerfile
-# For SecretVM deployment following the build plan requirements
+# Multi-Service Dockerfile
+# Builds either secretGPT Hub or Attestation Hub based on context
 
 FROM python:3.12-slim
 
@@ -13,28 +13,54 @@ RUN apt-get update && apt-get install -y \
     make \
     libffi-dev \
     libssl-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better Docker layer caching
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the application code
+# Copy entire project
 COPY . .
+
+# Determine which service to build and install dependencies
+# Always build secretGPT Hub Service (main application)
+RUN echo "Building secretGPT Hub Service"; \
+    pip install --no-cache-dir -r requirements.txt; \
+    echo "secretgpt" > /app/service_type;
 
 # Set environment variables for production
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
 
-# Expose port
-EXPOSE 8000
-
 # Create a non-root user for security
-RUN useradd -m -u 1001 secretgpt
-RUN chown -R secretgpt:secretgpt /app
-USER secretgpt
+RUN useradd -m -u 1001 appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
-# Run the application
-CMD ["python", "main.py"]
+# Create startup script
+RUN echo '#!/bin/bash\n\
+SERVICE_TYPE=$(cat /app/service_type)\n\
+if [ "$SERVICE_TYPE" = "attestation_hub" ]; then\n\
+  echo "Starting Attestation Hub Service on port 8080"\n\
+  export ATTESTATION_HUB_HOST=0.0.0.0\n\
+  export ATTESTATION_HUB_PORT=8080\n\
+  export LOG_LEVEL=INFO\n\
+  cd /app/services/attestation_hub\n\
+  exec python main.py\n\
+else\n\
+  echo "Starting secretGPT Hub Service on port 8000"\n\
+  cd /app\n\
+  exec python main.py\n\
+fi' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose both possible ports
+EXPOSE 8000 8080
+
+# Health check that works for both services
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD SERVICE_TYPE=$(cat /app/service_type) && \
+      if [ "$SERVICE_TYPE" = "attestation_hub" ]; then \
+        curl -f http://localhost:8080/health || exit 1; \
+      else \
+        curl -f http://localhost:8000/health || exit 1; \
+      fi
+
+# Run the appropriate service
+CMD ["/app/start.sh"]
