@@ -76,6 +76,19 @@ class Settings(BaseSettings):
         description="Environment mode (development, production)"
     )
     
+    # SSL Configuration
+    enable_ssl: bool = Field(
+        default=False,
+        env="SECRETGPT_ENABLE_SSL",
+        description="Enable SSL/HTTPS support"
+    )
+    
+    ssl_domain: str = Field(
+        default="localhost",
+        env="SECRETGPT_SSL_DOMAIN",
+        description="Domain name for SSL certificate"
+    )
+    
     class Config:
         """Pydantic configuration"""
         env_file = ".env"

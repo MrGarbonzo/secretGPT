@@ -6,7 +6,8 @@ services:
     container_name: secretgpt-hub
     restart: unless-stopped
     ports:
-      - "8003:8000"
+      - "8003:8000"  # HTTP port (fallback)
+      - "443:443"    # HTTPS port (when SSL enabled)
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -18,6 +19,9 @@ services:
       - LOG_LEVEL=INFO
       - SECRETGPT_ENABLE_WEB_UI=true
       - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
+      # SSL Configuration (set SECRETGPT_ENABLE_SSL=true to enable HTTPS)
+      - SECRETGPT_ENABLE_SSL=${SECRETGPT_ENABLE_SSL:-false}
+      - SECRETGPT_SSL_DOMAIN=${SECRETGPT_SSL_DOMAIN:-localhost}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
       interval: 30s

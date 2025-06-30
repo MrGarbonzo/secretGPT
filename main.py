@@ -165,12 +165,44 @@ async def run_with_web_ui():
             # Get the FastAPI app from web UI service
             app = web_ui_service.get_fastapi_app()
             
+            # SSL Configuration
+            ssl_config = {}
+            port = int(os.getenv("SECRETGPT_HUB_PORT", "8000"))
+            
+            if settings.enable_ssl:
+                logger.info("SSL enabled - setting up HTTPS")
+                from secretGPT.utils.ssl_utils import generate_self_signed_cert, validate_ssl_files
+                
+                try:
+                    # Generate or validate SSL certificates
+                    cert_path, key_path = generate_self_signed_cert(
+                        domain=settings.ssl_domain,
+                        cert_dir="/app/ssl"
+                    )
+                    
+                    if validate_ssl_files(cert_path, key_path):
+                        ssl_config = {
+                            "ssl_certfile": cert_path,
+                            "ssl_keyfile": key_path
+                        }
+                        # Use HTTPS port if SSL is enabled and port is default
+                        if port == 8000:
+                            port = 443
+                        logger.info(f"SSL configured successfully - will serve HTTPS on port {port}")
+                    else:
+                        logger.error("SSL certificate validation failed - falling back to HTTP")
+                        
+                except Exception as e:
+                    logger.error(f"SSL setup failed: {e}")
+                    logger.info("Falling back to HTTP mode")
+            
             config = uvicorn.Config(
                 app=app,
                 host=os.getenv("SECRETGPT_HUB_HOST", "0.0.0.0"),
-                port=int(os.getenv("SECRETGPT_HUB_PORT", "8000")),
+                port=port,
                 log_level=settings.log_level.lower(),
-                access_log=True
+                access_log=True,
+                **ssl_config
             )
             server = uvicorn.Server(config)
             

@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libssl-dev \
     curl \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy entire project
@@ -50,8 +51,8 @@ else\n\
   exec python main.py\n\
 fi' > /app/start.sh && chmod +x /app/start.sh
 
-# Expose both possible ports
-EXPOSE 8000 8080
+# Expose both possible ports (HTTP and HTTPS)
+EXPOSE 8000 8080 443
 
 # Health check that works for both services
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
