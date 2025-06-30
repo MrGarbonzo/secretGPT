@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    image: ghcr.io/mrgarbonzo/secretgpt:nginx
     container_name: secretgpt-hub
     restart: unless-stopped
     ports:
@@ -20,8 +20,8 @@ services:
       - SECRETGPT_ENABLE_WEB_UI=true
       - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
       # SSL Configuration (set SECRETGPT_ENABLE_SSL=true to enable HTTPS)
-      - SECRETGPT_ENABLE_SSL=${SECRETGPT_ENABLE_SSL:-false}
-      - SECRETGPT_SSL_DOMAIN=${SECRETGPT_SSL_DOMAIN:-localhost}
+      - SECRETGPT_ENABLE_SSL=true
+      - SECRETGPT_SSL_DOMAIN=attestai.io
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
       interval: 30s
