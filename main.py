@@ -165,9 +165,16 @@ async def run_with_web_ui():
             # Get the FastAPI app from web UI service
             app = web_ui_service.get_fastapi_app()
             
-            # SSL Configuration
+            # SSL Configuration - Debug logging
             ssl_config = {}
             port = int(os.getenv("SECRETGPT_HUB_PORT", "8000"))
+            
+            # Debug: Show SSL settings
+            logger.info(f"SSL Debug - settings.enable_ssl: {settings.enable_ssl}")
+            logger.info(f"SSL Debug - settings.ssl_domain: {settings.ssl_domain}")
+            logger.info(f"SSL Debug - SECRETGPT_ENABLE_SSL env: {os.getenv('SECRETGPT_ENABLE_SSL')}")
+            logger.info(f"SSL Debug - SECRETGPT_SSL_DOMAIN env: {os.getenv('SECRETGPT_SSL_DOMAIN')}")
+            logger.info(f"SSL Debug - Initial port: {port}")
             
             if settings.enable_ssl:
                 logger.info("SSL enabled - setting up HTTPS")
