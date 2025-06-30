@@ -13,7 +13,7 @@ services:
     environment:
       - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
       - SECRETGPT_HUB_HOST=0.0.0.0
-      - SECRETGPT_HUB_PORT=8000
+      # SECRETGPT_HUB_PORT not set - let SSL logic determine port (443 for SSL, 8000 for HTTP)
       - SECRETGPT_RUN_MODE=service
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
