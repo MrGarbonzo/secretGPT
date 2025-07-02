@@ -29,7 +29,7 @@ class WebUIInterface:
         """Initialize the Web UI interface with hub router integration"""
         self.hub_router = hub_router  # Route through hub instead of direct Secret AI
         self.app = FastAPI(
-            title="Attest AI - Trusted AI Platform",
+            title="AttestAI - Trusted AI Platform",
             description="Confidential AI Web Interface with Attestation",
             version="2.0.0"
         )

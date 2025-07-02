@@ -2,9 +2,9 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main, master, chatee, attest_ai, attest_tools, cleanup ]
+    branches: [ main, master, chatee, attest_ai, attest_tools, cleanup, url ]
   pull_request:
-    branches: [ main, master, chatee, attest_ai, attest_tools, cleanup ]
+    branches: [ main, master, chatee, attest_ai, attest_tools, cleanup, url ]
 
 env:
   REGISTRY: ghcr.io
@@ -45,6 +45,7 @@ jobs:
           type=raw,value=attestai,enable=${{ github.ref == 'refs/heads/attest_ai' }}
           type=raw,value=attest-tools,enable=${{ github.ref == 'refs/heads/attest_tools' }}
           type=raw,value=cleanup,enable=${{ github.ref == 'refs/heads/cleanup' }}
+          type=raw,value=url,enable=${{ github.ref == 'refs/heads/url' }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
