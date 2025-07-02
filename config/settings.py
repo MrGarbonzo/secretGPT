@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Secret AI Configuration
     # REFERENCE: secretAI-setting-up-environment.txt
     secret_ai_api_key: str = Field(
-        default="bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1",
+        ...,
         env="SECRET_AI_API_KEY",
         description="API key for Secret AI authentication"
     )

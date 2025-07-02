@@ -12,9 +12,9 @@ from pathlib import Path
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from secretGPT.hub.core.router import HubRouter, ComponentType
-from secretGPT.services.secret_ai.client import SecretAIService
-from secretGPT.config.settings import settings, validate_settings
+from hub.core.router import HubRouter, ComponentType
+from services.secret_ai.client import SecretAIService
+from config.settings import settings, validate_settings
 
 # Configure logging
 logging.basicConfig(
@@ -153,7 +153,7 @@ async def run_with_web_ui():
         # Initialize Web UI service with proper attestation support
         logger.info("Initializing Web UI service...")
         try:
-            from secretGPT.interfaces.web_ui.service import WebUIService
+            from interfaces.web_ui.service import WebUIService
             
             # Use WebUIService (includes attestation) instead of WebUIInterface
             web_ui_service = WebUIService(hub)
@@ -219,7 +219,7 @@ async def test_web_ui_integration():
     
     # Initialize and register Web UI service
     logger.info("Initializing Web UI service...")
-    from secretGPT.interfaces.web_ui.service import WebUIService
+    from interfaces.web_ui.service import WebUIService
     web_ui_service = WebUIService(hub)
     hub.register_component(ComponentType.WEB_UI, web_ui_service)
     

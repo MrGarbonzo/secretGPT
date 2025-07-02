@@ -15,7 +15,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from secretGPT.interfaces.web_ui.attestation.service import AttestationService
+from interfaces.web_ui.attestation.service import AttestationService
 
 logger = logging.getLogger(__name__)
 

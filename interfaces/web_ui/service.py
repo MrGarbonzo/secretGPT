@@ -5,10 +5,10 @@ REFERENCE: Phase 1 Secret AI service for chat integration
 import logging
 from pathlib import Path
 
-from secretGPT.hub.core.router import HubRouter, ComponentType
-from secretGPT.interfaces.web_ui.app import WebUIInterface
-from secretGPT.interfaces.web_ui.attestation.service import AttestationService
-from secretGPT.interfaces.web_ui.encryption.proof_manager import ProofManager
+from hub.core.router import HubRouter, ComponentType
+from interfaces.web_ui.app import WebUIInterface
+from interfaces.web_ui.attestation.service import AttestationService
+from interfaces.web_ui.encryption.proof_manager import ProofManager
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Streamin
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
-from secretGPT.hub.core.router import HubRouter, ComponentType
+from hub.core.router import HubRouter, ComponentType
 
 logger = logging.getLogger(__name__)
 
