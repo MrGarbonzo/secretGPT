@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Streamin
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
-from secretGPT.hub.core.router import HubRouter, ComponentType
+from hub.core.router import HubRouter, ComponentType
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class WebUIInterface:
         """Initialize the Web UI interface with hub router integration"""
         self.hub_router = hub_router  # Route through hub instead of direct Secret AI
         self.app = FastAPI(
-            title="Attest AI - Trusted AI Platform",
+            title="AttestAI - Trusted AI Platform",
             description="Confidential AI Web Interface with Attestation",
             version="2.0.0"
         )
