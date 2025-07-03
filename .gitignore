@@ -29,7 +29,7 @@ ENV/
 .env/
 
 # Environment Variables
-.env
+# .env - Temporarily allowing for demo testing
 .env.local
 .env.production
 
