@@ -8,8 +8,6 @@ services:
     ports:
       - "80:8000"
     network_mode: host
-    env_file:
-      - .env
     environment:
       - SECRET_AI_API_KEY=${SECRET_AI_API_KEY}
       - SECRETGPT_HUB_HOST=0.0.0.0

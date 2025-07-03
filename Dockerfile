@@ -29,6 +29,9 @@ RUN echo "Building secretGPT Hub Service"; \
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
 
+# Include demo API key for SecretVM testing
+ENV SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1
+
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app
