@@ -96,11 +96,15 @@ def validate_settings() -> bool:
     """
     # Phase 1: Only Secret AI API key is required
     if not settings.secret_ai_api_key:
+        print("ERROR: SECRET_AI_API_KEY is required but not set!")
+        print("Please ensure the .env file contains: SECRET_AI_API_KEY=your_api_key_here")
+        print("In SecretVM, the .env file should be at: /mnt/secure/docker_wd/usr/.env")
         return False
     
     
     # Phase 4: If MCP is enabled, URL is required
     if settings.mcp_enabled and not settings.mcp_secret_network_url:
+        print("ERROR: MCP_SECRET_NETWORK_URL is required when MCP is enabled!")
         return False
     
     return True
