@@ -28,11 +28,13 @@ class WebStreamingHandler(BaseCallbackHandler):
         """Initialize the web streaming handler"""
         self.width = width
         self.buffer = ""
-        self.current_line = ""
         self.current_line_length = 0
         self.in_thinking_mode = False
         self.brain_emoji = "🧠"
         self.chunk_queue = []
+        self.sentences_in_paragraph = 0
+        self.max_sentences_per_paragraph = 4  # Adjust for paragraph length
+        self.last_char = ""
         self.stream_metadata = {
             "total_tokens": 0,
             "thinking_sections": 0,
@@ -72,7 +74,6 @@ class WebStreamingHandler(BaseCallbackHandler):
                 "metadata": {"thinking_section": self.stream_metadata["thinking_sections"]}
             })
             
-            self.current_line = ""
             self.current_line_length = 0
             self.buffer = after_tag
             self.in_thinking_mode = True
@@ -94,7 +95,6 @@ class WebStreamingHandler(BaseCallbackHandler):
                 "metadata": {"thinking_section": self.stream_metadata["thinking_sections"]}
             })
             
-            self.current_line = ""
             self.current_line_length = 0
             self.buffer = after_tag
             self.in_thinking_mode = False
@@ -133,62 +133,103 @@ class WebStreamingHandler(BaseCallbackHandler):
             })
     
     def _process_words_chunk(self, words: list, content_type: str):
-        """Process words and handle line wrapping"""
+        """Process words and handle line wrapping and paragraph formatting"""
         for word in words:
-            if self.current_line_length + len(word) + (1 if self.current_line else 0) > self.width:
-                # Line is full, emit current line and start new one
-                if self.current_line:
-                    self.chunk_queue.append({
-                        "type": "text_chunk",
-                        "data": self.current_line + "\n",
-                        "content_type": content_type,
-                        "metadata": {
-                            "line_break": True,
-                            "in_thinking": content_type == "thinking"
-                        }
-                    })
-                
-                self.current_line = word
-                self.current_line_length = len(word)
-            else:
-                # Add word to current line
-                if self.current_line:
-                    self.current_line += " " + word
-                    self.current_line_length += len(word) + 1
-                else:
-                    self.current_line = word
-                    self.current_line_length = len(word)
-                
-                # Emit word immediately for streaming effect
+            # Check if this is a list item marker - be more restrictive
+            stripped_word = word.rstrip()
+            is_list_marker = (
+                # Only consider it a list marker if it's a single digit followed by . or )
+                (len(stripped_word) == 2 and stripped_word[0].isdigit() and stripped_word[1] in '.)')
+                or word in ['•', '-', '*', '▪', '▸', '◦']  # Bullet points
+            )
+            
+            # Check if we need to start a new paragraph
+            # Only break paragraphs after a real sentence (not list items) and if we have enough sentences
+            if (self.last_char in '.!?' and 
+                self.sentences_in_paragraph >= self.max_sentences_per_paragraph and
+                not is_list_marker and
+                self.current_line_length > 10):  # Only if we have substantial content on the line
+                # Add double newline for paragraph break
                 self.chunk_queue.append({
                     "type": "text_chunk",
-                    "data": word + " ",
+                    "data": "\n\n",
                     "content_type": content_type,
                     "metadata": {
-                        "word": True,
+                        "paragraph_break": True,
                         "in_thinking": content_type == "thinking"
                     }
                 })
+                self.current_line_length = 0
+                self.sentences_in_paragraph = 0
+            elif is_list_marker:
+                # Always start list items on new lines if not already at start
+                if self.current_line_length > 0:
+                    self.chunk_queue.append({
+                        "type": "text_chunk",
+                        "data": "\n",
+                        "content_type": content_type,
+                        "metadata": {
+                            "list_item": True,
+                            "in_thinking": content_type == "thinking"
+                        }
+                    })
+                    self.current_line_length = 0
+            elif self.current_line_length + len(word) + (1 if self.current_line_length > 0 else 0) > self.width:
+                # Line is full, emit newline
+                self.chunk_queue.append({
+                    "type": "text_chunk",
+                    "data": "\n",
+                    "content_type": content_type,
+                    "metadata": {
+                        "line_break": True,
+                        "in_thinking": content_type == "thinking"
+                    }
+                })
+                self.current_line_length = 0
+            
+            # Emit the word with appropriate spacing
+            if self.current_line_length > 0:
+                # Add space before word if not at start of line
+                self.chunk_queue.append({
+                    "type": "text_chunk",
+                    "data": " " + word,
+                    "content_type": content_type,
+                    "metadata": {
+                        "in_thinking": content_type == "thinking"
+                    }
+                })
+                self.current_line_length += len(word) + 1
+            else:
+                # First word on line, no space needed
+                self.chunk_queue.append({
+                    "type": "text_chunk",
+                    "data": word,
+                    "content_type": content_type,
+                    "metadata": {
+                        "in_thinking": content_type == "thinking"
+                    }
+                })
+                self.current_line_length = len(word)
+            
+            # Track sentence endings for paragraph formatting
+            if word.rstrip():  # Check non-empty word
+                self.last_char = word.rstrip()[-1]
+                # Only count as sentence end if it's not a list marker and has proper sentence structure
+                if (self.last_char in '.!?' and not is_list_marker and 
+                    len(word.rstrip()) > 2):  # Avoid counting single letters with periods
+                    self.sentences_in_paragraph += 1
     
     def on_llm_end(self, *args, **kwargs):
         """Called when LLM finishes generating"""
         # Process any remaining text in buffer
         if self.buffer.strip():
             content_type = "thinking" if self.in_thinking_mode else "normal"
-            self._process_text_chunk(self.buffer, content_type)
+            # Process the final word(s) in buffer
+            final_words = self.buffer.split()
+            if final_words:
+                self._process_words_chunk(final_words, content_type)
         
-        # Process any remaining current line
-        if self.current_line.strip():
-            content_type = "thinking" if self.in_thinking_mode else "normal"
-            self.chunk_queue.append({
-                "type": "text_chunk",
-                "data": self.current_line,
-                "content_type": content_type,
-                "metadata": {
-                    "final_line": True,
-                    "in_thinking": content_type == "thinking"
-                }
-            })
+        # No need to process current line anymore since we emit words immediately
         
         # Mark stream as completed
         self.stream_metadata["completed"] = True
