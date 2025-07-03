@@ -59,7 +59,7 @@ async def test_secret_ai_integration():
     )
     
     if response["success"]:
-        logger.info(f"Response: {response['content']}")
+        logger.info(f"Response received successfully (length: {len(response['content'])} chars)")
     else:
         logger.error(f"Error: {response['error']}")
     

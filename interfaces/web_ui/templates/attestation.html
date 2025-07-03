@@ -705,23 +705,29 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Current Deployment:</strong>
-                                    <div class="technical-data">
-                                        Image: attestai/chat-interface:v2.1.0<br>
-                                        SHA256: abc123def456...<br>
-                                        Built: 2024-06-24 14:30 UTC
+                                    <div class="technical-data" id="deployment-info">
+                                        <span class="text-muted">
+                                            <i class="fas fa-shield-alt"></i> Deployment verification requires TEE attestation<br>
+                                            <small>Image details available through VM attestation system</small>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Source Code:</strong>
                                     <div class="technical-data">
                                         Repo: MrGarbonzo/secretGPT<br>
-                                        Branch: attest_ai<br>
-                                        Commit: def456789abc...
+                                        Open Source Project
                                     </div>
                                 </div>
                             </div>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Deployment Verification:</strong> 
+                                Complete deployment details (Docker image, SHA256, build time) are provided through the TEE attestation system. 
+                                This ensures all infrastructure information is cryptographically verifiable rather than just claimed.
+                            </div>
                             <p class="mt-2">
-                                <a href="https://github.com/MrGarbonzo/secretGPT/tree/attest_ai" target="_blank" class="btn btn-outline-primary btn-sm">
+                                <a href="https://github.com/MrGarbonzo/secretGPT" target="_blank" class="btn btn-outline-primary btn-sm">
                                     <i class="fab fa-github"></i> View Source Code
                                 </a>
                                 <a href="#" class="btn btn-outline-secondary btn-sm ms-2">
@@ -869,7 +875,7 @@
                         <h6><i class="fab fa-github"></i> Source Code</h6>
                         <ul class="list-unstyled">
                             <li><a href="https://github.com/scrtlabs/SecretNetwork" target="_blank">Secret Network</a></li>
-                            <li><a href="#" target="_blank">Attest AI (Coming Soon)</a></li>
+                            <li><a href="https://github.com/MrGarbonzo/secretGPT" target="_blank">secretGPT</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
