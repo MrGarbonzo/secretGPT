@@ -9,7 +9,6 @@ services:
       - "80:8000"
     network_mode: host
     environment:
-      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY}
       - SECRETGPT_HUB_HOST=0.0.0.0
       - SECRETGPT_HUB_PORT=8000
       - SECRETGPT_RUN_MODE=service
