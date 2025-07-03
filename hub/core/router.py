@@ -65,7 +65,7 @@ class HubRouter:
         Returns:
             Dict containing the response and metadata
         """
-        logger.info(f"Routing message from {interface} (length: {len(message)} chars)")
+        logger.info(f"Routing message from {interface}: {message[:50]}...")
         
         # Get Secret AI service
         secret_ai = self.get_component(ComponentType.SECRET_AI)
@@ -131,7 +131,7 @@ class HubRouter:
         Yields:
             Dict containing streaming chunks and metadata
         """
-        logger.info(f"Streaming message from {interface} (length: {len(message)} chars)")
+        logger.info(f"Streaming message from {interface}: {message[:50]}...")
         
         # Get Secret AI service
         secret_ai = self.get_component(ComponentType.SECRET_AI)

@@ -9,7 +9,6 @@ class AttestationManager {
     init() {
         this.setupEventListeners();
         this.initializeProgressiveDisclosure();
-        this.loadContainerInfo();
     }
 
     setupEventListeners() {
@@ -91,82 +90,6 @@ class AttestationManager {
             this.verifySelfVM(),
             this.verifySecretAIVM()
         ]);
-    }
-
-    async loadContainerInfo() {
-        // TODO: Integrate with TEE attestation system for verifiable deployment info
-        // Expected future endpoint: /api/v1/attestation/deployment or port 29343 extension
-        // Should provide: Docker image, SHA256, build time, compose hash
-        
-        // Try to get verifiable container info from TEE attestation system
-        try {
-            const response = await fetch(`${this.API_BASE}/system/container-info`);
-            const data = await response.json();
-            
-            if (data.success && data.container_info) {
-                this.updateContainerDisplay(data.container_info);
-            } else {
-                console.warn('Container info not available:', data.error);
-                this.updateContainerDisplay(null);
-            }
-        } catch (error) {
-            console.error('Failed to load container info:', error);
-            // Show that data is not available rather than fake static data
-            this.updateContainerDisplay(null);
-        }
-    }
-
-    updateContainerDisplay(containerInfo) {
-        // Update Current Deployment section with real data
-        const deploymentSection = document.getElementById('deployment-info');
-        
-        if (containerInfo && deploymentSection) {
-            const imageName = containerInfo.image_name || 'ghcr.io/mrgarbonzo/secretgpt';
-            const imageTag = containerInfo.image_tag || 'security';
-            const fullImageName = `${imageName}:${imageTag}`;
-            
-            // Format build time
-            let buildTime = 'Unknown';
-            if (containerInfo.build_time && containerInfo.build_time !== 'unknown') {
-                try {
-                    buildTime = new Date(containerInfo.build_time).toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit', 
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'UTC'
-                    }) + ' UTC';
-                } catch (e) {
-                    buildTime = containerInfo.build_time;
-                }
-            }
-            
-            // Format SHA256 - if available from TEE attestation
-            let sha256 = containerInfo.image_sha || 'Requires TEE attestation';
-            if (sha256 && sha256 !== 'unknown' && sha256 !== 'unavailable' && sha256 !== 'Requires TEE attestation') {
-                // Truncate long SHA hashes for display
-                if (sha256.startsWith('sha256:')) {
-                    sha256 = sha256.substring(0, 19) + '...';
-                } else if (sha256.length > 16) {
-                    sha256 = sha256.substring(0, 16) + '...';
-                }
-            }
-            
-            deploymentSection.innerHTML = `
-                Image: ${fullImageName}<br>
-                SHA256: ${sha256}<br>
-                Built: ${buildTime}
-            `;
-        } else if (deploymentSection) {
-            // Show that deployment info requires TEE attestation
-            deploymentSection.innerHTML = `
-                <span class="text-muted">
-                    <i class="fas fa-shield-alt"></i> Deployment verification requires TEE attestation<br>
-                    <small>Image details available through VM attestation system</small>
-                </span>
-            `;
-        }
     }
 
     displayAttestationData(vmType, attestation) {
@@ -287,19 +210,13 @@ class AttestationManager {
     }
 
     displayProofResults(proofData, container) {
-        // Generate unique IDs for collapsible sections
-        const selfVmId = 'self-vm-' + Date.now();
-        const secretAiId = 'secret-ai-' + Date.now();
-        const conversationId = 'conversation-' + Date.now();
-        
         const html = `
             <div class="card">
                 <div class="card-header">
-                    <h6><i class="fas fa-check-circle text-success"></i> Verified Proof - Complete Attestation Details</h6>
+                    <h6><i class="fas fa-check-circle text-success"></i> Verified Proof</h6>
                 </div>
                 <div class="card-body">
-                    <!-- Basic Information -->
-                    <div class="row mb-4">
+                    <div class="row">
                         <div class="col-md-6">
                             <h6>Interaction</h6>
                             <div class="mb-2">
@@ -310,21 +227,15 @@ class AttestationManager {
                                 <strong>Answer:</strong>
                                 <div class="border p-2 bg-light">${this.escapeHtml(proofData.interaction.answer)}</div>
                             </div>
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    Question Hash: <code>${proofData.interaction.question_hash.substring(0, 16)}...</code><br>
-                                    Answer Hash: <code>${proofData.interaction.answer_hash.substring(0, 16)}...</code>
-                                </small>
-                            </div>
                         </div>
                         <div class="col-md-6">
-                            <h6>Proof Metadata</h6>
+                            <h6>Attestation Verification</h6>
                             <div class="mb-2">
-                                <strong>Dual VM Attestation:</strong>
+                                <strong>Dual VM:</strong>
                                 <span class="badge bg-success">${proofData.attestation.dual_attestation ? 'Verified' : 'Failed'}</span>
                             </div>
                             <div class="mb-2">
-                                <strong>Generated:</strong>
+                                <strong>Timestamp:</strong>
                                 <code>${new Date(proofData.timestamp).toLocaleString()}</code>
                             </div>
                             <div class="mb-2">
@@ -335,165 +246,13 @@ class AttestationManager {
                                 <strong>Version:</strong>
                                 <code>${proofData.version}</code>
                             </div>
-                            <div class="mb-2">
-                                <strong>Encryption:</strong>
-                                <code>${proofData.metadata.encryption}</code>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Full Conversation:</strong>
-                                <span class="badge ${proofData.metadata.includes_full_conversation ? 'bg-info' : 'bg-secondary'}">
-                                    ${proofData.metadata.includes_full_conversation ? 'Included' : 'Not Included'}
-                                </span>
-                            </div>
                         </div>
                     </div>
-                    
-                    <!-- Attestation Details Section -->
-                    <h6 class="mt-4 mb-3"><i class="fas fa-shield-alt"></i> Attestation Details</h6>
-                    
-                    <!-- Self VM Attestation -->
-                    <div class="card mb-3">
-                        <div class="card-header py-2 d-flex justify-content-between align-items-center" 
-                             data-bs-toggle="collapse" data-bs-target="#${selfVmId}" 
-                             style="cursor: pointer;">
-                            <h6 class="mb-0"><i class="fas fa-server"></i> Self VM Attestation</h6>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="${selfVmId}" class="collapse show">
-                            <div class="card-body">
-                                ${this.formatAttestationData(proofData.attestation.self_vm.attestation)}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Secret AI VM Attestation -->
-                    <div class="card mb-3">
-                        <div class="card-header py-2 d-flex justify-content-between align-items-center" 
-                             data-bs-toggle="collapse" data-bs-target="#${secretAiId}" 
-                             style="cursor: pointer;">
-                            <h6 class="mb-0"><i class="fas fa-brain"></i> Secret AI VM Attestation</h6>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="${secretAiId}" class="collapse show">
-                            <div class="card-body">
-                                ${this.formatAttestationData(proofData.attestation.secret_ai_vm.attestation)}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Conversation Details (if included) -->
-                    ${proofData.conversation && proofData.conversation.full_history ? `
-                    <div class="card">
-                        <div class="card-header py-2 d-flex justify-content-between align-items-center" 
-                             data-bs-toggle="collapse" data-bs-target="#${conversationId}" 
-                             style="cursor: pointer;">
-                            <h6 class="mb-0"><i class="fas fa-comments"></i> Conversation Details</h6>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="${conversationId}" class="collapse">
-                            <div class="card-body">
-                                <div class="mb-2">
-                                    <strong>Total Messages:</strong> ${proofData.conversation.total_messages}
-                                </div>
-                                <div class="mb-2">
-                                    <strong>Conversation Hash:</strong>
-                                    <code class="d-block small">${proofData.conversation.conversation_hash}</code>
-                                </div>
-                                <div class="mt-3">
-                                    <strong>Full Conversation History:</strong>
-                                    <div class="border rounded p-2 mt-2" style="max-height: 300px; overflow-y: auto;">
-                                        ${proofData.conversation.full_history.map((msg, idx) => `
-                                            <div class="mb-2 ${idx % 2 === 0 ? 'text-primary' : 'text-secondary'}">
-                                                <strong>${idx % 2 === 0 ? 'User' : 'AI'}:</strong>
-                                                ${this.escapeHtml(msg)}
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    ` : ''}
                 </div>
             </div>
         `;
         
         container.innerHTML = html;
-        
-        // Add collapse animation handlers
-        container.querySelectorAll('[data-bs-toggle="collapse"]').forEach(header => {
-            header.addEventListener('click', (e) => {
-                const icon = header.querySelector('.fa-chevron-down, .fa-chevron-up');
-                if (icon) {
-                    icon.classList.toggle('fa-chevron-down');
-                    icon.classList.toggle('fa-chevron-up');
-                }
-            });
-        });
-    }
-
-    formatAttestationData(attestation) {
-        // Format individual attestation data for display
-        return `
-            <div class="row">
-                <div class="col-md-6">
-                    <h6 class="text-primary">Core Measurements</h6>
-                    <div class="mb-2">
-                        <strong>MRTD:</strong>
-                        <code class="d-block small text-break">${attestation.mrtd}</code>
-                        <small class="text-muted">Measurement of Trust Domain - VM boot integrity</small>
-                    </div>
-                    <div class="mb-2">
-                        <strong>RTMR0:</strong>
-                        <code class="d-block small text-break">${attestation.rtmr0}</code>
-                        <small class="text-muted">Runtime measurement register 0</small>
-                    </div>
-                    <div class="mb-2">
-                        <strong>RTMR1:</strong>
-                        <code class="d-block small text-break">${attestation.rtmr1}</code>
-                        <small class="text-muted">Runtime measurement register 1</small>
-                    </div>
-                    <div class="mb-2">
-                        <strong>RTMR2:</strong>
-                        <code class="d-block small text-break">${attestation.rtmr2}</code>
-                        <small class="text-muted">Runtime measurement register 2</small>
-                    </div>
-                    <div class="mb-2">
-                        <strong>RTMR3:</strong>
-                        <code class="d-block small text-break">${attestation.rtmr3}</code>
-                        <small class="text-muted">Runtime measurement register 3</small>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h6 class="text-success">Security Details</h6>
-                    <div class="mb-2">
-                        <strong>Report Data:</strong>
-                        <code class="d-block small text-break">${attestation.report_data}</code>
-                        <small class="text-muted">Custom attestation report data</small>
-                    </div>
-                    <div class="mb-2">
-                        <strong>Certificate Fingerprint:</strong>
-                        <code class="d-block small text-break">${attestation.certificate_fingerprint}</code>
-                        <small class="text-muted">TLS certificate SHA-256 fingerprint</small>
-                    </div>
-                    <div class="mb-2">
-                        <strong>Attestation Timestamp:</strong>
-                        <code>${new Date(attestation.timestamp).toLocaleString()}</code>
-                        <small class="text-muted d-block">When this VM attestation was captured</small>
-                    </div>
-                    <div class="mt-3">
-                        <button class="btn btn-outline-secondary btn-sm" 
-                                onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
-                            <i class="fas fa-code"></i> Show Raw Quote
-                        </button>
-                        <div style="display: none;" class="mt-2">
-                            <small class="text-muted">Full Intel TDX attestation quote (hex):</small>
-                            <textarea class="form-control font-monospace small" rows="4" readonly>${attestation.raw_quote}</textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 
     escapeHtml(text) {

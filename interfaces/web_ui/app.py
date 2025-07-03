@@ -203,8 +203,7 @@ class WebUIInterface:
                         "Cache-Control": "no-cache",
                         "Connection": "keep-alive",
                         "Access-Control-Allow-Origin": "*",
-                        "Access-Control-Allow-Headers": "*",
-                        "X-Accel-Buffering": "no"  # Disable nginx buffering
+                        "Access-Control-Allow-Headers": "*"
                     }
                 )
                 
@@ -279,28 +278,6 @@ class WebUIInterface:
                 logger.error(f"Secret AI attestation error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
         
-        @self.app.get("/api/v1/system/container-info")
-        async def get_container_info():
-            """Get information about the running Docker container"""
-            try:
-                container_info = await self._get_container_info()
-                return {
-                    "success": True,
-                    "container_info": container_info
-                }
-            except Exception as e:
-                logger.error(f"Container info error: {e}")
-                return {
-                    "success": False,
-                    "error": str(e),
-                    "container_info": {
-                        "image_name": "ghcr.io/mrgarbonzo/secretgpt",
-                        "image_tag": "unknown",
-                        "build_time": "unknown",
-                        "image_sha": "unknown"
-                    }
-                }
-        
         @self.app.post("/api/v1/proof/generate")
         async def generate_proof(
             question: str = Form(...),
@@ -371,88 +348,6 @@ class WebUIInterface:
         """Get proof manager service"""
         # Return the proof manager if available via monkey patching
         return getattr(self, '_proof_manager_instance', None)
-    
-    async def _get_container_info(self) -> dict:
-        """Get information about the running Docker container"""
-        import os
-        import subprocess
-        import json
-        from datetime import datetime
-        
-        try:
-            # Try to get container info from environment variables first
-            container_info = {
-                "image_name": os.getenv("DOCKER_IMAGE", "unknown"),
-                "image_tag": os.getenv("DOCKER_TAG", "unknown"),
-                "build_time": os.getenv("BUILD_TIME", "unknown"),
-                "image_sha": os.getenv("IMAGE_SHA", "unknown")
-            }
-            
-            # If running in Docker, try to get more info
-            try:
-                # Check if we're in a container by looking for .dockerenv
-                if os.path.exists("/.dockerenv"):
-                    # Try to get container ID from cgroup
-                    with open("/proc/self/cgroup", "r") as f:
-                        cgroup_content = f.read()
-                        # Extract container ID from cgroup path
-                        for line in cgroup_content.split("\n"):
-                            if "docker" in line and "/" in line:
-                                # Extract potential container ID
-                                parts = line.strip().split("/")
-                                if len(parts) > 1:
-                                    container_id = parts[-1][:12]  # First 12 chars
-                                    break
-                    
-                    # Try to get image info from Docker if available
-                    try:
-                        result = subprocess.run(
-                            ["docker", "inspect", container_id],
-                            capture_output=True,
-                            text=True,
-                            timeout=5
-                        )
-                        if result.returncode == 0:
-                            inspect_data = json.loads(result.stdout)[0]
-                            image_info = inspect_data.get("Config", {})
-                            
-                            # Extract image information
-                            if "Image" in inspect_data:
-                                container_info["image_sha"] = inspect_data["Image"]
-                            
-                            # Get creation time
-                            if "Created" in inspect_data:
-                                container_info["build_time"] = inspect_data["Created"]
-                                
-                    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError):
-                        # Docker commands not available or failed, use fallback
-                        pass
-                        
-            except (OSError, IOError):
-                # Not in container or can't read cgroup info
-                pass
-            
-            # Set reasonable defaults if still unknown
-            if container_info["image_name"] == "unknown":
-                container_info["image_name"] = "ghcr.io/mrgarbonzo/secretgpt"
-            
-            if container_info["image_tag"] == "unknown":
-                container_info["image_tag"] = "security"
-                
-            if container_info["build_time"] == "unknown":
-                container_info["build_time"] = datetime.now().isoformat()
-            
-            return container_info
-            
-        except Exception as e:
-            logger.error(f"Error getting container info: {e}")
-            return {
-                "image_name": "ghcr.io/mrgarbonzo/secretgpt",
-                "image_tag": "security", 
-                "build_time": datetime.now().isoformat(),
-                "image_sha": "unavailable",
-                "error": str(e)
-            }
     
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance"""
