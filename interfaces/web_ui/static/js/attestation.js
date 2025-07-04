@@ -44,6 +44,9 @@ class AttestationManager {
     async verifySelfVM() {
         this.setLoadingState('self-vm', true);
         
+        // Set container info immediately (mock data until SecretVM provides live endpoints)
+        this.setFallbackContainerInfo('self');
+        
         try {
             const response = await fetch(`${this.API_BASE}/attestation/self`);
             const data = await response.json();
@@ -65,6 +68,9 @@ class AttestationManager {
 
     async verifySecretAIVM() {
         this.setLoadingState('secretai-vm', true);
+        
+        // Set container info immediately (mock data until SecretVM provides live endpoints)
+        this.setFallbackContainerInfo('secretai');
         
         try {
             const response = await fetch(`${this.API_BASE}/attestation/secret-ai`);
@@ -327,8 +333,6 @@ class AttestationManager {
         this.updateField(`${vmType}-docker-image`, imageName);
         this.updateField(`${vmType}-build-time`, buildTime);
         this.updateField(`${vmType}-image-sha`, sha256);
-        
-        console.log(`Set fallback container info for ${vmType}: ${imageName}`);
     }
 
     updateVMStatus(vmId, status) {
