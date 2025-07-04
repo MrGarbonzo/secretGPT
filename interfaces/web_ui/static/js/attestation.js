@@ -453,7 +453,11 @@ class AttestationManager {
                                     <strong>Content Integrity Hashes:</strong><br>
                                     Question Hash: <code>${proofData.interaction.question_hash.substring(0, 16)}...</code><br>
                                     Answer Hash: <code>${proofData.interaction.answer_hash.substring(0, 16)}...</code><br>
-                                    <em>✓ Verified during decryption - content is authentic</em>
+                                    ${proofData.conversation && proofData.conversation.conversation_hash ? 
+                                        `Conversation Hash: <code>${proofData.conversation.conversation_hash.substring(0, 16)}...</code><br>` : 
+                                        ''
+                                    }
+                                    <em>✓ All hashes verified during decryption - content is authentic and unmodified</em>
                                 </small>
                             </div>
                         </div>
@@ -491,95 +495,10 @@ class AttestationManager {
                     <!-- Attestation Details Section -->
                     <h6 class="mt-4 mb-3"><i class="fas fa-shield-alt"></i> Attestation Details</h6>
                     
-                    <!-- VM Comparison Header -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0"><i class="fas fa-balance-scale"></i> Dual VM Attestation Comparison</h6>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary active" id="view-comparison"
-                                    onclick="this.classList.add('active'); document.getElementById('view-individual').classList.remove('active'); document.getElementById('comparison-view').style.display='block'; document.getElementById('individual-view').style.display='none';">
-                                <i class="fas fa-balance-scale"></i> Compare
-                            </button>
-                            <button type="button" class="btn btn-outline-primary" id="view-individual"
-                                    onclick="this.classList.add('active'); document.getElementById('view-comparison').classList.remove('active'); document.getElementById('individual-view').style.display='block'; document.getElementById('comparison-view').style.display='none';">
-                                <i class="fas fa-list"></i> Individual
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Comparison View -->
-                    <div id="comparison-view">
-                        ${this.formatDualVMComparison(proofData.attestation.self_vm.attestation, proofData.attestation.secret_ai_vm.attestation)}
-                    </div>
-
-                    <!-- Individual View -->
-                    <div id="individual-view" style="display: none;">
-                        <!-- Attest AI VM Attestation -->
-                        <div class="card mb-3">
-                            <div class="card-header py-2 d-flex justify-content-between align-items-center" 
-                                 data-bs-toggle="collapse" data-bs-target="#${selfVmId}" 
-                                 style="cursor: pointer;">
-                                <h6 class="mb-0"><i class="fas fa-server"></i> Attest AI VM Attestation</h6>
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                            <div id="${selfVmId}" class="collapse show">
-                                <div class="card-body">
-                                    ${this.formatAttestationData(proofData.attestation.self_vm.attestation)}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Secret AI VM Attestation -->
-                        <div class="card mb-3">
-                            <div class="card-header py-2 d-flex justify-content-between align-items-center" 
-                                 data-bs-toggle="collapse" data-bs-target="#${secretAiId}" 
-                                 style="cursor: pointer;">
-                                <h6 class="mb-0"><i class="fas fa-brain"></i> Secret AI VM Attestation</h6>
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                            <div id="${secretAiId}" class="collapse show">
-                                <div class="card-body">
-                                    ${this.formatAttestationData(proofData.attestation.secret_ai_vm.attestation)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Dual VM Attestation Details -->
+                    <h6 class="mb-3"><i class="fas fa-balance-scale"></i> Dual VM Attestation Details</h6>
                     
-                    <!-- Conversation Details (if included) -->
-                    ${proofData.conversation && proofData.conversation.full_history ? `
-                    <div class="card">
-                        <div class="card-header py-2 d-flex justify-content-between align-items-center" 
-                             data-bs-toggle="collapse" data-bs-target="#${conversationId}" 
-                             style="cursor: pointer;">
-                            <h6 class="mb-0"><i class="fas fa-comments"></i> Conversation Details</h6>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="${conversationId}" class="collapse">
-                            <div class="card-body">
-                                <div class="mb-2">
-                                    <strong>Total Messages:</strong> ${proofData.conversation.total_messages}
-                                </div>
-                                <div class="mb-2">
-                                    <strong>Conversation Integrity Hash:</strong>
-                                    <code class="d-block small">${proofData.conversation.conversation_hash}</code>
-                                    <small class="text-muted">
-                                        <em>✓ SHA-256 hash of entire conversation - proves conversation hasn't been modified</em>
-                                    </small>
-                                </div>
-                                <div class="mt-3">
-                                    <strong>Full Conversation History:</strong>
-                                    <div class="border rounded p-2 mt-2" style="max-height: 300px; overflow-y: auto;">
-                                        ${proofData.conversation.full_history.map((msg, idx) => `
-                                            <div class="mb-2 ${idx % 2 === 0 ? 'text-primary' : 'text-secondary'}">
-                                                <strong>${idx % 2 === 0 ? 'User' : 'AI'}:</strong>
-                                                ${this.escapeHtml(msg)}
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    ` : ''}
+                    ${this.formatDualVMComparison(proofData.attestation.self_vm.attestation, proofData.attestation.secret_ai_vm.attestation)}
                 </div>
             </div>
         `;
@@ -1038,6 +957,50 @@ class AttestationManager {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Infrastructure Transparency -->
+                    <div class="mb-4">
+                        <h6 class="text-warning mb-3"><i class="fas fa-docker"></i> Infrastructure Transparency</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="border-start border-primary ps-3">
+                                    <strong class="d-block">Attest AI VM Deployment</strong>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Docker Image:</small>
+                                        <code class="d-block small">ghcr.io/mrgarbonzo/secretgpt:main</code>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Build Time:</small>
+                                        <code class="d-block small">Coming soon</code>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Image SHA256:</small>
+                                        <code class="d-block small">Coming soon</code>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border-start border-info ps-3">
+                                    <strong class="d-block">Secret AI VM Deployment</strong>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Docker Image:</small>
+                                        <code class="d-block small">ghcr.io/scrtlabs/secret-ai:latest</code>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Build Time:</small>
+                                        <code class="d-block small">Coming soon</code>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Image SHA256:</small>
+                                        <code class="d-block small">Coming soon</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-info-circle"></i> Infrastructure data will be provided by SecretVM team via dedicated endpoints (similar to CPU attestation on port 29343). Mock data shown until live integration.
+                        </small>
                     </div>
 
                     <!-- Dual Attestation Summary -->
