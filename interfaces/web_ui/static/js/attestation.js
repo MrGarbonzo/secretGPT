@@ -186,8 +186,8 @@ class AttestationManager {
         const timestamp = new Date(attestation.timestamp).toLocaleString();
         this.updateField(`${vmType}-timestamp`, timestamp);
 
-        // Fetch and display container info
-        this.updateContainerInfo(vmType);
+        // Set fallback container info (until SecretVM team provides live data)
+        this.setFallbackContainerInfo(vmType);
 
         // Show details
         detailsDiv.style.display = 'block';
@@ -201,6 +201,8 @@ class AttestationManager {
     }
 
     async updateContainerInfo(vmType) {
+        // TODO: Re-enable when SecretVM team provides container info endpoints
+        // For now, using fallback data directly in displayAttestationData
         try {
             // Future: SecretVM team will provide container info on dedicated ports (similar to port 29343 for attestation)
             // For now, try existing endpoints with graceful fallback to mock data
