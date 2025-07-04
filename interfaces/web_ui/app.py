@@ -437,7 +437,7 @@ class WebUIInterface:
                 container_info["image_name"] = "ghcr.io/mrgarbonzo/secretgpt"
             
             if container_info["image_tag"] == "unknown":
-                container_info["image_tag"] = "security"
+                container_info["image_tag"] = "main"
                 
             if container_info["build_time"] == "unknown":
                 container_info["build_time"] = datetime.now().isoformat()
@@ -448,7 +448,7 @@ class WebUIInterface:
             logger.error(f"Error getting container info: {e}")
             return {
                 "image_name": "ghcr.io/mrgarbonzo/secretgpt",
-                "image_tag": "security", 
+                "image_tag": "main", 
                 "build_time": datetime.now().isoformat(),
                 "image_sha": "unavailable",
                 "error": str(e)
