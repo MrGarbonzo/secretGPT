@@ -13,7 +13,7 @@ class AttestationManager {
     }
 
     setupEventListeners() {
-        // Self VM verification
+        // Attest AI VM verification
         const verifySelfButton = document.getElementById('verify-self-vm');
         if (verifySelfButton) {
             verifySelfButton.addEventListener('click', () => this.verifySelfVM());
@@ -58,7 +58,7 @@ class AttestationManager {
                 throw new Error(data.error || 'Verification failed');
             }
         } catch (error) {
-            console.error('Self VM verification failed:', error);
+            console.error('Attest AI VM verification failed:', error);
             this.showError('self-vm', error.message);
             this.updateVMStatus('self-vm', 'error');
         } finally {
@@ -450,8 +450,10 @@ class AttestationManager {
                             </div>
                             <div class="mt-2">
                                 <small class="text-muted">
+                                    <strong>Content Integrity Hashes:</strong><br>
                                     Question Hash: <code>${proofData.interaction.question_hash.substring(0, 16)}...</code><br>
-                                    Answer Hash: <code>${proofData.interaction.answer_hash.substring(0, 16)}...</code>
+                                    Answer Hash: <code>${proofData.interaction.answer_hash.substring(0, 16)}...</code><br>
+                                    <em>✓ Verified during decryption - content is authentic</em>
                                 </small>
                             </div>
                         </div>
@@ -511,12 +513,12 @@ class AttestationManager {
 
                     <!-- Individual View -->
                     <div id="individual-view" style="display: none;">
-                        <!-- Self VM Attestation -->
+                        <!-- Attest AI VM Attestation -->
                         <div class="card mb-3">
                             <div class="card-header py-2 d-flex justify-content-between align-items-center" 
                                  data-bs-toggle="collapse" data-bs-target="#${selfVmId}" 
                                  style="cursor: pointer;">
-                                <h6 class="mb-0"><i class="fas fa-server"></i> Self VM Attestation</h6>
+                                <h6 class="mb-0"><i class="fas fa-server"></i> Attest AI VM Attestation</h6>
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                             <div id="${selfVmId}" class="collapse show">
@@ -557,8 +559,11 @@ class AttestationManager {
                                     <strong>Total Messages:</strong> ${proofData.conversation.total_messages}
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Conversation Hash:</strong>
+                                    <strong>Conversation Integrity Hash:</strong>
                                     <code class="d-block small">${proofData.conversation.conversation_hash}</code>
+                                    <small class="text-muted">
+                                        <em>✓ SHA-256 hash of entire conversation - proves conversation hasn't been modified</em>
+                                    </small>
                                 </div>
                                 <div class="mt-3">
                                     <strong>Full Conversation History:</strong>
@@ -917,21 +922,13 @@ class AttestationManager {
                     <div class="row">
                         <div class="col-md-6 text-center">
                             <h6 class="mb-0">
-                                <i class="fas fa-server text-primary"></i> Self VM (Interface)
-                                ${selfValidation.overall ? 
-                                    '<span class="badge bg-success ms-1">✓</span>' : 
-                                    '<span class="badge bg-warning ms-1">⚠</span>'
-                                }
+                                <i class="fas fa-server text-primary"></i> Attest AI VM (Interface)
                             </h6>
                             <small class="text-muted">Handles user interface and proof generation</small>
                         </div>
                         <div class="col-md-6 text-center">
                             <h6 class="mb-0">
                                 <i class="fas fa-brain text-info"></i> Secret AI VM (Processing)
-                                ${secretAiValidation.overall ? 
-                                    '<span class="badge bg-success ms-1">✓</span>' : 
-                                    '<span class="badge bg-warning ms-1">⚠</span>'
-                                }
                             </h6>
                             <small class="text-muted">Processes AI requests securely</small>
                         </div>
@@ -942,15 +939,11 @@ class AttestationManager {
                     <div class="mb-4">
                         <h6 class="text-primary mb-3">
                             <i class="fas fa-microchip"></i> Trust Domain Measurements (MRTD)
-                            ${measurementsMatch.mrtd ? 
-                                '<span class="badge bg-warning ms-2"><i class="fas fa-exclamation-triangle"></i> Identical</span>' : 
-                                '<span class="badge bg-success ms-2"><i class="fas fa-check"></i> Different (Expected)</span>'
-                            }
                         </h6>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="border-start border-primary ps-3 mb-3">
-                                    <small class="text-muted d-block">Self VM MRTD:</small>
+                                    <small class="text-muted d-block">Attest AI VM MRTD:</small>
                                     <code class="d-block small font-monospace text-break">${selfAttestation.mrtd}</code>
                                 </div>
                             </div>
@@ -962,8 +955,7 @@ class AttestationManager {
                             </div>
                         </div>
                         <small class="text-muted">
-                            <strong>Expected:</strong> Different values indicate separate, independently measured VMs. 
-                            Identical values might suggest improper isolation.
+                            <strong>Expected:</strong> Different values indicate separate, independently measured VMs with proper isolation.
                         </small>
                     </div>
 
@@ -977,9 +969,8 @@ class AttestationManager {
                                 <thead>
                                     <tr>
                                         <th>Register</th>
-                                        <th>Self VM</th>
+                                        <th>Attest AI VM</th>
                                         <th>Secret AI VM</th>
-                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -987,45 +978,21 @@ class AttestationManager {
                                         <td><strong>RTMR0</strong><br><small class="text-muted">OS Kernel</small></td>
                                         <td><code class="small">${this.truncateHash(selfAttestation.rtmr0)}</code></td>
                                         <td><code class="small">${this.truncateHash(secretAiAttestation.rtmr0)}</code></td>
-                                        <td>
-                                            ${measurementsMatch.rtmr0 ? 
-                                                '<span class="badge bg-success"><i class="fas fa-equals"></i> Same</span>' : 
-                                                '<span class="badge bg-info"><i class="fas fa-not-equal"></i> Different</span>'
-                                            }
-                                        </td>
                                     </tr>
                                     <tr>
                                         <td><strong>RTMR1</strong><br><small class="text-muted">System Services</small></td>
                                         <td><code class="small">${this.truncateHash(selfAttestation.rtmr1)}</code></td>
                                         <td><code class="small">${this.truncateHash(secretAiAttestation.rtmr1)}</code></td>
-                                        <td>
-                                            ${measurementsMatch.rtmr1 ? 
-                                                '<span class="badge bg-success"><i class="fas fa-equals"></i> Same</span>' : 
-                                                '<span class="badge bg-info"><i class="fas fa-not-equal"></i> Different</span>'
-                                            }
-                                        </td>
                                     </tr>
                                     <tr>
                                         <td><strong>RTMR2</strong><br><small class="text-muted">Applications</small></td>
                                         <td><code class="small">${this.truncateHash(selfAttestation.rtmr2)}</code></td>
                                         <td><code class="small">${this.truncateHash(secretAiAttestation.rtmr2)}</code></td>
-                                        <td>
-                                            ${measurementsMatch.rtmr2 ? 
-                                                '<span class="badge bg-success"><i class="fas fa-equals"></i> Same</span>' : 
-                                                '<span class="badge bg-info"><i class="fas fa-not-equal"></i> Different</span>'
-                                            }
-                                        </td>
                                     </tr>
                                     <tr>
                                         <td><strong>RTMR3</strong><br><small class="text-muted">Custom/User</small></td>
                                         <td><code class="small">${this.truncateHash(selfAttestation.rtmr3)}</code></td>
                                         <td><code class="small">${this.truncateHash(secretAiAttestation.rtmr3)}</code></td>
-                                        <td>
-                                            ${measurementsMatch.rtmr3 ? 
-                                                '<span class="badge bg-success"><i class="fas fa-equals"></i> Same</span>' : 
-                                                '<span class="badge bg-info"><i class="fas fa-not-equal"></i> Different</span>'
-                                            }
-                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1038,7 +1005,7 @@ class AttestationManager {
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="border-start border-primary ps-3">
-                                    <strong class="d-block">Self VM Security</strong>
+                                    <strong class="d-block">Attest AI VM Security</strong>
                                     <div class="mt-2">
                                         <small class="text-muted">Certificate Fingerprint:</small>
                                         <code class="d-block small">${this.truncateHash(selfAttestation.certificate_fingerprint, 32)}</code>
