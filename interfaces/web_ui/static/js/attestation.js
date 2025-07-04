@@ -202,25 +202,44 @@ class AttestationManager {
 
     async updateContainerInfo(vmType) {
         try {
-            // For Secret AI VM, try to fetch from Secret AI specific endpoint (future)
+            // Future: SecretVM team will provide container info on dedicated ports (similar to port 29343 for attestation)
+            // For now, try existing endpoints with graceful fallback to mock data
             const endpoint = vmType === 'secretai' ? 
                 `${this.API_BASE}/system/secret-ai-container-info` : 
                 `${this.API_BASE}/system/container-info`;
             
-            const response = await fetch(endpoint);
-            const data = await response.json();
+            console.log(`Fetching container info for ${vmType} from: ${endpoint}`);
             
-            if (data.success && data.container_info) {
+            const response = await fetch(endpoint);
+            
+            // Handle non-existent endpoints (404, etc.)
+            if (!response.ok) {
+                console.log(`Endpoint ${endpoint} not available (${response.status}), using fallback data`);
+                this.setFallbackContainerInfo(vmType);
+                return;
+            }
+            
+            const data = await response.json();
+            console.log(`Container info response for ${vmType}:`, data);
+            
+            // Check if we have valid container info
+            if (data.success && data.container_info && 
+                data.container_info.image_name && 
+                data.container_info.image_name !== 'unknown') {
+                
                 const containerInfo = data.container_info;
                 
                 // Format Docker image
-                const imageName = containerInfo.image_name || this.getDefaultImageName(vmType);
-                const imageTag = containerInfo.image_tag || this.getDefaultImageTag(vmType);
+                const imageName = containerInfo.image_name;
+                const imageTag = containerInfo.image_tag && containerInfo.image_tag !== 'unknown' ? 
+                    containerInfo.image_tag : this.getDefaultImageTag(vmType);
                 const fullImageName = `${imageName}:${imageTag}`;
                 
                 // Format build time
-                let buildTime = 'Unknown';
-                if (containerInfo.build_time && containerInfo.build_time !== 'unknown') {
+                let buildTime = 'Coming soon';
+                if (containerInfo.build_time && 
+                    containerInfo.build_time !== 'unknown' && 
+                    containerInfo.build_time !== 'unavailable') {
                     try {
                         buildTime = new Date(containerInfo.build_time).toLocaleString('en-US', {
                             year: 'numeric',
@@ -231,34 +250,40 @@ class AttestationManager {
                             timeZone: 'UTC'
                         }) + ' UTC';
                     } catch (e) {
-                        buildTime = containerInfo.build_time;
+                        buildTime = 'Coming soon';
                     }
                 }
                 
                 // Format SHA256
-                let sha256 = containerInfo.image_sha || 'Requires TEE attestation';
-                if (sha256 && sha256 !== 'unknown' && sha256 !== 'unavailable' && sha256 !== 'Requires TEE attestation') {
+                let sha256 = 'Coming soon';
+                if (containerInfo.image_sha && 
+                    containerInfo.image_sha !== 'unknown' && 
+                    containerInfo.image_sha !== 'unavailable' && 
+                    containerInfo.image_sha !== 'Requires TEE attestation') {
                     // Truncate long SHA hashes for display
-                    if (sha256.startsWith('sha256:')) {
-                        sha256 = sha256.substring(0, 19) + '...';
-                    } else if (sha256.length > 16) {
-                        sha256 = sha256.substring(0, 16) + '...';
+                    if (containerInfo.image_sha.startsWith('sha256:')) {
+                        sha256 = containerInfo.image_sha.substring(0, 19) + '...';
+                    } else if (containerInfo.image_sha.length > 16) {
+                        sha256 = containerInfo.image_sha.substring(0, 16) + '...';
+                    } else {
+                        sha256 = containerInfo.image_sha;
                     }
                 }
                 
-                // Update the fields
+                // Update the fields with real or processed data
                 this.updateField(`${vmType}-docker-image`, fullImageName);
                 this.updateField(`${vmType}-build-time`, buildTime);
                 this.updateField(`${vmType}-image-sha`, sha256);
                 
+                console.log(`Updated ${vmType} with API data`);
+                
             } else {
-                console.warn('Container info not available:', data.error);
-                // Set VM-specific fallback values
+                console.log(`Invalid or insufficient container info for ${vmType}, using fallback`);
                 this.setFallbackContainerInfo(vmType);
             }
         } catch (error) {
-            console.error('Failed to fetch container info:', error);
-            // Set VM-specific fallback values
+            console.log(`Error fetching container info for ${vmType}:`, error.message);
+            // Use fallback data when API calls fail
             this.setFallbackContainerInfo(vmType);
         }
     }
@@ -284,47 +309,24 @@ class AttestationManager {
     }
 
     setFallbackContainerInfo(vmType) {
-        const imageName = this.getDefaultImageName(vmType);
-        const imageTag = this.getDefaultImageTag(vmType);
-        const fullImageName = `${imageName}:${imageTag}`;
-        
-        // Create different mock build times for different VMs
-        let buildTime = 'Unknown';
+        // Use realistic image names without tags, ready for SecretVM integration
+        let imageName;
         if (vmType === 'secretai') {
-            // Mock Secret AI build time (slightly different from Attest AI)
-            const mockDate = new Date('2025-07-04T01:45:30Z');
-            buildTime = mockDate.toLocaleString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'UTC'
-            }) + ' UTC';
+            imageName = 'ghcr.io/scrtlabs/secret-ai:latest';
         } else {
-            // Mock Attest AI build time
-            const mockDate = new Date('2025-07-04T02:34:15Z');
-            buildTime = mockDate.toLocaleString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'UTC'
-            }) + ' UTC';
+            // Attest AI VM - no tag as requested
+            imageName = 'ghcr.io/mrgarbonzo/secretgpt';
         }
         
-        // Different mock SHA256 for different VMs
-        let sha256 = 'Requires TEE attestation';
-        if (vmType === 'secretai') {
-            sha256 = 'sha256:a1b2c3d4e5f6...'; // Mock Secret AI image hash
-        } else {
-            sha256 = 'sha256:f6e5d4c3b2a1...'; // Mock Attest AI image hash
-        }
+        // All additional info shows "Coming soon" until SecretVM team provides endpoints
+        const buildTime = 'Coming soon';
+        const sha256 = 'Coming soon';
         
-        this.updateField(`${vmType}-docker-image`, fullImageName);
+        this.updateField(`${vmType}-docker-image`, imageName);
         this.updateField(`${vmType}-build-time`, buildTime);
         this.updateField(`${vmType}-image-sha`, sha256);
+        
+        console.log(`Set fallback container info for ${vmType}: ${imageName}`);
     }
 
     updateVMStatus(vmId, status) {
