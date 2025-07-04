@@ -6,20 +6,29 @@ services:
     container_name: secretgpt-hub
     restart: unless-stopped
     ports:
-      - "80:8000"
+      - '80:8000'
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - host.docker.internal:host-gateway
     environment:
-      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
+      - >-
+        SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
       - SECRETGPT_HUB_HOST=0.0.0.0
       - SECRETGPT_HUB_PORT=8000
       - SECRETGPT_RUN_MODE=service
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
       - SECRETGPT_ENABLE_WEB_UI=true
-      - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
+      - >-
+        SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - http://localhost:8000/health
+        - '||'
+        - exit
+        - '1'
       interval: 30s
       timeout: 10s
       retries: 3
