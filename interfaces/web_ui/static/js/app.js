@@ -430,7 +430,13 @@ class AttestAIApp {
             const data = await response.json();
 
             if (data.success && data.verified) {
-                this.displayProofResults(data.proof_data, contentDiv);
+                // Use the enhanced proof display from attestation.js
+                if (window.attestationManager && window.attestationManager.displayProofResults) {
+                    window.attestationManager.displayProofResults(data.proof_data, contentDiv);
+                } else {
+                    // Fallback error if attestation manager not available
+                    contentDiv.innerHTML = '<div class="alert alert-danger">Attestation display not available. Please refresh the page.</div>';
+                }
                 resultsDiv.style.display = 'block';
                 this.showSuccess('Proof verified successfully!');
             } else {
@@ -446,84 +452,6 @@ class AttestAIApp {
         passwordInput.value = '';
     }
 
-    displayProofResults(proofData, container) {
-        // Check if full conversation is included
-        const hasFullConversation = proofData.conversation && proofData.conversation.full_history && proofData.conversation.full_history.length > 0;
-        
-        let conversationHtml = '';
-        if (hasFullConversation) {
-            conversationHtml = `
-                <div class="col-12 mt-3">
-                    <h6>Full Conversation History (${proofData.conversation.total_messages} messages)</h6>
-                    <div class="conversation-history" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa;">
-                        ${proofData.conversation.full_history.map(msg => `
-                            <div class="conversation-message mb-2">
-                                <strong class="${msg.role === 'user' ? 'text-primary' : 'text-success'}">${msg.role === 'user' ? 'User' : 'Assistant'}:</strong>
-                                <div class="message-content">${this.escapeHtml(msg.content)}</div>
-                                <small class="text-muted">${new Date(msg.timestamp).toLocaleString()}</small>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            <strong>Conversation Hash:</strong> <code>${proofData.conversation.conversation_hash}</code>
-                        </small>
-                    </div>
-                </div>
-            `;
-        }
-        
-        const html = `
-            <div class="card">
-                <div class="card-header">
-                    <h6><i class="fas fa-check-circle text-success"></i> Verified Proof</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Latest Interaction</h6>
-                            <div class="mb-2">
-                                <strong>Question:</strong>
-                                <div class="border p-2 bg-light">${this.escapeHtml(proofData.interaction.question)}</div>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Answer:</strong>
-                                <div class="border p-2 bg-light">${this.escapeHtml(proofData.interaction.answer)}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Attestation Verification</h6>
-                            <div class="mb-2">
-                                <strong>Dual VM:</strong>
-                                <span class="badge bg-success">${proofData.attestation.dual_attestation ? 'Verified' : 'Failed'}</span>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Timestamp:</strong>
-                                <code>${new Date(proofData.timestamp).toLocaleString()}</code>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Generator:</strong>
-                                <code>${proofData.metadata.generator}</code>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Version:</strong>
-                                <code>${proofData.version}</code>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Full Conversation:</strong>
-                                <span class="badge ${hasFullConversation ? 'bg-success' : 'bg-warning'}">
-                                    ${hasFullConversation ? 'Included' : 'Not Included'}
-                                </span>
-                            </div>
-                        </div>
-                        ${conversationHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        container.innerHTML = html;
-    }
 
     escapeHtml(text) {
         const div = document.createElement('div');

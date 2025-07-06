@@ -105,6 +105,21 @@
                     </div>
                     <div class="card-body">
                         <div id="self-vm-details" class="attestation-details" style="display: none;">
+                            <div class="mb-3 border-bottom pb-2">
+                                <h6 class="text-primary mb-2">Deployment Info</h6>
+                                <div class="mb-2">
+                                    <strong>Docker Image:</strong>
+                                    <code class="d-block small" id="self-docker-image">-</code>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Build Time:</strong>
+                                    <span class="small" id="self-build-time">-</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Image SHA256:</strong>
+                                    <code class="d-block small" id="self-image-sha">-</code>
+                                </div>
+                            </div>
                             <div class="mb-2">
                                 <strong>MRTD:</strong>
                                 <code class="d-block" id="self-mrtd">-</code>
@@ -155,6 +170,21 @@
                     </div>
                     <div class="card-body">
                         <div id="secretai-vm-details" class="attestation-details" style="display: none;">
+                            <div class="mb-3 border-bottom pb-2">
+                                <h6 class="text-primary mb-2">Deployment Info</h6>
+                                <div class="mb-2">
+                                    <strong>Docker Image:</strong>
+                                    <code class="d-block small" id="secretai-docker-image">-</code>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Build Time:</strong>
+                                    <span class="small" id="secretai-build-time">-</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Image SHA256:</strong>
+                                    <code class="d-block small" id="secretai-image-sha">-</code>
+                                </div>
+                            </div>
                             <div class="mb-2">
                                 <strong>MRTD:</strong>
                                 <code class="d-block" id="secretai-mrtd">-</code>
@@ -730,8 +760,8 @@
                                 <a href="https://github.com/MrGarbonzo/secretGPT" target="_blank" class="btn btn-outline-primary btn-sm">
                                     <i class="fab fa-github"></i> View Source Code
                                 </a>
-                                <a href="#" class="btn btn-outline-secondary btn-sm ms-2">
-                                    <i class="fab fa-docker"></i> View Docker Image
+                                <a href="https://github.com/MrGarbonzo/secretGPT/pkgs/container/secretgpt" target="_blank" class="btn btn-outline-secondary btn-sm ms-2">
+                                    <i class="fab fa-docker"></i> View GHCR Image
                                 </a>
                             </p>
                         </div>
