@@ -22,26 +22,26 @@
                 <h5><i class="fas fa-info-circle"></i> What is Attestation?</h5>
             </div>
             <div class="card-body">
-                <p class="lead">Attestation is like a digital seal of authenticity for secure systems. Just as a notary verifies documents, attestation verifies that a system is running exactly the code it claims to be running, without any tampering or modifications.</p>
+                <p class="lead">Attestation is cryptographic proof that a system is running exactly the code it claims to be running, without any tampering or modifications. Unlike traditional security that asks you to trust promises, attestation provides mathematical evidence that anyone can independently verify.</p>
                 
                 <div class="row mt-4">
                 <div class="col-md-6">
-                <h6><i class="fas fa-lock"></i> Why Attestation Matters</h6>
+                <h6><i class="fas fa-lock"></i> What Attestation Proves</h6>
                 <ul class="list-unstyled">
-                <li><strong>Trust:</strong> Know your system hasn't been tampered with</li>
-                <li><strong>Privacy:</strong> Ensure your data stays confidential</li>
-                <li><strong>Integrity:</strong> Verify the system runs legitimate code</li>
-                <li><strong>Compliance:</strong> Meet security requirements</li>
-                <li><strong>Auditability:</strong> Complete verification history</li>
+                <li><strong>Verification:</strong> Cryptographically prove your system hasn't been tampered with</li>
+                <li><strong>Confidentiality:</strong> Hardware-enforced data protection with mathematical guarantees</li>
+                <li><strong>Integrity:</strong> Verify the system runs only legitimate, unmodified code</li>
+                <li><strong>Transparency:</strong> Independently verify security claims without relying on trust</li>
+                <li><strong>Auditability:</strong> Complete cryptographic record of system state and changes</li>
                 </ul>
                 </div>
                 <div class="col-md-6">
-                <h6><i class="fas fa-microchip"></i> How It Works</h6>
+                <h6><i class="fas fa-microchip"></i> How Attestation Works</h6>
                 <ul class="list-unstyled">
-                <li><strong>TEE Protection:</strong> Hardware-level security</li>
-                <li><strong>Cryptographic Proof:</strong> Signatures that prove the code hasn't been altered</li>
-                <li><strong>Remote Attestation:</strong> Receive verifiable evidence that the system is running in a trusted state</li>
-                <li><strong>Sealed Execution:</strong> Code runs in protected isolation</li>
+                <li><strong>Hardware Foundation:</strong> Silicon-level security that can't be bypassed by software</li>
+                <li><strong>Cryptographic Proof:</strong> Mathematical signatures that definitively prove code authenticity</li>
+                <li><strong>Remote Verification:</strong> Anyone can independently verify your system's security state</li>
+                <li><strong>Isolated Execution:</strong> Code runs in hardware-protected enclaves, physically isolated from all other software</li>
                 </ul>
                 </div>
                 </div>
@@ -239,22 +239,22 @@
                     <p class="lead">Attestation hashes are cryptographic fingerprints created at each stage of your VM's lifecycle - from hardware boot to runtime monitoring.</p>
                     
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-microchip"></i> Boot-Time Creation</h6>
-                            <p class="mb-2">Intel TDX hardware measures each component as it loads:</p>
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-arrow-right text-primary"></i> Hardware → Firmware → OS → Applications</li>
-                                <li><i class="fas fa-arrow-right text-primary"></i> Each step extends the cryptographic chain</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-heartbeat"></i> Runtime Updates</h6>
-                            <p class="mb-2">System continuously updates hash values:</p>
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-arrow-right text-success"></i> MRTD: Fixed at boot (like a birth certificate)</li>
-                                <li><i class="fas fa-arrow-right text-success"></i> RTMR: Live updates (like a security camera)</li>
-                            </ul>
-                        </div>
+                    <div class="col-md-6">
+                    <h6><i class="fas fa-microchip"></i> Boot-Time Creation</h6>
+                    <p class="mb-2">SecretVM measures each component in a chain of trust:</p>
+                    <ul class="list-unstyled">
+                    <li><i class="fas fa-arrow-right text-primary"></i> SEAM Module → Firmware → Initramfs → RootFS</li>
+                    <li><i class="fas fa-arrow-right text-primary"></i> Each step measures the next before handing control</li>
+                    </ul>
+                    </div>
+                    <div class="col-md-6">
+                    <h6><i class="fas fa-heartbeat"></i> Runtime Updates</h6>
+                    <p class="mb-2">System continuously updates measurement values:</p>
+                    <ul class="list-unstyled">
+                    <li><i class="fas fa-arrow-right text-success"></i> MRTD: Fixed at boot by SEAM Module</li>
+                    <li><i class="fas fa-arrow-right text-success"></i> RTMR: Updated at each stage of the boot process</li>
+                    </ul>
+                    </div>
                     </div>
 
                     <div class="text-center">
@@ -281,33 +281,33 @@
 
                     <!-- Vertical Timeline -->
                     <div class="vertical-timeline">
-                        <!-- Step 1: Hardware Boot -->
+                        <!-- Step 1: SEAM Module -->
                         <div class="timeline-item" onclick="toggleVerticalDetails(1)">
                             <div class="vertical-step-node step-1">
-                                <i class="fas fa-microchip"></i>
+                                <i class="fas fa-shield-alt"></i>
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-title">
-                                    <i class="fas fa-microchip"></i>
-                                    Hardware Boot & TDX Initialization
+                                    <i class="fas fa-shield-alt"></i>
+                                    SEAM Module & MRTD Creation
                                 </div>
                                 <div class="timeline-description">
-                                    Intel TDX hardware validates itself and creates the foundation for all future measurements. This is like the "birth certificate" of your secure environment.
+                                    The Secure Arbitration Mode (SEAM) module measures the firmware into the MRTD register and establishes the root of trust for SecretVM.
                                 </div>
                                 <div class="hash-info" id="v-details-1" style="display: none;">
-                                    <div class="hash-algorithm">Process: Hardware-validated security initialization</div>
-                                    <div class="hash-output">Creates cryptographic foundation for MRTD calculation</div>
+                                    <div class="hash-algorithm">Process: Hardware-validated firmware measurement</div>
+                                    <div class="hash-output">MRTD = SHA384(firmware_binary + configuration)</div>
                                     <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
                                     <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
-                                        <li>CPU microcode signatures</li>
-                                        <li>TDX firmware version and configuration</li>
-                                        <li>Hardware security features and capabilities</li>
+                                        <li>TEE firmware binary and version</li>
+                                        <li>Hardware security configuration</li>
+                                        <li>Cryptographic keys and certificates</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Step 2: Firmware Load -->
+                        <!-- Step 2: Firmware Measurements -->
                         <div class="timeline-item" onclick="toggleVerticalDetails(2)">
                             <div class="vertical-step-node step-2">
                                 <i class="fas fa-cog"></i>
@@ -315,25 +315,26 @@
                             <div class="timeline-content">
                                 <div class="timeline-title">
                                     <i class="fas fa-cog"></i>
-                                    Firmware Load & Bootloader Measurement
+                                    Firmware System Configuration (RTMR0)
                                 </div>
                                 <div class="timeline-description">
-                                    UEFI firmware and bootloader components are measured using SHA-384 hashing. Each component's binary data contributes to the growing MRTD value.
+                                    Firmware measures key system configurations into RTMR0, including Configuration Firmware Volume, Trusted Domain Hand-Off Blocks, and ACPI tables.
                                 </div>
                                 <div class="hash-info" id="v-details-2" style="display: none;">
-                                    <div class="hash-algorithm">Algorithm: SHA-384 cryptographic hashing</div>
-                                    <div class="hash-output">MRTD = SHA384(hardware_foundation + firmware_binaries + bootloader_code)</div>
+                                    <div class="hash-algorithm">Algorithm: SHA-384 extending into RTMR0</div>
+                                    <div class="hash-output">RTMR0 = SHA384(CFV + TDHOB + ACPI_tables + other_configs)</div>
                                     <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
                                     <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
-                                        <li>UEFI firmware binary and configuration</li>
-                                        <li>Bootloader executable (GRUB, systemd-boot, etc.)</li>
-                                        <li>Boot configuration and security policies</li>
+                                        <li>Configuration Firmware Volume (CFV)</li>
+                                        <li>Trusted Domain Hand-Off Blocks (TDHOB)</li>
+                                        <li>ACPI tables and system configuration</li>
+                                        <li>Hardware feature configurations</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Step 3: OS Launch -->
+                        <!-- Step 3: Kernel Measurement -->
                         <div class="timeline-item" onclick="toggleVerticalDetails(3)">
                             <div class="vertical-step-node step-3">
                                 <i class="fas fa-desktop"></i>
@@ -341,75 +342,100 @@
                             <div class="timeline-content">
                                 <div class="timeline-title">
                                     <i class="fas fa-desktop"></i>
-                                    Operating System Launch & MRTD Finalization
+                                    OS Kernel Measurement (RTMR1)
                                 </div>
                                 <div class="timeline-description">
-                                    The kernel and core OS components complete the MRTD calculation. This creates your VM's unique fingerprint that proves its integrity from boot.
+                                    Firmware measures the Linux kernel binary into RTMR1, ensuring the operating system hasn't been tampered with before execution.
                                 </div>
                                 <div class="hash-info" id="v-details-3" style="display: none;">
-                                    <div class="hash-algorithm">Algorithm: SHA-384 final MRTD calculation + RTMR0 initialization</div>
-                                    <div class="hash-output">MRTD finalized (immutable), RTMR0 = SHA384(kernel_image + initrd + system_config)</div>
+                                    <div class="hash-algorithm">Algorithm: SHA-384 extending into RTMR1</div>
+                                    <div class="hash-output">RTMR1 = SHA384(kernel_binary + kernel_modules)</div>
                                     <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
                                     <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
-                                        <li>Linux kernel binary and command line</li>
-                                        <li>Initial ramdisk (initrd/initramfs)</li>
-                                        <li>Core system configuration files</li>
-                                        <li>Essential system services and modules</li>
+                                        <li>Linux kernel binary (vmlinuz)</li>
+                                        <li>Essential kernel modules</li>
+                                        <li>Kernel security policies</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Step 4: Application Start -->
+                        <!-- Step 4: Initramfs Measurement -->
                         <div class="timeline-item" onclick="toggleVerticalDetails(4)">
                             <div class="vertical-step-node step-4">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-layer-group"></i>
+                                    Initramfs & Boot Parameters (RTMR2)
+                                </div>
+                                <div class="timeline-description">
+                                    Firmware measures the initramfs (Initial RAM Filesystem) and kernel command line into RTMR2, then transfers control to initramfs.
+                                </div>
+                                <div class="hash-info" id="v-details-4" style="display: none;">
+                                    <div class="hash-algorithm">Algorithm: SHA-384 extending into RTMR2</div>
+                                    <div class="hash-output">RTMR2 = SHA384(initramfs_image + kernel_cmdline + boot_params)</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>Initial RAM Filesystem (initramfs)</li>
+                                        <li>Kernel command line parameters</li>
+                                        <li>Boot configuration files</li>
+                                        <li>Early boot scripts and utilities</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Root Filesystem -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(5)">
+                            <div class="vertical-step-node step-5">
+                                <i class="fas fa-hdd"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    <i class="fas fa-hdd"></i>
+                                    Root Filesystem & Workload (RTMR3)
+                                </div>
+                                <div class="timeline-description">
+                                    Initramfs runs initialization scripts that measure the Root Filesystem and docker-compose.yaml into RTMR3, then launches the containerized workload.
+                                </div>
+                                <div class="hash-info" id="v-details-5" style="display: none;">
+                                    <div class="hash-algorithm">Algorithm: SHA-384 extending into RTMR3</div>
+                                    <div class="hash-output">RTMR3 = SHA384(rootfs_hash + docker_compose + container_images)</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>Root File System (RootFS) contents</li>
+                                        <li>docker-compose.yaml configuration</li>
+                                        <li>Container images and dependencies</li>
+                                        <li>Application startup scripts</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 6: Service Startup -->
+                        <div class="timeline-item" onclick="toggleVerticalDetails(6)">
+                            <div class="vertical-step-node step-6">
                                 <i class="fas fa-rocket"></i>
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-title">
                                     <i class="fas fa-rocket"></i>
-                                    Application Launch & RTMR Updates
+                                    Service Startup & Report Data
                                 </div>
                                 <div class="timeline-description">
-                                    Applications and services start up, with each component extending the appropriate RTMR register. This tracks what software is actually running.
+                                    Root filesystem launches SecretVM services, generates TLS certificates, produces GPU attestation (if available), and stores identifiers in the reportdata field.
                                 </div>
-                                <div class="hash-info" id="v-details-4" style="display: none;">
-                                    <div class="hash-algorithm">Algorithm: SHA-384 extending (RTMR_new = SHA384(RTMR_current + new_measurement))</div>
-                                    <div class="hash-output">RTMR1 tracks applications, RTMR2 tracks configs, RTMR3 tracks custom data</div>
-                                    <div style="margin-top: 0.5rem;"><strong>Measured Components:</strong></div>
+                                <div class="hash-info" id="v-details-6" style="display: none;">
+                                    <div class="hash-algorithm">Process: Service initialization and identity binding</div>
+                                    <div class="hash-output">reportdata = TLS_cert_fingerprint + GPU_nonce (if GPU present)</div>
+                                    <div style="margin-top: 0.5rem;"><strong>Generated Components:</strong></div>
                                     <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
-                                        <li>Application binaries (AttestAI, SecretAI, etc.)</li>
-                                        <li>Shared libraries and dependencies</li>
-                                        <li>Application configuration files</li>
-                                        <li>Security policies and network settings</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 5: Runtime Monitoring -->
-                        <div class="timeline-item" onclick="toggleVerticalDetails(5)">
-                            <div class="vertical-step-node step-5">
-                                <i class="fas fa-heartbeat"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-title">
-                                    <i class="fas fa-heartbeat"></i>
-                                    Runtime Monitoring & Continuous Updates
-                                </div>
-                                <div class="timeline-description">
-                                    The system continuously monitors and measures runtime events, extending RTMR values in real-time. Any changes are immediately reflected in the attestation.
-                                </div>
-                                <div class="hash-info" id="v-details-5" style="display: none;">
-                                    <div class="hash-algorithm">Algorithm: Live SHA-384 extending for each measured event</div>
-                                    <div class="hash-output">RTMRx = SHA384(current_value + event_data + timestamp)</div>
-                                    <div style="margin-top: 0.5rem;"><strong>Measured Events:</strong></div>
-                                    <ul style="margin: 0.25rem 0 0 1rem; font-size: 0.8rem;">
-                                        <li>System calls and process executions</li>
-                                        <li>Configuration file modifications</li>
-                                        <li>Network connection events</li>
-                                        <li>Security policy changes</li>
-                                        <li>Custom application measurements</li>
+                                        <li>TLS certificate for secure communications</li>
+                                        <li>GPU attestation quote (GPU-enabled VMs)</li>
+                                        <li>Attestation service startup</li>
+                                        <li>Application containers (AttestAI, SecretAI)</li>
                                     </ul>
                                 </div>
                             </div>
@@ -431,11 +457,23 @@
                         <div class="list-group list-group-flush">
                             <div class="list-group-item">
                                 <strong>MRTD</strong> <span class="badge bg-primary">Measurement of Trust Domain</span>
-                                <p class="small mt-1 mb-0">A unique fingerprint of the VM's initial state - like a birth certificate for the secure environment</p>
+                                <p class="small mt-1 mb-0">Cryptographic hash of the TEE firmware running in the secure environment</p>
                             </div>
                             <div class="list-group-item">
-                                <strong>RTMR0-3</strong> <span class="badge bg-info">Runtime Measurement Registers</span>
-                                <p class="small mt-1 mb-0">Real-time health checks that monitor the VM hasn't been compromised during operation</p>
+                                <strong>RTMR0</strong> <span class="badge bg-info">System Configuration</span>
+                                <p class="small mt-1 mb-0">Measures Configuration Firmware Volume (CFV), Trusted Domain Hand-Off Blocks (TDHOB), and ACPI tables</p>
+                            </div>
+                            <div class="list-group-item">
+                                <strong>RTMR1</strong> <span class="badge bg-info">OS Kernel</span>
+                                <p class="small mt-1 mb-0">Contains the cryptographic measurement (hash) of the Linux kernel binary used by SecretVM</p>
+                            </div>
+                            <div class="list-group-item">
+                                <strong>RTMR2</strong> <span class="badge bg-info">Initramfs & Boot Parameters</span>
+                                <p class="small mt-1 mb-0">Measures the Initial RAM Filesystem (initramfs) and kernel command line parameters</p>
+                            </div>
+                            <div class="list-group-item">
+                                <strong>RTMR3</strong> <span class="badge bg-info">Root Filesystem & Workload</span>
+                                <p class="small mt-1 mb-0">Measures the root filesystem contents and docker-compose.yaml defining the container workload</p>
                             </div>
                         </div>
                     </div>
@@ -443,8 +481,8 @@
                         <h6><i class="fas fa-shield-alt"></i> Security Features</h6>
                         <div class="list-group list-group-flush">
                             <div class="list-group-item">
-                                <strong>Report Data</strong> <span class="badge bg-success">Instance Proof</span>
-                                <p class="small mt-1 mb-0">Custom information proving this specific VM instance is authentic</p>
+                                <strong>reportdata</strong> <span class="badge bg-success">Instance Identity</span>
+                                <p class="small mt-1 mb-0">Contains TLS certificate fingerprint and GPU attestation nonce (if GPU present) to bind VM identity to attestation</p>
                             </div>
                             <div class="list-group-item">
                                 <strong>Certificate Fingerprint</strong> <span class="badge bg-warning">MITM Protection</span>
@@ -464,227 +502,113 @@
             <div class="card-body">
                 <p class="mb-4">Click each level to learn more about how your secure environment is protected:</p>
                 
-                <!-- MRTD Explanation -->
+                <!-- Boot Integrity & Chain of Trust -->
                 <div class="drill-down-container">
-                    <h6><i class="fas fa-fingerprint"></i> VM Integrity Verification (MRTD)</h6>
+                    <h6><i class="fas fa-shield-alt"></i> Boot Integrity & Chain of Trust</h6>
                     
-                    <div class="drill-down-level" data-level="1" data-topic="mrtd">
+                    <div class="drill-down-level" data-level="1" data-topic="boot">
                         <div class="level-header">
                             <div class="d-flex align-items-center">
                                 <div class="level-icon level-1">1</div>
-                                <span>VM integrity verified ✓</span>
+                                <span>Secure boot verified ✓</span>
                             </div>
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
-                            Your virtual machine has been verified as secure and unmodified.
+                            Your virtual machine's boot process has been cryptographically verified from hardware to applications.
                         </div>
                     </div>
                     
-                    <div class="drill-down-level locked" data-level="2" data-topic="mrtd">
+                    <div class="drill-down-level locked" data-level="2" data-topic="boot">
                         <div class="level-header">
                             <div class="d-flex align-items-center">
                                 <div class="level-icon level-2">2</div>
-                                <span>Like a tamper-evident seal - proves nothing was modified since startup</span>
+                                <span>Like a construction inspection process - each stage gets certified before moving to the next</span>
                             </div>
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
                             <div class="analogy-highlight">
-                                <i class="fas fa-shield-alt"></i> <strong>Think of it like:</strong> A tamper-evident seal on a product package. Just as you can tell if someone opened a sealed envelope, MRTD lets you verify that no one has modified the system since it was securely started.
+                                <i class="fas fa-hard-hat"></i> <strong>Think of it like:</strong> Building a house with mandatory inspections at each stage. Just as a house needs foundation inspection, framing inspection, electrical inspection, and final walkthrough - each signed off by certified inspectors - your VM goes through mandatory security inspections at each boot stage.
                             </div>
-                            <p>This cryptographic measurement is taken at the moment the virtual machine boots up, creating a unique fingerprint that would change if anyone tried to modify the system.</p>
+                            <p>The SEAM Module acts like the head building inspector, creating a permanent record (MRTD) that the foundation is solid. Then each construction phase gets its own inspection certificate (RTMR0-3) before moving to the next stage. If anything is wrong at any stage, the whole process stops.</p>
                         </div>
                     </div>
                     
-                    <div class="drill-down-level locked" data-level="3" data-topic="mrtd">
+                    <div class="drill-down-level locked" data-level="3" data-topic="boot">
                         <div class="level-header">
                             <div class="d-flex align-items-center">
                                 <div class="level-icon level-3">3</div>
-                                <span>MRTD hash is your VM's unique fingerprint from secure boot</span>
+                                <span>MRTD and RTMR measurements verify each boot stage</span>
                             </div>
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
-                            <p><strong>Technical Details:</strong> The Measurement of Trust Domain (MRTD) is a SHA-384 hash that includes:</p>
+                            <p><strong>Technical Details:</strong> Boot integrity verification involves:</p>
                             <ul>
-                                <li>Initial VM configuration and firmware</li>
-                                <li>Bootloader and operating system components</li>
-                                <li>Application binaries and dependencies</li>
+                                <li><strong>MRTD:</strong> Created once by SEAM Module - immutable measurement of firmware</li>
+                                <li><strong>RTMR0:</strong> System Configuration (CFV, TDHOB, ACPI tables)</li>
+                                <li><strong>RTMR1:</strong> OS Kernel (Linux kernel binary)</li>
+                                <li><strong>RTMR2:</strong> Initramfs & Boot Parameters (initramfs + kernel command line)</li>
+                                <li><strong>RTMR3:</strong> Root Filesystem & Workload (RootFS + docker-compose.yaml)</li>
                             </ul>
-                            <div class="technical-data" id="current-mrtd">
-                                Click "Verify" above to see the actual MRTD value
-                            </div>
-                            <p class="mt-2"><small>This measurement is computed by Intel TDX hardware and cannot be forged or manipulated by software.</small></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Runtime Monitoring -->
-                <div class="drill-down-container">
-                    <h6><i class="fas fa-heartbeat"></i> Runtime Security Monitoring (RTMR)</h6>
-                    
-                    <div class="drill-down-level" data-level="1" data-topic="rtmr">
-                        <div class="level-header">
-                            <div class="d-flex align-items-center">
-                                <div class="level-icon level-1">1</div>
-                                <span>Runtime security active ✓</span>
-                            </div>
-                            <i class="fas fa-chevron-right expand-icon"></i>
-                        </div>
-                        <div class="level-content">
-                            Continuous monitoring ensures your system remains secure while running.
-                        </div>
-                    </div>
-                    
-                    <div class="drill-down-level locked" data-level="2" data-topic="rtmr">
-                        <div class="level-header">
-                            <div class="d-flex align-items-center">
-                                <div class="level-icon level-2">2</div>
-                                <span>Like a security camera system - continuously monitors for any changes</span>
-                            </div>
-                            <i class="fas fa-chevron-right expand-icon"></i>
-                        </div>
-                        <div class="level-content">
-                            <div class="analogy-highlight">
-                                <i class="fas fa-video"></i> <strong>Think of it like:</strong> A bank's security system that continuously monitors for unauthorized access. RTMR values act like security cameras, detecting any unauthorized changes to the system while it's running.
-                            </div>
-                            <p>These measurements update in real-time, so if anything suspicious happens, you'd know immediately.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="drill-down-level locked" data-level="3" data-topic="rtmr">
-                        <div class="level-header">
-                            <div class="d-flex align-items-center">
-                                <div class="level-icon level-3">3</div>
-                                <span>RTMR registers track all system activities and modifications</span>
-                            </div>
-                            <i class="fas fa-chevron-right expand-icon"></i>
-                        </div>
-                        <div class="level-content">
-                            <p><strong>Technical Details:</strong> Runtime Measurement Registers (RTMR 0-3) each track different aspects:</p>
-                            <ul>
-                                <li><strong>RTMR0:</strong> Operating system and kernel activities</li>
-                                <li><strong>RTMR1:</strong> Application-level changes and updates</li>
-                                <li><strong>RTMR2:</strong> Configuration and policy modifications</li>
-                                <li><strong>RTMR3:</strong> Custom measurements and attestation data</li>
-                            </ul>
-                            <div class="technical-data" id="current-rtmr">
-                                Click "Verify" above to see the actual RTMR values
+                            <div class="technical-data" id="current-boot">
+                                Click "Verify" above to see the actual MRTD and RTMR values
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Report Data Explanation -->
+                <!-- Identity & Communication Security -->
                 <div class="drill-down-container">
-                    <h6><i class="fas fa-file-signature"></i> Report Data (Instance Proof)</h6>
+                    <h6><i class="fas fa-id-card"></i> Identity & Communication Security</h6>
                     
-                    <div class="drill-down-level" data-level="1" data-topic="report">
+                    <div class="drill-down-level" data-level="1" data-topic="identity">
                         <div class="level-header">
                             <div class="d-flex align-items-center">
                                 <div class="level-icon level-1">1</div>
-                                <span>Instance proof verified ✓</span>
+                                <span>Secure communication verified ✓</span>
                             </div>
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
-                            Custom data proving this specific VM instance is authentic and unmodified.
+                            Your connection is protected against impersonation and man-in-the-middle attacks.
                         </div>
                     </div>
                     
-                    <div class="drill-down-level locked" data-level="2" data-topic="report">
+                    <div class="drill-down-level locked" data-level="2" data-topic="identity">
                         <div class="level-header">
                             <div class="d-flex align-items-center">
                                 <div class="level-icon level-2">2</div>
-                                <span>Like a unique serial number - proves this exact instance</span>
+                                <span>Like a package tracking system - unique ID binds this specific VM to your communication</span>
                             </div>
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
                             <div class="analogy-highlight">
-                                <i class="fas fa-barcode"></i> <strong>Think of it like:</strong> A unique serial number on a piece of hardware. Just as each device has a specific serial number to identify it, Report Data contains custom information that proves you're talking to this exact VM instance.
+                                <i class="fas fa-shipping-fast"></i> <strong>Think of it like:</strong> A secure package delivery system where each package has a unique tracking number that binds the specific package to the specific recipient. No one can forge the tracking number or redirect your package to themselves.
                             </div>
-                            <p>This data can include application-specific identifiers, configuration hashes, or other custom proof data that helps verify the VM's identity and state.</p>
+                            <p>The VM creates a unique cryptographic binding between this specific VM instance and your communication channel. This prevents attackers from impersonating the VM or replaying old responses from a different session. The binding includes both the communication certificate and instance-specific identifiers that change with each deployment.</p>
                         </div>
                     </div>
                     
-                    <div class="drill-down-level locked" data-level="3" data-topic="report">
+                    <div class="drill-down-level locked" data-level="3" data-topic="identity">
                         <div class="level-header">
                             <div class="d-flex align-items-center">
                                 <div class="level-icon level-3">3</div>
-                                <span>Custom attestation data embedded during VM creation</span>
+                                <span>Certificate fingerprint and report data provide cryptographic binding</span>
                             </div>
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
-                            <p><strong>Technical Details:</strong> Report Data is a 64-byte field that can contain:</p>
+                            <p><strong>Technical Details:</strong></p>
                             <ul>
-                                <li>Application-specific identifiers (like "AttestAI")</li>
-                                <li>Configuration or policy hashes</li>
-                                <li>Nonces for replay attack prevention</li>
-                                <li>Custom challenge-response data</li>
+                                <li><strong>Certificate Fingerprint:</strong> SHA-256 hash of TLS certificate prevents MITM attacks by ensuring you're communicating with the correct VM endpoint</li>
+                                <li><strong>Report Data:</strong> 64-byte field containing TLS certificate fingerprint concatenated with GPU attestation nonce (if GPU present). This cryptographically binds the VM's identity to the attestation, preventing certificate substitution attacks and ensuring the attested VM is the same one handling your requests. The GPU nonce provides additional entropy for GPU-enabled VMs.</li>
                             </ul>
-                            <div class="technical-data" id="current-report">
-                                Click "Verify" above to see the actual Report Data
+                            <div class="technical-data" id="current-identity">
+                                Click "Verify" above to see the actual Certificate Fingerprint and Report Data
                             </div>
-                            <p class="mt-2"><small>This data is embedded during attestation generation and cannot be modified without invalidating the cryptographic signature.</small></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Certificate Fingerprint Explanation -->
-                <div class="drill-down-container">
-                    <h6><i class="fas fa-certificate"></i> Certificate Fingerprint (MITM Protection)</h6>
-                    
-                    <div class="drill-down-level" data-level="1" data-topic="cert">
-                        <div class="level-header">
-                            <div class="d-flex align-items-center">
-                                <div class="level-icon level-1">1</div>
-                                <span>Certificate verified ✓</span>
-                            </div>
-                            <i class="fas fa-chevron-right expand-icon"></i>
-                        </div>
-                        <div class="level-content">
-                            Cryptographic proof that you're communicating with the authentic VM, not an imposter.
-                        </div>
-                    </div>
-                    
-                    <div class="drill-down-level locked" data-level="2" data-topic="cert">
-                        <div class="level-header">
-                            <div class="d-flex align-items-center">
-                                <div class="level-icon level-2">2</div>
-                                <span>Like an ID card photo - prevents identity theft</span>
-                            </div>
-                            <i class="fas fa-chevron-right expand-icon"></i>
-                        </div>
-                        <div class="level-content">
-                            <div class="analogy-highlight">
-                                <i class="fas fa-id-card"></i> <strong>Think of it like:</strong> The photo on an ID card that prevents someone else from using your identity. The certificate fingerprint ensures that no one can impersonate the VM or intercept your communications.
-                            </div>
-                            <p>This prevents man-in-the-middle attacks where an attacker might try to pose as the legitimate VM to steal your data or provide false responses.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="drill-down-level locked" data-level="3" data-topic="cert">
-                        <div class="level-header">
-                            <div class="d-flex align-items-center">
-                                <div class="level-icon level-3">3</div>
-                                <span>SHA-256 hash of the VM's TLS certificate</span>
-                            </div>
-                            <i class="fas fa-chevron-right expand-icon"></i>
-                        </div>
-                        <div class="level-content">
-                            <p><strong>Technical Details:</strong> The Certificate Fingerprint is a SHA-256 hash of:</p>
-                            <ul>
-                                <li>The VM's TLS/SSL certificate public key</li>
-                                <li>Certificate metadata and extensions</li>
-                                <li>Issuer and validity information</li>
-                            </ul>
-                            <div class="technical-data" id="current-cert">
-                                Click "Verify" above to see the actual Certificate Fingerprint
-                            </div>
-                            <p class="mt-2"><small>This fingerprint is cryptographically bound to the attestation, ensuring the certificate cannot be swapped or modified.</small></p>
                         </div>
                     </div>
                 </div>
@@ -702,7 +626,7 @@
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
-                            The system is running verified, unmodified code from a trusted source.
+                            The system is running verified, unmodified code from trusted sources.
                         </div>
                     </div>
                     
@@ -716,9 +640,9 @@
                         </div>
                         <div class="level-content">
                             <div class="analogy-highlight">
-                                <i class="fas fa-download"></i> <strong>Think of it like:</strong> Checking that an app download is from the official App Store and hasn't been modified. You can verify the exact version and that it came from the legitimate developer.
+                                <i class="fas fa-download"></i> <strong>Think of it like:</strong> Downloading an app from an official app store - you can verify the publisher, version, and that it hasn't been modified since the developer signed it.
                             </div>
-                            <p>This transparency lets you trace the running code back to its source and verify it matches what was intended to run.</p>
+                            <p>Just as you can check an app's developer, version number, and download source, you can verify exactly which Docker images are running, when they were built, and trace them back to the original GitHub repository. This prevents supply chain attacks where malicious code gets substituted.</p>
                         </div>
                     </div>
                     
@@ -731,30 +655,18 @@
                             <i class="fas fa-chevron-right expand-icon"></i>
                         </div>
                         <div class="level-content">
-                            <p><strong>Infrastructure Details:</strong></p>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Current Deployment:</strong>
-                                    <div class="technical-data" id="deployment-info">
-                                        <span class="text-muted">
-                                            <i class="fas fa-shield-alt"></i> Deployment verification requires TEE attestation<br>
-                                            <small>Image details available through VM attestation system</small>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Source Code:</strong>
-                                    <div class="technical-data">
-                                        Repo: MrGarbonzo/secretGPT<br>
-                                        Open Source Project
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="alert alert-info mt-3">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Deployment Verification:</strong> 
-                                Complete deployment details (Docker image, SHA256, build time) are provided through the TEE attestation system. 
-                                This ensures all infrastructure information is cryptographically verifiable rather than just claimed.
+                            <p><strong>Technical Details:</strong></p>
+                            <ul>
+                                <li><strong>Current Deployment:</strong> Docker image details verified through TEE attestation system</li>
+                                <li><strong>Source Code:</strong> MrGarbonzo/secretGPT - open source project</li>
+                                <li><strong>Build Verification:</strong> Image SHA256, build timestamps, and compose file hashes provide complete deployment transparency</li>
+                                <li><strong>Supply Chain:</strong> Traceable from GitHub commit → Docker build → VM deployment</li>
+                            </ul>
+                            <div class="technical-data" id="deployment-info">
+                                <span class="text-muted">
+                                    <i class="fas fa-shield-alt"></i> Deployment verification requires TEE attestation<br>
+                                    <small>Image details available through VM attestation system</small>
+                                </span>
                             </div>
                             <p class="mt-2">
                                 <a href="https://github.com/MrGarbonzo/secretGPT" target="_blank" class="btn btn-outline-primary btn-sm">
@@ -764,6 +676,62 @@
                                     <i class="fab fa-docker"></i> View GHCR Image
                                 </a>
                             </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hardware Foundation -->
+                <div class="drill-down-container">
+                    <h6><i class="fas fa-microchip"></i> Hardware Foundation</h6>
+                    
+                    <div class="drill-down-level" data-level="1" data-topic="hardware">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-1">1</div>
+                                <span>Hardware security verified ✓</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            Silicon-level security that cannot be bypassed by software.
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="2" data-topic="hardware">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-2">2</div>
+                                <span>Like a bank vault built into the processor</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <div class="analogy-highlight">
+                                <i class="fas fa-university"></i> <strong>Think of it like:</strong> A bank vault built into the computer's processor - even if someone has complete control of the software, they can't break into the hardware security vault or forge its signatures.
+                            </div>
+                            <p>Intel TDX creates a secure enclave directly in the CPU hardware that's isolated from all software - even the operating system, hypervisor, or BIOS can't access or modify it. The SEAM Module runs inside this hardware vault and creates cryptographic signatures that prove the measurements are authentic.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="drill-down-level locked" data-level="3" data-topic="hardware">
+                        <div class="level-header">
+                            <div class="d-flex align-items-center">
+                                <div class="level-icon level-3">3</div>
+                                <span>SEAM Module and hardware attestation chain provide unbreakable foundation</span>
+                            </div>
+                            <i class="fas fa-chevron-right expand-icon"></i>
+                        </div>
+                        <div class="level-content">
+                            <p><strong>Technical Details:</strong></p>
+                            <ul>
+                                <li><strong>SEAM Module:</strong> Secure Arbitration Mode - Intel TDX hardware component that measures firmware into MRTD</li>
+                                <li><strong>Hardware Isolation:</strong> CPU-level memory encryption and access controls prevent software interference</li>
+                                <li><strong>Cryptographic Foundation:</strong> Hardware-rooted attestation keys that cannot be extracted or forged</li>
+                                <li><strong>Trust Chain:</strong> Intel Root CA → Platform Certificate → VM Attestation creates unbreakable verification chain</li>
+                            </ul>
+                            <div class="technical-data" id="current-hardware">
+                                Click "Verify" above to see the hardware attestation chain details
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -780,19 +748,21 @@
                 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <h6><i class="fas fa-check-circle"></i> Chain of Trust</h6>
-                        <p class="mb-2">Cryptographic validation from Intel to your VM:</p>
+                        <h6><i class="fas fa-link"></i> Chain of Trust</h6>
+                        <p class="mb-2">Cryptographic validation from Intel's manufacturing to your VM:</p>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-arrow-right text-primary"></i> Intel Root CA validates platform certificates</li>
-                            <li><i class="fas fa-arrow-right text-primary"></i> Platform certificates sign your VM's measurements</li>
+                            <li><i class="fas fa-arrow-right text-primary"></i> Intel Root CA validates platform certificates during hardware manufacturing</li>
+                            <li><i class="fas fa-arrow-right text-primary"></i> Platform certificates authenticate the SEAM Module</li>
+                            <li><i class="fas fa-arrow-right text-primary"></i> SEAM Module measures firmware and creates MRTD</li>
+                            <li><i class="fas fa-arrow-right text-primary"></i> Your VM's measurements are cryptographically signed by this chain</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <h6><i class="fas fa-balance-scale"></i> Measurement Validation</h6>
-                        <p class="mb-2">Compare actual vs expected values:</p>
+                        <p class="mb-2">Compare actual measurements against known-good baselines:</p>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-arrow-right text-success"></i> MRTD: Matches known-good boot configuration</li>
-                            <li><i class="fas fa-arrow-right text-success"></i> RTMRs: Current runtime state is legitimate</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> <strong>MRTD:</strong> Matches known-good firmware configuration for your VM type</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> <strong>RTMRs:</strong> Boot process stages completed with legitimate components (RTMR0: system config, RTMR1: kernel, RTMR2: initramfs, RTMR3: rootfs/workload)</li>
                         </ul>
                     </div>
                 </div>
@@ -802,26 +772,26 @@
                     <div class="col-md-6">
                         <h6><i class="fas fa-check-circle"></i> What Verification Proves</h6>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-arrow-right text-success"></i> Measurements are cryptographically authentic</li>
-                            <li><i class="fas fa-arrow-right text-success"></i> System matches known-good configuration</li>
-                            <li><i class="fas fa-arrow-right text-success"></i> No tampering since secure boot</li>
-                            <li><i class="fas fa-arrow-right text-success"></i> Hardware and software integrity confirmed</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> Measurements are cryptographically authentic and unforged</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> System matches known-good configuration baselines</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> No tampering occurred during the boot process</li>
+                            <li><i class="fas fa-arrow-right text-success"></i> Hardware and software integrity confirmed through SEAM Module</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <h6><i class="fas fa-exclamation-triangle"></i> What Verification Catches</h6>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-arrow-right text-danger"></i> Malware injection attempts</li>
-                            <li><i class="fas fa-arrow-right text-danger"></i> Unauthorized code modifications</li>
-                            <li><i class="fas fa-arrow-right text-danger"></i> Configuration tampering</li>
-                            <li><i class="fas fa-arrow-right text-danger"></i> Replay attacks with old measurements</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Malware injection attempts during boot</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Unauthorized modifications to firmware, kernel, or applications</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Configuration tampering in any boot stage</li>
+                            <li><i class="fas fa-arrow-right text-danger"></i> Replay attacks using old or invalid measurements</li>
                         </ul>
                     </div>
                 </div>
 
                 <!-- Certificate Chain of Trust -->
                 <h6><i class="fas fa-link"></i> Certificate Chain of Trust</h6>
-                <p class="mb-3">Attestation verification follows a chain of cryptographic trust back to Intel:</p>
+                <p class="mb-3">Attestation verification follows an unbreakable chain of cryptographic trust:</p>
                 
                 <div class="cert-chain">
                     <div class="cert-level root">
@@ -840,6 +810,14 @@
                     <div class="cert-arrow">
                         <i class="fas fa-arrow-right"></i>
                     </div>
+                    <div class="cert-level intermediate">
+                        <i class="fas fa-shield-alt"></i>
+                        <div><strong>SEAM Module</strong></div>
+                        <small>Firmware measurement</small>
+                    </div>
+                    <div class="cert-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
                     <div class="cert-level leaf">
                         <i class="fas fa-server"></i>
                         <div><strong>Your VM</strong></div>
@@ -849,7 +827,7 @@
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> <strong>Root of Trust:</strong> 
-                    Intel's root certificates are embedded in TDX hardware during manufacturing and cannot be modified. This creates an unbreakable chain of trust from your VM back to Intel's secure facilities.
+                    Intel's root certificates are embedded in TDX hardware during manufacturing and cannot be modified. The SEAM Module, running in hardware-isolated mode, creates measurements that trace back to Intel's secure facilities through this cryptographic chain.
                 </div>
 
                 <!-- Verification Steps -->
@@ -860,7 +838,7 @@
                     <div class="step-content">
                         <div class="step-title">Certificate Validation</div>
                         <div class="step-description">
-                            Verify the attestation report's digital signature using Intel's certificate chain. This proves the measurements came from genuine Intel TDX hardware, not a fake or compromised system.
+                            Verify the attestation report's digital signature using Intel's certificate chain. Like checking a bank's seal on important documents, this proves the measurements came from genuine Intel TDX hardware via the SEAM Module, not a fake or compromised system.
                         </div>
                     </div>
                 </div>
@@ -870,7 +848,7 @@
                     <div class="step-content">
                         <div class="step-title">Measurement Comparison</div>
                         <div class="step-description">
-                            Compare actual MRTD and RTMR values against known-good "golden" measurements for your specific system configuration. Exact matches prove no unauthorized changes occurred.
+                            Compare actual MRTD and RTMR values against known-good "golden" measurements for your specific system configuration. These baselines are provided by SecretVM and represent the expected measurements for legitimate, unmodified deployments. Exact matches prove no unauthorized changes occurred during any boot stage.
                         </div>
                     </div>
                 </div>
@@ -880,7 +858,7 @@
                     <div class="step-content">
                         <div class="step-title">Freshness Check</div>
                         <div class="step-description">
-                            Verify the attestation timestamp and nonce to prevent replay attacks. This ensures you're seeing current measurements, not old ones from a compromised system.
+                            Verify the attestation timestamp and nonce to prevent replay attacks. Like checking expiration dates on documents, this ensures you're seeing current measurements from the actual running system, not old measurements from a previously compromised system or a replay attack.
                         </div>
                     </div>
                 </div>
@@ -894,25 +872,18 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <h6><i class="fas fa-book"></i> Documentation</h6>
                         <ul class="list-unstyled">
-                            <li><a href="https://docs.secretnetwork.com/" target="_blank">Secret Network Docs</a></li>
+                            <li><a href="https://docs.scrt.network/" target="_blank">Secret Network Docs</a></li>
                             <li><a href="https://intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html" target="_blank">Intel TDX Overview</a></li>
                         </ul>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <h6><i class="fab fa-github"></i> Source Code</h6>
                         <ul class="list-unstyled">
-                            <li><a href="https://github.com/scrtlabs/SecretNetwork" target="_blank">Secret Network</a></li>
+                            <li><a href="https://github.com/scrtlabs/secretvm" target="_blank">SecretVM</a></li>
                             <li><a href="https://github.com/MrGarbonzo/secretGPT" target="_blank">secretGPT</a></li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4">
-                        <h6><i class="fas fa-question-circle"></i> Support</h6>
-                        <ul class="list-unstyled">
-                            <li><a href="https://discord.gg/secret-network" target="_blank">Discord Community</a></li>
-                            <li><a href="https://forum.scrt.network/" target="_blank">Forum</a></li>
                         </ul>
                     </div>
                 </div>

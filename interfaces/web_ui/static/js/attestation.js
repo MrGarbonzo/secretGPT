@@ -1198,35 +1198,37 @@ class AttestationManager {
     updateTechnicalData(topic, level) {
         if (level === 3) {
             // Update technical data with real values when available
-            if (topic === 'mrtd') {
-                const mrtdElement = document.getElementById('current-mrtd');
+            if (topic === 'boot') {
+                const bootElement = document.getElementById('current-boot');
                 const selfMrtd = document.getElementById('self-mrtd');
-                if (selfMrtd && selfMrtd.textContent !== '-') {
-                    mrtdElement.textContent = selfMrtd.textContent;
-                }
-            } else if (topic === 'rtmr') {
-                const rtmrElement = document.getElementById('current-rtmr');
                 const rtmr0 = document.getElementById('self-rtmr0');
-                const rtmr1 = document.getElementById('self-rtmr1');
-                if (rtmr0 && rtmr0.textContent !== '-') {
-                    rtmrElement.innerHTML = `
-                        RTMR0: ${rtmr0.textContent}<br>
-                        RTMR1: ${rtmr1.textContent}<br>
-                        RTMR2: ${document.getElementById('self-rtmr2').textContent}<br>
-                        RTMR3: ${document.getElementById('self-rtmr3').textContent}
+                if (selfMrtd && selfMrtd.textContent !== '-') {
+                    bootElement.innerHTML = `
+                        <strong>MRTD:</strong> ${selfMrtd.textContent}<br>
+                        <strong>RTMR0:</strong> ${rtmr0.textContent}<br>
+                        <strong>RTMR1:</strong> ${document.getElementById('self-rtmr1').textContent}<br>
+                        <strong>RTMR2:</strong> ${document.getElementById('self-rtmr2').textContent}<br>
+                        <strong>RTMR3:</strong> ${document.getElementById('self-rtmr3').textContent}
                     `;
                 }
-            } else if (topic === 'report') {
-                const reportElement = document.getElementById('current-report');
-                const selfReport = document.getElementById('self-report-data');
-                if (selfReport && selfReport.textContent !== '-') {
-                    reportElement.textContent = selfReport.textContent;
-                }
-            } else if (topic === 'cert') {
-                const certElement = document.getElementById('current-cert');
+            } else if (topic === 'identity') {
+                const identityElement = document.getElementById('current-identity');
                 const selfCert = document.getElementById('self-cert-fingerprint');
+                const selfReport = document.getElementById('self-report-data');
                 if (selfCert && selfCert.textContent !== '-') {
-                    certElement.textContent = selfCert.textContent;
+                    identityElement.innerHTML = `
+                        <strong>Certificate Fingerprint:</strong> ${selfCert.textContent}<br>
+                        <strong>Report Data:</strong> ${selfReport.textContent}
+                    `;
+                }
+            } else if (topic === 'hardware') {
+                const hardwareElement = document.getElementById('current-hardware');
+                const selfMrtd = document.getElementById('self-mrtd');
+                if (selfMrtd && selfMrtd.textContent !== '-') {
+                    hardwareElement.innerHTML = `
+                        <strong>SEAM Module MRTD:</strong> ${selfMrtd.textContent}<br>
+                        <strong>Hardware Foundation:</strong> Intel TDX attestation chain verified
+                    `;
                 }
             }
         }
@@ -1260,9 +1262,10 @@ function collapseHashTimeline() {
 
 function toggleVerticalDetails(step) {
     const details = document.getElementById(`v-details-${step}`);
-    const isVisible = details.style.display !== 'none';
-    
-    details.style.display = isVisible ? 'none' : 'block';
+    if (details) {
+        const isVisible = details.style.display !== 'none';
+        details.style.display = isVisible ? 'none' : 'block';
+    }
 }
 
 // Verification Process Functions
