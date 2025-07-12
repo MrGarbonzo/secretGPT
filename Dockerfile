@@ -6,7 +6,7 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Node.js for MCP server
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libssl-dev \
     curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy entire project
@@ -24,6 +26,13 @@ COPY . .
 RUN echo "Building secretGPT Hub Service"; \
     pip install --no-cache-dir -r requirements.txt; \
     echo "secretgpt" > /app/service_type;
+
+# Pre-build MCP server (compile TypeScript to JavaScript)
+RUN echo "Pre-building MCP servers..."; \
+    cd /app/mcp_servers/secret_network && \
+    npm install && \
+    npm run build; \
+    echo "MCP servers compiled successfully";
 
 # Set environment variables for production
 ENV PYTHONPATH=/app
