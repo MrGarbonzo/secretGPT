@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from hub.core.router import HubRouter, ComponentType
 from services.secret_ai.client import SecretAIService
+from services.mcp_service import MCPService
 from config.settings import settings, validate_settings
 
 # Configure logging
@@ -33,6 +34,11 @@ async def test_secret_ai_integration():
     logger.info("Initializing Secret AI service...")
     secret_ai = SecretAIService()
     hub.register_component(ComponentType.SECRET_AI, secret_ai)
+    
+    # Initialize and register MCP service
+    logger.info("Initializing MCP service...")
+    mcp_service = MCPService()
+    hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
     
     # Initialize the hub
     await hub.initialize()
@@ -91,6 +97,11 @@ async def run_service_mode():
         secret_ai = SecretAIService()
         hub.register_component(ComponentType.SECRET_AI, secret_ai)
         
+        # Initialize and register MCP service
+        logger.info("Initializing MCP service...")
+        mcp_service = MCPService()
+        hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
+        
         # Initialize the hub
         await hub.initialize()
         
@@ -146,6 +157,11 @@ async def run_with_web_ui():
         logger.info("Initializing Secret AI service...")
         secret_ai = SecretAIService()
         hub.register_component(ComponentType.SECRET_AI, secret_ai)
+        
+        # Initialize and register MCP service
+        logger.info("Initializing MCP service...")
+        mcp_service = MCPService()
+        hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
         # Initialize the hub
         await hub.initialize()
@@ -216,6 +232,11 @@ async def test_web_ui_integration():
     logger.info("Initializing Secret AI service...")
     secret_ai = SecretAIService()
     hub.register_component(ComponentType.SECRET_AI, secret_ai)
+    
+    # Initialize and register MCP service
+    logger.info("Initializing MCP service...")
+    mcp_service = MCPService()
+    hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
     
     # Initialize and register Web UI service
     logger.info("Initializing Web UI service...")

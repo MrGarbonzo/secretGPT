@@ -55,12 +55,12 @@ class HubRouter:
     
     async def route_message(self, interface: str, message: str, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Route a message from an interface through the appropriate service
+        Route a message from an interface through the appropriate service with MCP tool support
         
         Args:
             interface: Source interface (web_ui, telegram_bot, etc.)
             message: The user's message
-            options: Optional parameters (temperature, model, etc.)
+            options: Optional parameters (temperature, model, enable_tools, etc.)
             
         Returns:
             Dict containing the response and metadata
@@ -82,15 +82,52 @@ class HubRouter:
             if options is None:
                 options = {}
             
-            # Set default temperature if not specified
-            temperature = options.get("temperature", 1.0)
+            # Check if tools are enabled and available
+            enable_tools = options.get("enable_tools", True)
+            available_tools = []
+            
+            if enable_tools:
+                mcp_service = self.get_component(ComponentType.MCP_SERVICE)
+                if mcp_service and mcp_service.initialized:
+                    try:
+                        available_tools = await mcp_service.get_available_tools()
+                        logger.info(f"Found {len(available_tools)} MCP tools available")
+                    except Exception as e:
+                        logger.warning(f"Failed to get MCP tools: {e}")
+            
+            # Enhance system prompt with tool information if available
+            system_prompt = options.get("system_prompt", "You are a helpful assistant.")
+            if available_tools:
+                tool_descriptions = "\n".join([
+                    f"- {tool['name']}: {tool['description']}"
+                    for tool in available_tools
+                ])
+                system_prompt += f"\n\nYou have access to the following tools:\n{tool_descriptions}\n\nTo use a tool, respond with a JSON object containing 'tool_name' and 'arguments' fields."
             
             # Format messages using Secret AI's helper method
-            system_prompt = options.get("system_prompt", "You are a helpful assistant.")
             messages = secret_ai.format_messages(system_prompt, message)
             
             # Route through Secret AI service
             response = await secret_ai.ainvoke(messages)
+            
+            # Check if AI response requests tool usage
+            tool_calls = self._extract_tool_calls(response)
+            
+            if tool_calls and enable_tools:
+                # Execute tools via MCP service
+                tool_results = await self._execute_tools(tool_calls)
+                
+                # Send tool results back to AI for final response
+                enhanced_response = await self._get_enhanced_response(
+                    secret_ai, response, tool_results, messages
+                )
+                
+                # Add interface metadata
+                enhanced_response["interface"] = interface
+                enhanced_response["options"] = options
+                enhanced_response["tools_used"] = [call["name"] for call in tool_calls]
+                
+                return enhanced_response
             
             # Add interface metadata
             response["interface"] = interface
@@ -207,6 +244,22 @@ class HubRouter:
             except Exception as e:
                 status["components"][comp_type.value] = f"error: {str(e)}"
         
+        # Check MCP service status
+        mcp_service = self.get_component(ComponentType.MCP_SERVICE)
+        if mcp_service:
+            try:
+                mcp_status = await mcp_service.get_status()
+                status["components"]["mcp_service"] = "operational" if mcp_status["initialized"] else "not_initialized"
+                
+                # Include MCP capabilities summary
+                status["mcp_capabilities"] = {
+                    "servers": len(mcp_status.get("servers", {})),
+                    "tools": mcp_status["capabilities"].get("tools", 0),
+                    "resources": mcp_status["capabilities"].get("resources", 0)
+                }
+            except Exception as e:
+                status["components"]["mcp_service"] = f"error: {str(e)}"
+        
         return status
     
     async def initialize(self) -> None:
@@ -224,6 +277,19 @@ class HubRouter:
         if secret_ai:
             logger.info("Secret AI service found and ready")
         
+        # Initialize MCP Service if registered
+        mcp_service = self.get_component(ComponentType.MCP_SERVICE)
+        if mcp_service:
+            try:
+                await mcp_service.initialize()
+                
+                # Discover and log available capabilities
+                tools = await mcp_service.get_available_tools()
+                resources = await mcp_service.get_available_resources()
+                logger.info(f"MCP service ready: {len(tools)} tools, {len(resources)} resources")
+            except Exception as e:
+                logger.error(f"Failed to initialize MCP service: {e}")
+        
         self.initialized = True
         logger.info("Hub router initialization complete")
     
@@ -236,4 +302,126 @@ class HubRouter:
         # Add any cleanup logic here
         
         self.initialized = False
+        # Shutdown MCP service if registered
+        mcp_service = self.get_component(ComponentType.MCP_SERVICE)
+        if mcp_service:
+            try:
+                await mcp_service.shutdown()
+            except Exception as e:
+                logger.error(f"Error shutting down MCP service: {e}")
+        
         logger.info("Hub router shutdown complete")
+    
+    def _extract_tool_calls(self, response: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Extract tool calls from AI response
+        
+        Args:
+            response: AI response to analyze
+            
+        Returns:
+            List of tool calls found in the response
+        """
+        tool_calls = []
+        
+        try:
+            # Check if response contains tool call indication
+            content = response.get("content", "")
+            
+            # Simple JSON extraction - look for tool call patterns
+            import json
+            import re
+            
+            # Look for JSON objects with tool_name and arguments
+            json_pattern = r'\{[^{}]*"tool_name"[^{}]*"arguments"[^{}]*\}'
+            matches = re.findall(json_pattern, content, re.IGNORECASE)
+            
+            for match in matches:
+                try:
+                    tool_call = json.loads(match)
+                    if "tool_name" in tool_call and "arguments" in tool_call:
+                        tool_calls.append({
+                            "name": tool_call["tool_name"],
+                            "arguments": tool_call["arguments"]
+                        })
+                except json.JSONDecodeError:
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error extracting tool calls: {e}")
+        
+        return tool_calls
+    
+    async def _execute_tools(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Execute MCP tools and format results for AI"""
+        mcp_service = self.get_component(ComponentType.MCP_SERVICE)
+        if not mcp_service:
+            return []
+            
+        tool_results = []
+        
+        for tool_call in tool_calls:
+            try:
+                # Execute tool via MCP service
+                result = await mcp_service.execute_tool(
+                    tool_call["name"],
+                    tool_call["arguments"]
+                )
+                
+                # Format result for AI consumption
+                tool_results.append({
+                    "tool": tool_call["name"],
+                    "success": True,
+                    "result": result
+                })
+                
+            except Exception as e:
+                # Handle tool execution errors gracefully
+                tool_results.append({
+                    "tool": tool_call["name"], 
+                    "success": False,
+                    "error": str(e)
+                })
+                logger.error(f"Tool execution failed for {tool_call['name']}: {e}")
+        
+        return tool_results
+    
+    async def _get_enhanced_response(self, secret_ai, original_response: Dict[str, Any], 
+                                   tool_results: List[Dict[str, Any]], 
+                                   original_messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Send tool results back to AI for final response"""
+        try:
+            # Format tool results for AI
+            tool_summary = "\\n\\n".join([
+                f"Tool '{result['tool']}': " + 
+                (f"Success - {result['result']}" if result['success'] 
+                 else f"Error - {result['error']}")
+                for result in tool_results
+            ])
+            
+            # Create enhanced prompt with tool results
+            enhanced_message = (
+                f"Based on the tool execution results:\\n\\n{tool_summary}\\n\\n"
+                f"Please provide a comprehensive response to the user's original question."
+            )
+            
+            # Add tool results as a system message
+            enhanced_messages = original_messages + [{
+                "role": "system",
+                "content": enhanced_message
+            }]
+            
+            # Get enhanced response from AI
+            enhanced_response = await secret_ai.ainvoke(enhanced_messages)
+            
+            # Add tool execution metadata
+            enhanced_response["tool_results"] = tool_results
+            enhanced_response["original_response"] = original_response
+            
+            return enhanced_response
+            
+        except Exception as e:
+            logger.error(f"Error getting enhanced response: {e}")
+            # Fallback to original response with tool results appended
+            original_response["tool_results"] = tool_results
+            return original_response
