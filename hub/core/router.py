@@ -67,9 +67,17 @@ class HubRouter:
         """
         logger.info(f"Routing message from {interface} (length: {len(message)} chars)")
         
-        # Handle debug commands first (bypass AI)
-        if message.strip().startswith('/mcp'):
-            return await self._handle_mcp_debug_command(message.strip(), interface)
+        # Handle debug commands first (bypass AI) - support multiple formats
+        message_clean = message.strip().lower()
+        if (message.strip().startswith('/mcp') or 
+            message_clean.startswith('mcp ') or
+            message_clean in ['mcp test', 'mcp status', 'mcp tools', 'test mcp', 'mcp help']):
+            # Normalize the command format
+            if not message.strip().startswith('/'):
+                normalized_cmd = f"/mcp {message_clean.replace('mcp ', '').replace('test mcp', 'test').strip()}"
+            else:
+                normalized_cmd = message.strip()
+            return await self._handle_mcp_debug_command(normalized_cmd, interface)
         
         # Pre-analyze message for Secret Network queries (aggressive detection)
         forced_tool_calls = self._detect_secret_network_queries(message)
@@ -628,6 +636,20 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                         "arguments": {"address": addr_matches[0]}
                     })
                     logger.info(f"Pre-detected: Account query for address {addr_matches[0]}")
+            
+            # Simple test phrases that always trigger MCP (for testing)
+            if not tool_calls:
+                test_phrases = [
+                    'test secret network', 'test mcp connection', 'secret network test',
+                    'check secret network', 'ping secret network', 'secret network status',
+                    'is secret network working', 'secret network info'
+                ]
+                if any(phrase in message_lower for phrase in test_phrases):
+                    tool_calls.append({
+                        "name": "secret_network_status",
+                        "arguments": {}
+                    })
+                    logger.info("Pre-detected: Test phrase triggered Secret Network status")
             
             # Generic Secret Network mentions (fallback)
             if not tool_calls and any(keyword in message_lower for keyword in [

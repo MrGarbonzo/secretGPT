@@ -513,6 +513,30 @@ class WebUIInterface:
             except Exception as e:
                 logger.error(f"Error getting MCP status: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+                
+        @self.app.get("/api/v1/debug/version")
+        async def get_debug_version():
+            """Get version and feature information for debugging"""
+            import datetime
+            return {
+                "mcp_integration": "enabled",
+                "features": {
+                    "mcp_debug_commands": True,
+                    "flexible_command_format": True,
+                    "aggressive_detection": True,
+                    "secret_network_tools": True
+                },
+                "debug_commands": [
+                    "/mcp status", "/mcp test", "/mcp tools", "/mcp exec <tool>",
+                    "mcp test", "test secret network", "secret network status"
+                ],
+                "available_triggers": [
+                    "secret network status", "chain information", 
+                    "test secret network", "check secret network"
+                ],
+                "last_updated": "2024-12-20T10:00:00Z",
+                "version": "mcp-integrated-v2"
+            }
     
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance"""
