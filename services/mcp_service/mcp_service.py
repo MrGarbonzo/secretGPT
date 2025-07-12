@@ -95,6 +95,9 @@ class MCPService:
         
         for server_id, process in self.servers.items():
             try:
+                # Give the server process time to initialize
+                await asyncio.sleep(0.5)
+                
                 # Send tools/list request to server
                 request = {
                     "jsonrpc": "2.0",
@@ -108,24 +111,51 @@ class MCPService:
                 process.stdin.write(request_json.encode())
                 await process.stdin.drain()
                 
-                # Read response
-                response_line = await process.stdout.readline()
-                response_data = json.loads(response_line.decode().strip())
-                
-                if "result" in response_data and "tools" in response_data["result"]:
-                    tools = response_data["result"]["tools"]
-                    
-                    # Store server capabilities
-                    self.capabilities[server_id] = {
-                        "tools": tools,
-                        "resources": []  # TODO: Add resource discovery
-                    }
-                    
-                    # Map tools to server
-                    for tool in tools:
-                        tool_name = tool["name"]
-                        self.tools[tool_name] = server_id
-                        logger.info(f"Discovered tool: {tool_name} from {server_id}")
+                # Read response with timeout and retry logic
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        # Wait for response with timeout
+                        response_line = await asyncio.wait_for(
+                            process.stdout.readline(), 
+                            timeout=5.0
+                        )
+                        
+                        response_text = response_line.decode().strip()
+                        if not response_text:
+                            continue
+                            
+                        # Skip non-JSON lines (debug output)
+                        if not response_text.startswith('{'):
+                            continue
+                            
+                        response_data = json.loads(response_text)
+                        
+                        if "result" in response_data and "tools" in response_data["result"]:
+                            tools = response_data["result"]["tools"]
+                            
+                            # Store server capabilities
+                            self.capabilities[server_id] = {
+                                "tools": tools,
+                                "resources": []  # TODO: Add resource discovery
+                            }
+                            
+                            # Map tools to server
+                            for tool in tools:
+                                tool_name = tool["name"]
+                                self.tools[tool_name] = server_id
+                                logger.info(f"Discovered tool: {tool_name} from {server_id}")
+                            
+                            break  # Success, exit retry loop
+                            
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Timeout waiting for response from {server_id}, attempt {attempt + 1}")
+                        if attempt == max_attempts - 1:
+                            raise Exception("Timeout waiting for server response")
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"JSON decode error for {server_id}, attempt {attempt + 1}: {e}")
+                        if attempt == max_attempts - 1:
+                            raise Exception(f"Invalid JSON response: {e}")
                 
             except Exception as e:
                 logger.error(f"Failed to discover capabilities for {server_id}: {e}")
@@ -205,9 +235,22 @@ class MCPService:
             process.stdin.write(request_json.encode())
             await process.stdin.drain()
             
-            # Read response
-            response_line = await process.stdout.readline()
-            response_data = json.loads(response_line.decode().strip())
+            # Read response with timeout and JSON filtering
+            response_line = await asyncio.wait_for(
+                process.stdout.readline(), 
+                timeout=10.0
+            )
+            response_text = response_line.decode().strip()
+            
+            # Skip non-JSON lines (debug output)
+            while response_text and not response_text.startswith('{'):
+                response_line = await asyncio.wait_for(
+                    process.stdout.readline(), 
+                    timeout=10.0
+                )
+                response_text = response_line.decode().strip()
+            
+            response_data = json.loads(response_text)
             
             if "error" in response_data:
                 error_msg = response_data["error"].get("message", "Unknown error")
