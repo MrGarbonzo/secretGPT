@@ -102,7 +102,7 @@ class HubRouter:
                     f"- {tool['name']}: {tool['description']}"
                     for tool in available_tools
                 ])
-                system_prompt += f"\n\nYou have access to the following tools:\n{tool_descriptions}\n\nTo use a tool, respond with a JSON object containing 'tool_name' and 'arguments' fields."
+                system_prompt += f"\n\nYou have access to the following Secret Network tools:\n{tool_descriptions}\n\nWhen a user asks about Secret Network data (balances, blocks, transactions, accounts, contracts, or network status), you should use the appropriate tool by responding with: USE_TOOL: tool_name with arguments {{...}}\n\nFor example:\n- For chain info: USE_TOOL: secret_network_status with arguments {{}}\n- For balance: USE_TOOL: secret_query_balance with arguments {{\"address\": \"secret1abc...\"}}\n- For latest block: USE_TOOL: secret_query_block with arguments {{}}"
             
             # Format messages using Secret AI's helper method
             messages = secret_ai.format_messages(system_prompt, message)
@@ -327,25 +327,80 @@ class HubRouter:
         try:
             # Check if response contains tool call indication
             content = response.get("content", "")
+            logger.info(f"Analyzing response for tool calls: {content[:200]}...")
             
-            # Simple JSON extraction - look for tool call patterns
             import json
             import re
             
-            # Look for JSON objects with tool_name and arguments
-            json_pattern = r'\{[^{}]*"tool_name"[^{}]*"arguments"[^{}]*\}'
-            matches = re.findall(json_pattern, content, re.IGNORECASE)
+            # Look for USE_TOOL: pattern
+            use_tool_pattern = r'USE_TOOL:\s*(\w+)\s+with\s+arguments\s*(\{[^}]*\})'
+            matches = re.findall(use_tool_pattern, content, re.IGNORECASE)
             
-            for match in matches:
+            for tool_name, args_str in matches:
                 try:
-                    tool_call = json.loads(match)
-                    if "tool_name" in tool_call and "arguments" in tool_call:
+                    arguments = json.loads(args_str) if args_str.strip() != '{}' else {}
+                    tool_calls.append({
+                        "name": tool_name,
+                        "arguments": arguments
+                    })
+                    logger.info(f"Extracted tool call: {tool_name} with args: {arguments}")
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse tool arguments: {args_str}, error: {e}")
+                    # Try with empty arguments if JSON parsing fails
+                    tool_calls.append({
+                        "name": tool_name,
+                        "arguments": {}
+                    })
+            
+            # Fallback: Look for old JSON format for backwards compatibility
+            if not tool_calls:
+                json_pattern = r'\{[^{}]*"tool_name"[^{}]*"arguments"[^{}]*\}'
+                json_matches = re.findall(json_pattern, content, re.IGNORECASE)
+                
+                for match in json_matches:
+                    try:
+                        tool_call = json.loads(match)
+                        if "tool_name" in tool_call and "arguments" in tool_call:
+                            tool_calls.append({
+                                "name": tool_call["tool_name"],
+                                "arguments": tool_call["arguments"]
+                            })
+                            logger.info(f"Extracted JSON tool call: {tool_call['tool_name']}")
+                    except json.JSONDecodeError:
+                        continue
+            
+            # Enhanced keyword-based detection for common queries
+            if not tool_calls:
+                content_lower = content.lower()
+                
+                # Network status queries
+                if any(keyword in content_lower for keyword in ['chain info', 'network status', 'chain information', 'network info']):
+                    tool_calls.append({
+                        "name": "secret_network_status",
+                        "arguments": {}
+                    })
+                    logger.info("Detected network status query via keywords")
+                
+                # Block queries
+                elif any(keyword in content_lower for keyword in ['latest block', 'current block', 'block info']):
+                    tool_calls.append({
+                        "name": "secret_query_block", 
+                        "arguments": {}
+                    })
+                    logger.info("Detected block query via keywords")
+                
+                # Balance queries (look for secret1 addresses)
+                elif 'balance' in content_lower and 'secret1' in content:
+                    secret_addr_pattern = r'secret1[a-z0-9]+'
+                    addr_matches = re.findall(secret_addr_pattern, content)
+                    if addr_matches:
                         tool_calls.append({
-                            "name": tool_call["tool_name"],
-                            "arguments": tool_call["arguments"]
+                            "name": "secret_query_balance",
+                            "arguments": {"address": addr_matches[0]}
                         })
-                except json.JSONDecodeError:
-                    continue
+                        logger.info(f"Detected balance query for address: {addr_matches[0]}")
+            
+            logger.info(f"Total tool calls extracted: {len(tool_calls)}")
                     
         except Exception as e:
             logger.error(f"Error extracting tool calls: {e}")
