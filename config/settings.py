@@ -62,6 +62,12 @@ class Settings(BaseSettings):
         description="URL for external Secret Network MCP server"
     )
     
+    mcp_server_path: str = Field(
+        default="/app/mcp_servers/secret_network/build/index.js",
+        env="MCP_SERVER_PATH", 
+        description="Path to the Secret Network MCP server executable"
+    )
+    
     # Logging Configuration
     log_level: str = Field(
         default="INFO",
@@ -76,11 +82,12 @@ class Settings(BaseSettings):
         description="Environment mode (development, production)"
     )
     
-    class Config:
-        """Pydantic configuration"""
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
 
 
 # Global settings instance
@@ -99,8 +106,8 @@ def validate_settings() -> bool:
         return False
     
     
-    # Phase 4: If MCP is enabled, URL is required
-    if settings.mcp_enabled and not settings.mcp_secret_network_url:
+    # Phase 4: If MCP is enabled, server path is required (not URL - we use local server)
+    if settings.mcp_enabled and not settings.mcp_server_path:
         return False
     
     return True

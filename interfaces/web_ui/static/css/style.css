@@ -1456,3 +1456,117 @@ footer p, footer h5 {
         font-size: 0.8rem;
     }
 }
+
+/* MCP Response Styling */
+.mcp-response {
+    border: 2px solid var(--primary-green);
+    border-radius: 8px;
+    background: rgba(45, 80, 22, 0.05);
+    padding: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    box-shadow: 0 3px 6px var(--shadow-brown);
+}
+
+.mcp-badge {
+    background: var(--primary-green);
+    color: var(--background-tan);
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(45, 80, 22, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mcp-badge i {
+    color: var(--background-tan);
+}
+
+.mcp-content {
+    padding: 1rem;
+    background: var(--background-tan);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    border-radius: 0 0 6px 6px;
+}
+
+.mcp-content h1,
+.mcp-content h2,
+.mcp-content h3,
+.mcp-content h4,
+.mcp-content h5,
+.mcp-content h6 {
+    color: var(--primary-green);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.mcp-content code {
+    background: rgba(139, 69, 19, 0.1);
+    border: 1px solid var(--border-brown);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    color: var(--warm-brown);
+    font-size: 0.9em;
+}
+
+.mcp-content pre {
+    background: rgba(139, 69, 19, 0.05);
+    border: 1px solid var(--border-brown);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+}
+
+.mcp-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-primary);
+}
+
+.mcp-content strong {
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+.mcp-content ul, .mcp-content ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.mcp-content li {
+    margin-bottom: 0.25rem;
+}
+
+/* Mobile responsiveness for MCP responses */
+@media (max-width: 768px) {
+    .mcp-response {
+        margin: 0.25rem 0;
+    }
+    
+    .mcp-badge {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .mcp-content {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .mcp-content code {
+        font-size: 0.8em;
+        padding: 0.15rem 0.3rem;
+    }
+    
+    .mcp-content pre {
+        padding: 0.75rem;
+        font-size: 0.8rem;
+    }
+}

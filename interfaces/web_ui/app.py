@@ -453,6 +453,90 @@ class WebUIInterface:
                 "image_sha": "unavailable",
                 "error": str(e)
             }
+        
+        # MCP Endpoints
+        @self.app.get("/api/v1/mcp/tools")
+        async def get_available_tools():
+            """Get list of available MCP tools"""
+            try:
+                mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
+                if not mcp_service:
+                    raise HTTPException(status_code=503, detail="MCP service not available")
+                
+                tools = await mcp_service.get_available_tools()
+                return {"tools": tools, "count": len(tools)}
+            except Exception as e:
+                logger.error(f"Error getting MCP tools: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/v1/mcp/resources")  
+        async def get_available_resources():
+            """Get list of available MCP resources"""
+            try:
+                mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
+                if not mcp_service:
+                    raise HTTPException(status_code=503, detail="MCP service not available")
+                
+                resources = await mcp_service.get_available_resources()
+                return {"resources": resources, "count": len(resources)}
+            except Exception as e:
+                logger.error(f"Error getting MCP resources: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.post("/api/v1/mcp/tools/{tool_name}/execute")
+        async def execute_tool_directly(tool_name: str, request: Request):
+            """Direct tool execution for testing/debugging"""
+            try:
+                mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
+                if not mcp_service:
+                    raise HTTPException(status_code=503, detail="MCP service not available")
+                
+                data = await request.json()
+                arguments = data.get("arguments", {})
+                
+                result = await mcp_service.execute_tool(tool_name, arguments)
+                return {"success": True, "result": result, "tool": tool_name}
+            except Exception as e:
+                logger.error(f"Error executing tool {tool_name}: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/v1/mcp/status")
+        async def get_mcp_status():
+            """Get MCP service status and capabilities"""
+            try:
+                mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
+                if not mcp_service:
+                    return {"mcp_service": "not_available", "servers": {}, "capabilities": {}}
+                
+                status = await mcp_service.get_status()
+                return status
+            except Exception as e:
+                logger.error(f"Error getting MCP status: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+                
+        @self.app.get("/api/v1/debug/version")
+        async def get_debug_version():
+            """Get version and feature information for debugging"""
+            import datetime
+            return {
+                "mcp_integration": "enabled",
+                "features": {
+                    "mcp_debug_commands": True,
+                    "flexible_command_format": True,
+                    "aggressive_detection": True,
+                    "secret_network_tools": True
+                },
+                "debug_commands": [
+                    "/mcp status", "/mcp test", "/mcp tools", "/mcp exec <tool>",
+                    "mcp test", "test secret network", "secret network status"
+                ],
+                "available_triggers": [
+                    "secret network status", "chain information", 
+                    "test secret network", "check secret network"
+                ],
+                "last_updated": "2024-12-20T10:00:00Z",
+                "version": "mcp-integrated-v2"
+            }
     
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance"""

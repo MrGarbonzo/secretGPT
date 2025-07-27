@@ -185,6 +185,18 @@ class ChatManager {
                 this.updateStreamControls(false);
                 break;
 
+            case 'mcp_response':
+                // Handle MCP command responses (debug commands, tool results)
+                console.log('mcp_response case triggered with chunk:', chunk);
+                if (!messageElement) {
+                    messageElement = this.createStreamingMessage();
+                    console.log('Created new message element:', messageElement);
+                }
+                this.displayMcpResponse(messageElement, chunk);
+                this.completeStreamingMessage(messageElement, eventData);
+                this.updateStreamControls(false);
+                break;
+
             case 'stream_error':
                 console.error('Stream error:', chunk.data);
                 this.handleStreamError(new Error(chunk.data));
@@ -267,6 +279,43 @@ class ChatManager {
         brainEmoji.textContent = chunk.data; // Should be 🧠
         brainEmoji.className = 'brain-emoji';
         contentDiv.appendChild(brainEmoji);
+    }
+
+    displayMcpResponse(messageElement, chunk) {
+        // Display MCP command response with special formatting
+        console.log('displayMcpResponse called with:', chunk);
+        const contentDiv = messageElement.querySelector('.message-content');
+        if (!contentDiv) {
+            console.error('No content div found in message element');
+            return;
+        }
+
+        // Clear any existing content
+        contentDiv.innerHTML = '';
+
+        // Create MCP response container
+        const mcpDiv = document.createElement('div');
+        mcpDiv.className = 'mcp-response';
+        
+        // Add MCP badge
+        const badge = document.createElement('div');
+        badge.className = 'mcp-badge';
+        badge.innerHTML = '<i class="fas fa-cogs"></i> MCP Response';
+        mcpDiv.appendChild(badge);
+
+        // Add the response content with formatting
+        const responseDiv = document.createElement('div');
+        responseDiv.className = 'mcp-content';
+        responseDiv.innerHTML = this.formatMessage(chunk.data);
+        mcpDiv.appendChild(responseDiv);
+
+        contentDiv.appendChild(mcpDiv);
+
+        // Scroll to bottom
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
 
     completeStreamingMessage(messageElement, eventData) {
