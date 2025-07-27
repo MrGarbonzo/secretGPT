@@ -1,0 +1,40 @@
+services:
+  secretgpt:
+    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    container_name: secretgpt-hub
+    restart: unless-stopped
+    
+    # Configuration - API key included directly due to secretVM .env issues
+    environment:
+      # Core Application
+      - SECRETGPT_HUB_HOST=0.0.0.0
+      - SECRETGPT_HUB_PORT=8000
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      
+      # Features
+      - SECRETGPT_ENABLE_WEB_UI=true
+      - MCP_ENABLED=true
+      
+      # MCP Integration
+      - MCP_SERVER_PATH=/app/mcp_servers/secret_network/build/index.js
+      
+      # Secret AI API Key (temporary workaround for secretVM .env import issues)
+      - SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1
+      
+      # SecretVM Integration
+      - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
+    
+    # Network configuration
+    ports:
+      - "80:8000"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    
+    # Health monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

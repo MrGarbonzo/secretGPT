@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attest AI - Trusted AI with Attestation</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS (inline for preview) -->
+    <style>
+/* Attest AI Web UI Styles - Trust & Security Theme */
+
+:root {
+    /* Attest AI Trust Color Palette */
+    --primary-green: #2d5016;       /* Deep forest green for headers/accents */
+    --secondary-green: #87a96b;     /* Sage green for status indicators */
+    --warm-brown: #8b4513;          /* Rich earth brown for text/borders */
+    --background-tan: #f5f5dc;      /* Light tan/cream for main background */
+    --card-background: #f0f0e8;     /* Slightly darker tan for contrast cards */
+    --accent-red: #cc5500;          /* Burnt orange-red for alerts/errors */
+    --text-primary: #3e2723;        /* Dark brown for primary text */
+    --text-secondary: #5d4037;      /* Medium brown for secondary text */
+    --proof-yellow: #DAA520;        /* Earthy yellow/orange for proof generation */
+    --proof-yellow-dark: #B8860B;   /* Darker version for hover states */
+    
+    /* Status Indicator Colors */
+    --status-connected: #4caf50;    /* Green circle */
+    --status-error: #f44336;        /* Red circle */
+    --status-checking: #ff9800;     /* Amber circle (with pulse animation) */
+    --status-unknown: #9e9e9e;      /* Gray circle */
+    
+    /* Additional earthy tones */
+    --hover-tan: #ece8d9;           /* Darker tan for hover states */
+    --border-brown: #d7cfc0;        /* Light brown for borders */
+    --shadow-brown: rgba(139, 69, 19, 0.1); /* Brown shadow */
+    
+    /* Streaming Colors */
+    --thinking-cyan: #00bcd4;       /* Cyan for thinking text */
+    --streaming-gradient: linear-gradient(90deg, var(--secondary-green) 0%, var(--primary-green) 100%);
+}
+
+/* General Styles */
+body {
+    background: var(--background-tan);
+    font-family: 'Inter', 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: var(--primary-green) !important;
+}
+
+/* Navigation Bar */
+.navbar-dark {
+    background-color: var(--primary-green) !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--background-tan) !important;
+    font-weight: 500;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffffff !important;
+}
+
+/* Horizontal Status Bar */
+.status-bar {
+    background: var(--card-background);
+    border: 1px solid var(--border-brown);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 6px;
+    background: var(--background-tan);
+    border: 1px solid var(--border-brown);
+    transition: all 0.3s ease;
+    min-height: 80px;
+    justify-content: center;
+}
+
+.status-item:hover {
+    background: var(--hover-tan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.status-item-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.status-item-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Status Circles - Professional Design */
+.status-circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    transition: all 0.3s ease;
+}
+
+.status-connected { 
+    background-color: var(--status-connected);
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+}
+
+.status-error { 
+    background-color: var(--status-error);
+    box-shadow: 0 0 6px rgba(244, 67, 54, 0.4);
+}
+
+.status-checking { 
+    background-color: var(--status-checking);
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 6px rgba(255, 152, 0, 0.4);
+}
+
+.status-unknown { 
+    background-color: var(--status-unknown);
+    box-shadow: 0 0 6px rgba(158, 158, 158, 0.4);
+}
+
+/* Pulse animation for checking status */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Chat Interface */
+.chat-container {
+    max-height: 450px;
+    overflow-y: auto;
+    border: 1px solid var(--border-brown);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: var(--background-tan);
+    box-shadow: inset 0 2px 4px var(--shadow-brown);
+}
+
+.message {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    position: relative;
+    max-width: 85%;
+    word-wrap: break-word;
+    box-shadow: 0 2px 6px var(--shadow-brown);
+    transition: all 0.2s ease;
+}
+
+.message:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--shadow-brown);
+}
+
+.message.user-message {
+    background: var(--primary-green);
+    color: var(--background-tan);
+    margin-left: auto;
+    margin-right: 0;
+    border-bottom-right-radius: 4px;
+}
+
+.message.assistant-message {
+    background: var(--card-background);
+    color: var(--text-primary);
+    margin-left: 0;
+    margin-right: auto;
+    border: 1px solid var(--border-brown);
+    border-bottom-left-radius: 4px;
+}
+
+.message.system-message {
+    background: var(--secondary-green);
+    color: var(--text-primary);
+    text-align: center;
+    margin: 0 auto;
+    max-width: 90%;
+    border: 1px solid var(--warm-brown);
+    font-weight: 500;
+}
+
+.message-content {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Card Improvements */
+.card {
+    border: 1px solid var(--border-brown);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-brown);
+    background: var(--card-background);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--shadow-brown);
+}
+
+.card-header {
+    background: var(--primary-green) !important;
+    color: var(--background-tan) !important;
+    border: none;
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+}
+
+.card-header h5, .card-header h6 {
+    margin: 0;
+    color: var(--background-tan) !important;
+}
+
+.card-body {
+    padding: 1.5rem;
+    background: var(--card-background);
+}
+
+/* Button Styles */
+.btn-primary {
+    background: var(--primary-green);
+    border: none;
+    color: var(--background-tan);
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.btn-primary:hover {
+    background: #1e3a0f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--shadow-brown);
+    color: var(--background-tan);
+}
+
+.btn-outline-primary {
+    border: 2px solid var(--primary-green);
+    color: var(--primary-green);
+    background: transparent;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-green);
+    color: var(--background-tan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+.btn-outline-dark {
+    border: 2px solid var(--warm-brown);
+    color: var(--warm-brown);
+    background: transparent;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-dark:hover {
+    background: var(--warm-brown);
+    color: var(--background-tan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow-brown);
+}
+
+/* Form Improvements */
+.form-control, .form-select {
+    border: 1px solid var(--warm-brown);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    font-weight: 400;
+    background: var(--background-tan);
+    color: var(--text-primary);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(45, 80, 22, 0.15);
+    background: var(--background-tan);
+    color: var(--text-primary);
+}
+
+/* Footer Styling */
+footer {
+    background-color: var(--primary-green) !important;
+    color: var(--background-tan) !important;
+}
+
+footer p, footer h5 {
+    color: var(--background-tan) !important;
+}
+
+/* Form Check Styling */
+.form-check-input:checked {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.form-check-input:focus {
+    border-color: var(--primary-green);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(45, 80, 22, 0.25);
+}
+
+/* Stream Controls */
+#stream-controls {
+    background: rgba(45, 80, 22, 0.1);
+    border: 1px solid var(--primary-green);
+    border-radius: 8px;
+    color: var(--primary-green);
+}
+
+/* Alert Styling */
+.alert-info {
+    background: rgba(45, 80, 22, 0.1);
+    border: 1px solid var(--primary-green);
+    border-radius: 8px;
+    color: var(--primary-green);
+}
+
+/* Typography Improvements */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--primary-green);
+}
+
+.lead {
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+/* Header Styling */
+.text-center h1 {
+    color: var(--primary-green);
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .message.user-message {
+        margin-left: 0.5rem;
+    }
+    
+    .message.assistant-message {
+        margin-right: 0.5rem;
+    }
+    
+    .chat-container {
+        max-height: 300px;
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-shield-alt"></i> Attest AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="chat-preview.html">
+                            <i class="fas fa-comments"></i> Chat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="attestation-preview.html">
+                            <i class="fas fa-certificate"></i> Attestation
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text">
+                            <i class="fas fa-lock"></i> Confidential Computing
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1><i class="fas fa-shield-alt"></i> Attest AI</h1>
+            <p class="lead">Trusted AI conversations secured by TEE attestation</p>
+        </div>
+
+        <!-- Horizontal Status Bar -->
+        <div class="status-bar">
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="status-item">
+                        <div class="status-item-title">Attest AI</div>
+                        <div class="status-item-content" id="chatee-attestation-status">
+                            <span class="status-circle status-connected"></span>
+                            <span>Verified</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="status-item">
+                        <div class="status-item-title">Secret AI</div>
+                        <div class="status-item-content" id="secretai-attestation-status">
+                            <span class="status-circle status-connected"></span>
+                            <span>Verified</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="status-item">
+                        <div class="status-item-title">Model</div>
+                        <div class="status-item-content">
+                            <span id="current-model-display">Claude-3.5-Sonnet</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="status-item">
+                        <div class="status-item-title">Streaming</div>
+                        <div class="status-item-content">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="streaming-toggle" checked>
+                                <label class="form-check-label" for="streaming-toggle">
+                                    <span class="d-none d-sm-inline">Enabled</span>
+                                    <span class="d-sm-none">On</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Conversation</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-dark btn-sm" id="clear-chat">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Chat Messages -->
+                        <div id="chat-messages" class="chat-container mb-3">
+                            <!-- Welcome message -->
+                            <div class="message system-message">
+                                <div class="message-content">
+                                    <i class="fas fa-shield-alt"></i> <strong>Welcome to Attest AI</strong><br>
+                                    Your conversation is secured by trusted execution environment (TEE) attestation. 
+                                    Both the interface and AI processing are running in verified, tamper-resistant environments 
+                                    to ensure your privacy and data integrity.
+                                </div>
+                            </div>
+                            
+                            <!-- Sample user message -->
+                            <div class="message user-message">
+                                <div class="message-content">
+                                    Hello! Can you explain how TEE attestation works in simple terms?
+                                </div>
+                            </div>
+                            
+                            <!-- Sample AI response -->
+                            <div class="message assistant-message">
+                                <div class="message-content">
+                                    TEE (Trusted Execution Environment) attestation is like having a digital notary that proves your computing environment is secure and unmodified. Here's how it works:
+
+1. **Hardware Foundation**: Intel TDX technology creates a "trust domain" - a protected area in your computer's memory that's isolated from the operating system and other applications.
+
+2. **Cryptographic Proof**: The system generates cryptographic measurements (like fingerprints) of all the code and data running in this protected environment.
+
+3. **Remote Verification**: These measurements can be verified remotely to prove that:
+   - The code hasn't been tampered with
+   - No malware is present
+   - The system is running exactly what it claims to be running
+
+4. **Continuous Monitoring**: The system continuously updates these measurements, so any changes are immediately detectable.
+
+In Attest AI's case, both the chat interface you're using and the AI processing your requests run in separate attested environments, providing end-to-end security for your conversations.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stream Controls (hidden by default) -->
+                        <div id="stream-controls" class="alert alert-info d-none mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-stream"></i> <strong>Streaming response...</strong>
+                                </div>
+                                <button id="stop-stream" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-stop"></i> Stop
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Message Input -->
+                        <div class="input-group">
+                            <textarea class="form-control" id="message-input" placeholder="Type your message..." rows="2"></textarea>
+                            <button class="btn btn-primary" type="button" id="send-button">
+                                <i class="fas fa-paper-plane"></i> Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Proof Section -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6><i class="fas fa-certificate"></i> Generate Proof</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="flex-grow-1">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                                    <input type="password" class="form-control" id="proof-password-header" placeholder="Enter password for proof generation">
+                                    <button type="button" class="btn btn-primary" id="generate-proof-header">
+                                        <i class="fas fa-certificate"></i> Generate Proof
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proof Information Alert -->
+                <div class="alert alert-info mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-info-circle me-2 mt-1"></i>
+                        <div>
+                            <strong>About Proof Files:</strong> Proof files contain encrypted records of your AI conversation along with cryptographic attestation data from both VMs, proving the interaction occurred in a secure, unmodified environment. Anyone with the password can decrypt and verify the proof to confirm the authenticity of your AI interaction and the security state of the system when it was generated.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proof Verification Section -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6><i class="fas fa-file-signature"></i> Verify Proof File</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="proof-verify-form">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="proof-file" class="form-label">Select Proof File (.attestproof)</label>
+                                        <input type="file" class="form-control" id="proof-file" accept=".attestproof">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="proof-verify-password" class="form-label">Decryption Password</label>
+                                        <input type="password" class="form-control" id="proof-verify-password">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle"></i> Verify Proof
+                            </button>
+                        </form>
+
+                        <!-- Proof Verification Results -->
+                        <div id="proof-results" class="mt-4" style="display: none;">
+                            <h6>Verification Results</h6>
+                            <div id="proof-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links Section -->
+        <div class="row mt-4">
+            <div class="col-lg-12">
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-info-circle"></i>
+                            <strong>New to attestation?</strong> Learn how TEE technology protects your conversations
+                        </div>
+                        <a href="attestation-preview.html" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-graduation-cap"></i> Learn More
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light mt-5">
+        <div class="container py-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-shield-alt"></i> Attest AI</h5>
+                    <p>Trusted AI powered by Secret Network</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>
+                        <i class="fas fa-server"></i> SecretVM Deployment<br>
+                        <i class="fas fa-lock"></i> Dual VM Attestation
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Preview-specific JavaScript -->
+    <script>
+        // Simple interactions for preview
+        document.getElementById('send-button').addEventListener('click', function() {
+            const input = document.getElementById('message-input');
+            if (input.value.trim()) {
+                // Add user message
+                const chatContainer = document.getElementById('chat-messages');
+                const userMsg = document.createElement('div');
+                userMsg.className = 'message user-message';
+                userMsg.innerHTML = `<div class="message-content">${input.value}</div>`;
+                chatContainer.appendChild(userMsg);
+                
+                // Clear input
+                input.value = '';
+                
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // Simulate AI response after a delay
+                setTimeout(() => {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.className = 'message assistant-message';
+                    aiMsg.innerHTML = `<div class="message-content">This is a preview response. In the actual application, this would be generated by the AI service running in the attested environment.</div>`;
+                    chatContainer.appendChild(aiMsg);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 1000);
+            }
+        });
+        
+        // Enter key support
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('send-button').click();
+            }
+        });
+        
+        // Clear chat functionality
+        document.getElementById('clear-chat').addEventListener('click', function() {
+            const chatContainer = document.getElementById('chat-messages');
+            // Keep only the welcome message
+            const welcomeMsg = chatContainer.querySelector('.system-message');
+            chatContainer.innerHTML = '';
+            chatContainer.appendChild(welcomeMsg);
+        });
+        
+        // Toggle streaming demo
+        document.getElementById('streaming-toggle').addEventListener('change', function() {
+            const label = this.nextElementSibling.querySelector('.d-none.d-sm-inline');
+            label.textContent = this.checked ? 'Enabled' : 'Disabled';
+        });
+        
+        // Demo status indicator changes
+        setInterval(() => {
+            const indicators = document.querySelectorAll('.status-circle');
+            indicators.forEach(indicator => {
+                if (Math.random() > 0.95) {
+                    indicator.classList.remove('status-connected', 'status-checking', 'status-unknown');
+                    indicator.classList.add('status-checking');
+                    setTimeout(() => {
+                        indicator.classList.remove('status-checking');
+                        indicator.classList.add('status-connected');
+                    }, 2000);
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
