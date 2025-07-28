@@ -103,7 +103,7 @@ async def run_service_mode():
         
         # Initialize and register MCP service
         logger.info("Initializing MCP service...")
-        mcp_service = MCPService()
+        mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
         # Initialize the hub
@@ -164,7 +164,7 @@ async def run_with_web_ui():
         
         # Initialize and register MCP service
         logger.info("Initializing MCP service...")
-        mcp_service = MCPService()
+        mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
         # Initialize the hub
