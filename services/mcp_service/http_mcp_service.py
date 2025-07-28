@@ -63,8 +63,9 @@ class HTTPMCPService:
             logger.info(f"HTTP MCP service initialized with {len(self.servers)} servers")
             
         except Exception as e:
-            logger.error(f"Failed to initialize HTTP MCP service: {e}")
-            raise
+            logger.warning(f"HTTP MCP service initialization failed, but continuing: {e}")
+            logger.info("Hub will run without MCP tools - they will be unavailable until MCP server comes online")
+            self.initialized = True  # Still mark as initialized, just with no servers
     
     async def _connect_secret_network_server(self) -> None:
         """Connect to the external Secret Network MCP server via HTTP"""
@@ -101,9 +102,10 @@ class HTTPMCPService:
             logger.info(f"Successfully connected to {server_id} MCP server via HTTP")
             
         except Exception as e:
-            logger.error(f"Failed to connect to {server_id} MCP server: {e}")
+            logger.warning(f"Failed to connect to {server_id} MCP server: {e}")
+            logger.info(f"MCP server at {server_url} is unavailable - Secret Network tools will not be available")
             self.server_status[server_id] = MCPServerStatus.ERROR
-            raise
+            # Don't raise - let the hub continue without MCP tools
     
     async def _discover_all_capabilities(self) -> None:
         """Discover tools and resources from all connected servers"""
@@ -198,11 +200,11 @@ class HTTPMCPService:
             # Find server for this tool
             server_id = self.tools.get(tool_name)
             if not server_id:
-                raise ValueError(f"Tool '{tool_name}' not found")
+                raise ValueError(f"Tool '{tool_name}' not available - MCP server may be offline")
             
             server_config = self.servers.get(server_id)
             if not server_config:
-                raise ValueError(f"Server '{server_id}' not connected")
+                raise ValueError(f"Server '{server_id}' not connected - MCP server is unavailable")
             
             # Send tool execution request via HTTP
             tools_call_url = server_config["endpoints"]["tools_call"]

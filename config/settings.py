@@ -62,11 +62,7 @@ class Settings(BaseSettings):
         description="URL for external Secret Network MCP server"
     )
     
-    mcp_server_path: str = Field(
-        default="/app/mcp_servers/secret_network/build/index.js",
-        env="MCP_SERVER_PATH", 
-        description="Path to the Secret Network MCP server executable"
-    )
+    # Removed: mcp_server_path - no longer needed with HTTP MCP integration
     
     # Logging Configuration
     log_level: str = Field(
@@ -106,8 +102,7 @@ def validate_settings() -> bool:
         return False
     
     
-    # Phase 4: If MCP is enabled, server path is required (not URL - we use local server)
-    if settings.mcp_enabled and not settings.mcp_server_path:
-        return False
+    # Phase 1: MCP is optional - hub can run without it
+    # No validation needed for SECRET_MCP_URL - hub continues if MCP server unavailable
     
     return True
