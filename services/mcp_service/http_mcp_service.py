@@ -80,6 +80,7 @@ class HTTPMCPService:
             
             # Test connection with health check
             health_url = f"{server_url}/api/health"
+            logger.info(f"Testing connection to health endpoint: {health_url}")
             async with self.session.get(health_url) as response:
                 if response.status == 200:
                     health_data = await response.json()
@@ -104,6 +105,7 @@ class HTTPMCPService:
         except Exception as e:
             logger.warning(f"Failed to connect to {server_id} MCP server: {e}")
             logger.info(f"MCP server at {server_url} is unavailable - Secret Network tools will not be available")
+            logger.debug(f"Connection error details: {type(e).__name__}: {str(e)}")
             self.server_status[server_id] = MCPServerStatus.ERROR
             # Don't raise - let the hub continue without MCP tools
     

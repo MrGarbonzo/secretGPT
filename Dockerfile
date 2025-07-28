@@ -31,7 +31,7 @@ RUN echo "Building secretGPT Hub Service"; \
 # Set environment variables for production
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
-ENV SECRET_MCP_URL=http://10.0.1.100:8002
+ENV SECRET_MCP_URL=http://67.215.13.113:8002
 
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
