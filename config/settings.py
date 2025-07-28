@@ -56,9 +56,9 @@ class Settings(BaseSettings):
         description="Enable MCP service integration"
     )
     
-    mcp_secret_network_url: Optional[str] = Field(
-        default=None,
-        env="MCP_SECRET_NETWORK_URL",
+    secret_mcp_url: str = Field(
+        default="http://localhost:8002",
+        env="SECRET_MCP_URL",
         description="URL for external Secret Network MCP server"
     )
     

@@ -16,8 +16,8 @@ services:
       - SECRETGPT_ENABLE_WEB_UI=true
       - MCP_ENABLED=true
       
-      # MCP Integration
-      - MCP_SERVER_PATH=/app/mcp_servers/secret_network/build/index.js
+      # MCP Integration - HTTP External Server
+      - SECRET_MCP_URL=http://10.0.1.100:8002
       
       # Secret AI API Key (temporary workaround for secretVM .env import issues)
       - SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1

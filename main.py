@@ -18,7 +18,7 @@ load_dotenv()
 
 from hub.core.router import HubRouter, ComponentType
 from services.secret_ai.client import SecretAIService
-from services.mcp_service import MCPService
+from services.mcp_service.http_mcp_service import HTTPMCPService
 from config.settings import settings, validate_settings
 
 # Configure logging
@@ -39,9 +39,9 @@ async def test_secret_ai_integration():
     secret_ai = SecretAIService()
     hub.register_component(ComponentType.SECRET_AI, secret_ai)
     
-    # Initialize and register MCP service
-    logger.info("Initializing MCP service...")
-    mcp_service = MCPService()
+    # Initialize and register HTTP MCP service
+    logger.info("Initializing HTTP MCP service...")
+    mcp_service = HTTPMCPService()
     hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
     
     # Initialize the hub
@@ -237,9 +237,9 @@ async def test_web_ui_integration():
     secret_ai = SecretAIService()
     hub.register_component(ComponentType.SECRET_AI, secret_ai)
     
-    # Initialize and register MCP service
-    logger.info("Initializing MCP service...")
-    mcp_service = MCPService()
+    # Initialize and register HTTP MCP service
+    logger.info("Initializing HTTP MCP service...")
+    mcp_service = HTTPMCPService()
     hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
     
     # Initialize and register Web UI service
