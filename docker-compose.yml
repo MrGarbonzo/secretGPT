@@ -4,6 +4,10 @@ services:
     container_name: secretgpt-hub
     restart: unless-stopped
     
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    
     # Configuration - API key included directly due to secretVM .env issues
     environment:
       # Core Application
@@ -16,8 +20,8 @@ services:
       - SECRETGPT_ENABLE_WEB_UI=true
       - MCP_ENABLED=true
       
-      # MCP Integration - HTTP External Server
-      - SECRET_MCP_URL=http://10.0.1.100:8002
+      # MCP Integration - HTTP External Server (loaded from .env)
+      - SECRET_MCP_URL=${SECRET_MCP_URL:-http://localhost:8002}
       
       # Secret AI API Key (temporary workaround for secretVM .env import issues)
       - SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1
