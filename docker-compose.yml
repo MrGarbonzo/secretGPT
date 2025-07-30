@@ -6,7 +6,7 @@ services:
     
     # Load environment variables from .env file
     env_file:
-      - .env
+      - ./usr/.env
     
     # Configuration - API key included directly due to secretVM .env issues
     environment:
