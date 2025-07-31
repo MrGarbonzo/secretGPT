@@ -249,6 +249,31 @@ class SecretGPTeeInterface:
                 raise HTTPException(status_code=500, detail=str(e))
         
         # Wallet Integration Endpoints
+        @self.app.post("/api/v1/wallet/connect")
+        async def connect_wallet(request: Request):
+            """Connect a Keplr wallet"""
+            try:
+                data = await request.json()
+                address = data.get("address")
+                name = data.get("name")
+                is_hardware_wallet = data.get("isHardwareWallet", False)
+                
+                if not address:
+                    raise HTTPException(status_code=400, detail="Wallet address required")
+                
+                # Use HTTP wallet service to connect
+                from services.wallet_proxy.http_wallet_service import HTTPWalletService
+                wallet_service = HTTPWalletService()
+                
+                await wallet_service.initialize()
+                result = await wallet_service.connect_wallet(address, name, is_hardware_wallet)
+                
+                return result
+                
+            except Exception as e:
+                logger.error(f"Wallet connect error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
         @self.app.get("/api/v1/wallet/status")
         async def wallet_status():
             """Get wallet service status"""
@@ -282,7 +307,26 @@ class SecretGPTeeInterface:
                 if not address:
                     raise HTTPException(status_code=400, detail="Wallet address required")
                 
-                # Use MCP service to get balance
+                # Try to use HTTP wallet service first
+                from services.wallet_proxy.http_wallet_service import HTTPWalletService
+                wallet_service = HTTPWalletService()
+                
+                try:
+                    await wallet_service.initialize()
+                    result = await wallet_service.get_balance(address)
+                    
+                    if result.get("success"):
+                        return {
+                            "success": True,
+                            "address": address,
+                            "amount": result.get("balance"),
+                            "denom": result.get("denom"),
+                            "formatted": result.get("formatted")
+                        }
+                except Exception as wallet_error:
+                    logger.warning(f"HTTP wallet service failed, falling back to MCP: {wallet_error}")
+                
+                # Fallback to MCP service
                 mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
                 if not mcp_service:
                     raise HTTPException(status_code=503, detail="MCP service not available")

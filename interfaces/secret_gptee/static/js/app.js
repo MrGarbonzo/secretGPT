@@ -25,6 +25,28 @@ function initializeApp() {
     // Initialize UI components
     initializeThemeToggle();
     initializeToastSystem();
+    initializeEventListeners();
+    
+    // Initialize chat interface if available
+    if (window.ChatInterface) {
+        window.ChatInterface.init();
+    }
+    
+    // Initialize wallet interface if available  
+    if (window.WalletInterface) {
+        window.WalletInterface.init();
+    }
+    
+    // Initialize settings interface if available
+    if (window.SettingsInterface) {
+        window.SettingsInterface.init();
+    }
+    
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts();
+    
+    // Setup responsive handlers
+    setupResponsiveHandlers();
     
     console.log('✅ SecretGPTee initialized successfully');
 }
@@ -399,6 +421,238 @@ window.addEventListener('unhandledrejection', function(event) {
     showToast('An unexpected error occurred', 'error');
 });
 
+// Additional initialization functions
+function initializeEventListeners() {
+    // Global event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        // Auto-resize textarea
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.addEventListener('input', (e) => {
+                autoResize();
+                updateCharCount();
+            });
+        }
+        
+        // Settings panel toggle
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', toggleSettings);
+        }
+        
+        // Streaming toggle
+        const streamingToggle = document.getElementById('streaming-toggle');
+        if (streamingToggle) {
+            streamingToggle.addEventListener('click', toggleStreaming);
+        }
+        
+        // Settings form handlers
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', saveSettings);
+        }
+        
+        const resetSettingsBtn = document.getElementById('reset-settings-btn');
+        if (resetSettingsBtn) {
+            resetSettingsBtn.addEventListener('click', resetSettings);
+        }
+        
+        // Temperature slider
+        const temperatureSlider = document.getElementById('temperature-slider');
+        if (temperatureSlider) {
+            temperatureSlider.addEventListener('input', (e) => {
+                updateTemperatureDisplay(parseFloat(e.target.value));
+            });
+        }
+    });
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + Enter to send message
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (window.ChatInterface && typeof window.ChatInterface.sendMessage === 'function') {
+                window.ChatInterface.sendMessage();
+            }
+        }
+        
+        // Ctrl/Cmd + K to focus message input
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.focus();
+            }
+        }
+        
+        // Ctrl/Cmd + Shift + T to toggle theme
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+            e.preventDefault();
+            toggleTheme();
+        }
+        
+        // Ctrl/Cmd + Shift + S to toggle settings
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+            e.preventDefault();
+            toggleSettings();
+        }
+        
+        // Escape to close modals and panels
+        if (e.key === 'Escape') {
+            // Close settings panel
+            const settingsPanel = document.getElementById('settings-panel');
+            if (settingsPanel && !settingsPanel.classList.contains('hidden')) {
+                toggleSettings();
+            }
+            
+            // Close any open modals
+            const modals = document.querySelectorAll('.install-modal-overlay, .transaction-modal-overlay');
+            modals.forEach(modal => modal.remove());
+        }
+    });
+}
+
+function setupResponsiveHandlers() {
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        // Adjust chat container height if needed
+        const messagesContainer = document.getElementById('messages-container');
+        if (messagesContainer) {
+            // Recalculate container height on resize
+            messagesContainer.style.height = 'calc(100vh - 200px)';
+        }
+    });
+    
+    // Handle visibility change (tab focus/blur)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            // Page became visible, refresh wallet connection if needed
+            if (window.WalletInterface && window.WalletState && window.WalletState.connected) {
+                window.WalletInterface.refreshConnection();
+            }
+        }
+    });
+    
+    // Handle online/offline status
+    window.addEventListener('online', () => {
+        showToast('Connection restored', 'success');
+    });
+    
+    window.addEventListener('offline', () => {
+        showToast('Connection lost - working offline', 'warning');
+    });
+}
+
+// Animation helpers
+function fadeIn(element, duration = 300) {
+    element.style.opacity = '0';
+    element.style.display = 'block';
+    
+    let start = null;
+    function animate(timestamp) {
+        if (!start) start = timestamp;
+        const progress = timestamp - start;
+        const opacity = Math.min(progress / duration, 1);
+        
+        element.style.opacity = opacity;
+        
+        if (progress < duration) {
+            requestAnimationFrame(animate);
+        }
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+function fadeOut(element, duration = 300) {
+    let start = null;
+    const initialOpacity = parseFloat(element.style.opacity) || 1;
+    
+    function animate(timestamp) {
+        if (!start) start = timestamp;
+        const progress = timestamp - start;
+        const opacity = Math.max(initialOpacity - (progress / duration), 0);
+        
+        element.style.opacity = opacity;
+        
+        if (progress < duration) {
+            requestAnimationFrame(animate);
+        } else {
+            element.style.display = 'none';
+        }
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+function slideDown(element, duration = 300) {
+    element.style.height = '0';
+    element.style.display = 'block';
+    const targetHeight = element.scrollHeight + 'px';
+    
+    let start = null;
+    function animate(timestamp) {
+        if (!start) start = timestamp;
+        const progress = timestamp - start;
+        const heightProgress = Math.min(progress / duration, 1);
+        
+        element.style.height = (parseInt(targetHeight) * heightProgress) + 'px';
+        
+        if (progress < duration) {
+            requestAnimationFrame(animate);
+        } else {
+            element.style.height = 'auto';
+        }
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+// Enhanced error handling
+function handleError(error, context = 'Unknown') {
+    console.error(`Error in ${context}:`, error);
+    
+    let userMessage = 'An unexpected error occurred';
+    
+    if (error.message) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+            userMessage = 'Network error - please check your connection';
+        } else if (error.message.includes('wallet')) {
+            userMessage = 'Wallet error - please check your wallet connection';
+        } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
+            userMessage = 'Authentication error - please refresh the page';
+        }
+    }
+    
+    showToast(userMessage, 'error');
+}
+
+// Performance monitoring
+function measurePerformance(name, fn) {
+    return async function(...args) {
+        const start = performance.now();
+        try {
+            const result = await fn.apply(this, args);
+            const end = performance.now();
+            console.log(`⏱️ ${name} took ${(end - start).toFixed(2)}ms`);
+            return result;
+        } catch (error) {
+            const end = performance.now();
+            console.error(`❌ ${name} failed after ${(end - start).toFixed(2)}ms:`, error);
+            throw error;
+        }
+    };
+}
+
+// DOM ready handler
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM is already ready
+    initializeApp();
+}
+
 // Export for use in other scripts
 window.SecretGPTee = {
     AppState,
@@ -411,5 +665,10 @@ window.SecretGPTee = {
     saveUserSettings,
     copyToClipboard,
     formatTimestamp,
-    escapeHtml
+    escapeHtml,
+    handleError,
+    measurePerformance,
+    fadeIn,
+    fadeOut,
+    slideDown
 };
