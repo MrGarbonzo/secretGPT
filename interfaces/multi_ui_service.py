@@ -38,8 +38,8 @@ class MultiUIService:
         
         # Domain mappings
         self.domain_mappings = {
-            "attestai.io": "attest_ai",
-            "www.attestai.io": "attest_ai",
+            "attestai.io": "secret_gptee",  # Temporarily redirect to SecretGPTee for HTTPS testing
+            "www.attestai.io": "secret_gptee",  # Temporarily redirect to SecretGPTee for HTTPS testing
             "secretgptee.com": "secret_gptee", 
             "www.secretgptee.com": "secret_gptee",
             # Development domains
