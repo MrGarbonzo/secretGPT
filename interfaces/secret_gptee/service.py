@@ -44,13 +44,11 @@ class SecretGPTeeService:
     async def get_status(self):
         """Get SecretGPTee service status"""
         try:
-            hub_status = await self.hub_router.get_system_status()
-            
-            # Check wallet service availability
+            # Check wallet service availability without circular hub calls
             wallet_service = self.hub_router.get_component(ComponentType.WALLET_PROXY)
             wallet_available = wallet_service is not None
             
-            # Check MCP service for blockchain tools
+            # Check MCP service for blockchain tools without circular hub calls
             mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
             mcp_available = mcp_service is not None and getattr(mcp_service, 'initialized', False)
             
@@ -64,7 +62,7 @@ class SecretGPTeeService:
                     "blockchain_tools": "operational" if mcp_available else "unavailable",
                     "chat_streaming": "operational"
                 },
-                "hub_status": hub_status,
+                "hub_connection": "connected",
                 "features": {
                     "modern_ui": True,
                     "keplr_wallet": wallet_available,

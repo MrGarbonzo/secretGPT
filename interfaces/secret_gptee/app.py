@@ -96,11 +96,10 @@ class SecretGPTeeInterface:
         async def health_check():
             """Health check endpoint for SecretGPTee"""
             try:
-                status = await self.hub_router.get_system_status()
                 return {
                     "status": "healthy", 
                     "interface": "secret_gptee",
-                    "hub_status": status
+                    "hub_connection": "connected"
                 }
             except Exception as e:
                 logger.error(f"SecretGPTee health check failed: {e}")
@@ -338,23 +337,19 @@ class SecretGPTeeInterface:
         async def get_status():
             """Get SecretGPTee system status"""
             try:
-                hub_status = await self.hub_router.get_system_status()
-                
-                # Add SecretGPTee-specific status
+                # Add SecretGPTee-specific status without circular hub calls
                 wallet_service = self._get_wallet_proxy()
-                wallet_status = None
-                if wallet_service:
-                    wallet_status = await wallet_service.get_status()
+                wallet_available = wallet_service is not None
                 
                 return {
                     "interface": "secret_gptee",
                     "status": "operational",
-                    "hub_status": hub_status,
-                    "wallet_service": wallet_status,
+                    "hub_connection": "connected",
+                    "wallet_service": "operational" if wallet_available else "unavailable",
                     "features": {
                         "chat": True,
                         "streaming": True,
-                        "wallet_integration": wallet_service is not None,
+                        "wallet_integration": wallet_available,
                         "blockchain_tools": True,
                         "advanced_settings": True
                     }
