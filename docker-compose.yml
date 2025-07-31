@@ -8,7 +8,7 @@ services:
     env_file:
       - ./usr/.env
     
-    # Configuration - API key included directly due to secretVM .env issues
+    # Configuration merged with .env file for private values
     environment:
       # Core Application
       - SECRETGPT_HUB_HOST=0.0.0.0
@@ -23,8 +23,8 @@ services:
       # MCP Integration - HTTP External Server (loaded from .env)
       - SECRET_MCP_URL=${SECRET_MCP_URL:-http://localhost:8002}
       
-      # Secret AI API Key (temporary workaround for secretVM .env import issues)
-      - SECRET_AI_API_KEY=bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1
+      # Secret AI API Key (loaded from private .env file)
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY}
       
       # SecretVM Integration
       - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html

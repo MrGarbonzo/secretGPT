@@ -32,6 +32,7 @@ ENV/
 .env
 .env.local
 .env.production
+usr/.env
 
 # IDE
 .vscode/
