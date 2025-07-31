@@ -111,10 +111,16 @@ body {
     gap: var(--spacing-md);
 }
 
-.logo {
+.logo-icon {
     height: 32px;
     width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color);
     border-radius: var(--radius-sm);
+    font-size: 1.25rem;
+    color: white;
 }
 
 .app-title {

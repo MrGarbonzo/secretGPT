@@ -352,7 +352,7 @@ const ChatInterface = {
         if (message.role === 'user') {
             avatar.innerHTML = '<i class="fas fa-user"></i>';
         } else {
-            avatar.innerHTML = '<img src="/static/img/secretgptee-logo.png" alt="SecretGPTee" onerror="this.innerHTML=\'<i class=&quot;fas fa-robot&quot;></i>\'">';
+            avatar.innerHTML = '<i class="fas fa-robot"></i>';
         }
         
         // Message content
