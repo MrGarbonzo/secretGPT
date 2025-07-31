@@ -316,21 +316,28 @@ const WalletInterface = {
         }
     },
     
-    // Update connect button
+    // Update connect button  
     updateConnectButton() {
-        const connectBtn = document.getElementById('connect-wallet-btn');
-        if (connectBtn) {
+        const connectBtn = document.getElementById('wallet-connect-btn');
+        const statusSpan = document.getElementById('wallet-status');
+        
+        if (connectBtn && statusSpan) {
             if (WalletState.isConnecting) {
-                connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+                statusSpan.textContent = 'Connecting...';
                 connectBtn.disabled = true;
+                connectBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
             } else if (WalletState.connected) {
-                connectBtn.style.display = 'none';
+                statusSpan.textContent = 'Connected';
+                connectBtn.disabled = false;
+                connectBtn.querySelector('i').className = 'fas fa-wallet';
             } else if (!WalletState.keplrInstalled) {
-                connectBtn.innerHTML = '<i class="fas fa-download"></i> Install Keplr';
+                statusSpan.textContent = 'Install Keplr';
                 connectBtn.disabled = false;
+                connectBtn.querySelector('i').className = 'fas fa-download';
             } else {
-                connectBtn.innerHTML = '<i class="fas fa-wallet"></i> Connect Wallet';
+                statusSpan.textContent = 'Connect Wallet';
                 connectBtn.disabled = false;
+                connectBtn.querySelector('i').className = 'fas fa-wallet';
             }
         }
         
@@ -670,3 +677,22 @@ const TransactionHelpers = {
 window.WalletInterface = WalletInterface;
 window.WalletState = WalletState;
 window.TransactionHelpers = TransactionHelpers;
+
+// Global functions for HTML onclick handlers
+window.toggleWallet = function() {
+    if (WalletState.connected) {
+        WalletInterface.disconnect();
+    } else {
+        WalletInterface.connect();
+    }
+};
+
+window.refreshBalance = function() {
+    if (WalletState.connected && WalletState.address) {
+        WalletInterface.refreshBalance();
+    }
+};
+
+window.copyWalletAddress = function() {
+    WalletInterface.copyAddress();
+};
