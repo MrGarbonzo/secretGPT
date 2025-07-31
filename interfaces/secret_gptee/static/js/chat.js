@@ -256,39 +256,54 @@ const ChatInterface = {
         this.hideTypingIndicator();
         let assistantMessageId = this.addMessage('assistant', '', { streaming: true });
         
+        let buffer = '';  // Buffer to handle partial SSE events
+        
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 
                 if (done) break;
                 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
+                // Decode chunk and add to buffer
+                buffer += decoder.decode(value, { stream: true });
                 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            
-                            if (data.success && data.chunk) {
-                                if (data.chunk.type === 'content') {
-                                    this.appendToMessage(assistantMessageId, data.chunk.data);
-                                } else if (data.chunk.type === 'mcp_response') {
-                                    this.appendToMessage(assistantMessageId, data.chunk.data);
+                // Process complete SSE events (separated by \n\n)
+                let eventEndIndex;
+                while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+                    const eventData = buffer.slice(0, eventEndIndex);
+                    buffer = buffer.slice(eventEndIndex + 2);  // Remove processed event
+                    
+                    // Parse SSE event
+                    const lines = eventData.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const jsonStr = line.slice(6);  // Remove 'data: ' prefix
+                                const data = JSON.parse(jsonStr);
+                                
+                                console.log('SSE Event received:', data);
+                                
+                                if (data.success && data.chunk) {
+                                    if (data.chunk.type === 'content' || data.chunk.type === 'mcp_response') {
+                                        this.appendToMessage(assistantMessageId, data.chunk.data);
+                                    } else if (data.chunk.type === 'stream_complete') {
+                                        console.log('Stream completed');
+                                    }
+                                } else if (!data.success) {
+                                    this.appendToMessage(assistantMessageId, '\n\n❌ Error: ' + (data.error || 'Unknown error'));
+                                    break;
                                 }
-                            } else if (!data.success) {
-                                this.appendToMessage(assistantMessageId, '\n\n❌ Error: ' + data.error);
-                                break;
+                            } catch (e) {
+                                console.warn('Failed to parse SSE data:', line, 'Error:', e);
                             }
-                        } catch (e) {
-                            console.warn('Failed to parse SSE data:', line);
+                            break;  // Only process first data line per event
                         }
                     }
                 }
             }
         } catch (error) {
             console.error('Stream reading error:', error);
-            this.appendToMessage(assistantMessageId, '\n\n❌ Stream interrupted');
+            this.appendToMessage(assistantMessageId, '\n\n❌ Stream interrupted: ' + error.message);
         } finally {
             this.finalizeMessage(assistantMessageId);
         }
@@ -334,7 +349,7 @@ const ChatInterface = {
     
     // Render message in chat
     renderMessage(message) {
-        const messagesContainer = document.getElementById('messages-container');
+        const messagesContainer = document.getElementById('messages');
         if (!messagesContainer) return;
         
         const messageWrapper = document.createElement('div');
@@ -624,7 +639,7 @@ const ChatInterface = {
     // Clear all messages
     clearMessages() {
         ChatState.messages = [];
-        const messagesContainer = document.getElementById('messages-container');
+        const messagesContainer = document.getElementById('messages');
         if (messagesContainer) {
             // Keep welcome message, remove others
             const messages = messagesContainer.querySelectorAll('.message-wrapper:not(.welcome-message)');
@@ -731,7 +746,7 @@ const ChatInterface = {
     
     // Scroll to bottom of chat
     scrollToBottom() {
-        const messagesContainer = document.getElementById('messages-container');
+        const messagesContainer = document.getElementById('messages');
         if (messagesContainer) {
             setTimeout(() => {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
