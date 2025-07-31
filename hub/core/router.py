@@ -15,6 +15,9 @@ class ComponentType(Enum):
     SECRET_AI = "secret_ai"
     WEB_UI = "web_ui"
     MCP_SERVICE = "mcp_service"
+    MULTI_UI_SERVICE = "multi_ui_service"
+    SECRET_GPTEE_UI = "secret_gptee_ui"
+    WALLET_PROXY = "wallet_proxy"
 
 
 class HubRouter:

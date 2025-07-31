@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    
+    <!-- SecretGPTee Styling -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="/static/css/wallet.css">
+    
+    <!-- Modern fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+    
+    <!-- Meta tags for PWA -->
+    <meta name="theme-color" content="#1a1b23">
+    <meta name="description" content="SecretGPTee - AI Chat with Secret Network Integration">
+</head>
+<body>
+    <!-- Main App Container -->
+    <div id="app" class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <!-- Logo and Title -->
+                <div class="header-left">
+                    <img src="/static/img/secretgptee-logo.png" alt="SecretGPTee" class="logo" onerror="this.style.display='none'">
+                    <h1 class="app-title">SecretGPTee</h1>
+                    <span class="version-badge">v1.0</span>
+                </div>
+                
+                <!-- Header Actions -->
+                <div class="header-right">
+                    <!-- Wallet Connection -->
+                    <div class="wallet-section">
+                        <button id="wallet-connect-btn" class="wallet-btn" onclick="toggleWallet()">
+                            <i class="fas fa-wallet"></i>
+                            <span id="wallet-status">Connect Wallet</span>
+                        </button>
+                        <div id="wallet-info" class="wallet-info hidden">
+                            <div class="wallet-address" id="wallet-address"></div>
+                            <div class="wallet-balance" id="wallet-balance"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings Button -->
+                    <button class="icon-btn settings-btn" onclick="toggleSettings()" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    
+                    <!-- Theme Toggle -->
+                    <button class="icon-btn theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon" id="theme-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Chat Container -->
+            <div class="chat-container">
+                
+                <!-- Messages Area -->
+                <div id="messages" class="messages-area">
+                    <!-- Welcome Message -->
+                    <div class="message assistant-message welcome-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-text">
+                                <h3>Welcome to SecretGPTee! 🔐</h3>
+                                <p>I'm your AI assistant with <strong>Secret Network</strong> integration. I can help you with:</p>
+                                <ul>
+                                    <li>💬 General questions and conversations</li>
+                                    <li>🔗 Secret Network blockchain queries</li>
+                                    <li>💰 Wallet balance checks and transactions</li>
+                                    <li>📊 Live blockchain data and statistics</li>
+                                </ul>
+                                <p>Connect your Keplr wallet to unlock blockchain features, or just start chatting!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="input-container">
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="message-input" 
+                                placeholder="Type your message... (or try 'What's the Secret Network status?')"
+                                rows="1"
+                                maxlength="4000"></textarea>
+                            <div class="input-actions">
+                                <button class="icon-btn attach-btn" title="Attach File" disabled>
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                                <button id="send-btn" class="send-btn" onclick="sendMessage()" title="Send Message">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Input Footer -->
+                        <div class="input-footer">
+                            <span class="char-count">0 / 4000</span>
+                            <div class="input-options">
+                                <span class="temperature-display">Temperature: <span id="temp-value">0.7</span></span>
+                                <button class="toggle-btn" onclick="toggleStreaming()" title="Toggle Streaming">
+                                    <i class="fas fa-stream" id="streaming-icon"></i>
+                                    <span id="streaming-text">Streaming</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+        
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="settings-panel hidden">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>Settings</h3>
+                    <button class="close-btn" onclick="toggleSettings()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="settings-body">
+                    
+                    <!-- Chat Settings -->
+                    <div class="settings-section">
+                        <h4>Chat Settings</h4>
+                        
+                        <div class="setting-item">
+                            <label for="temperature-slider">Creativity (Temperature)</label>
+                            <div class="slider-container">
+                                <input type="range" id="temperature-slider" min="0" max="1" step="0.1" value="0.7">
+                                <div class="slider-labels">
+                                    <span>Conservative</span>
+                                    <span>Balanced</span>
+                                    <span>Creative</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="enable-tools" checked>
+                                Enable Blockchain Tools
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="enable-streaming" checked>
+                                Real-time Streaming
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Wallet Settings -->
+                    <div class="settings-section">
+                        <h4>Wallet Settings</h4>
+                        
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="auto-connect-wallet">
+                                Auto-connect wallet on visit
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="default-gas">Default Gas Limit</label>
+                            <input type="number" id="default-gas" value="200000" min="80000" max="2000000">
+                        </div>
+                    </div>
+                    
+                    <!-- Privacy Settings -->
+                    <div class="settings-section">
+                        <h4>Privacy Settings</h4>
+                        
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="local-storage-only" checked>
+                                Store conversations locally only
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="privacy-mode">
+                                Privacy mode (no conversation history)  
+                            </label>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <div class="settings-footer">
+                    <button class="btn secondary" onclick="resetSettings()">Reset to Defaults</button>
+                    <button class="btn primary" onclick="saveSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Connecting to Secret Network...</span>
+            </div>
+        </div>
+        
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+        
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/chat.js"></script>
+    <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/settings.js"></script>
+    
+    <!-- Initialize App -->
+    <script>
+        // Initialize SecretGPTee app
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 SecretGPTee loaded successfully');
+            
+            // Initialize components
+            initializeApp();
+            initializeChat();
+            initializeWallet();
+            initializeSettings();
+            
+            // Load user settings
+            loadUserSettings();
+            
+            // Auto-resize textarea
+            const textarea = document.getElementById('message-input');
+            textarea.addEventListener('input', autoResize);
+            
+            // Keyboard shortcuts
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Character counter
+            textarea.addEventListener('input', updateCharCount);
+        });
+    </script>
+</body>
+</html>

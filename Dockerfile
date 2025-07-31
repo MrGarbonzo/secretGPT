@@ -33,6 +33,11 @@ ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
 # SECRET_MCP_URL now comes from .env file for security
 
+# Enable dual-domain mode for AttestAI and SecretGPTee
+ENV SECRETGPT_DUAL_DOMAIN=true
+# Enable Web UI by default
+ENV SECRETGPT_ENABLE_WEB_UI=true
+
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app

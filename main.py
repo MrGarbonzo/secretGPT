@@ -141,7 +141,7 @@ async def run_with_web_ui():
     """Run the hub with integrated Web UI and attestation service"""
     # Global references for signal handling
     hub = None
-    web_ui_service = None
+    ui_service = None
     
     def signal_handler(sig, frame):
         """Handle shutdown signals gracefully"""
@@ -167,58 +167,99 @@ async def run_with_web_ui():
         mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
+        # Initialize wallet proxy service for SecretGPTee
+        logger.info("Initializing Wallet Proxy service...")
+        try:
+            from services.wallet_proxy import create_wallet_proxy_service
+            wallet_proxy = create_wallet_proxy_service()
+            await wallet_proxy.initialize()
+            hub.register_component(ComponentType.WALLET_PROXY, wallet_proxy)
+            logger.info("Wallet Proxy service registered successfully")
+        except Exception as e:
+            logger.warning(f"Wallet Proxy service not available: {e}")
+        
         # Initialize the hub
         await hub.initialize()
         
-        # Initialize Web UI service with proper attestation support
-        logger.info("Initializing Web UI service...")
-        try:
-            from interfaces.web_ui.service import WebUIService
-            
-            # Use WebUIService (includes attestation) instead of WebUIInterface
-            web_ui_service = WebUIService(hub)
-            hub.register_component(ComponentType.WEB_UI, web_ui_service)
-            
-            # Start the web UI server
-            import uvicorn
-            
-            # Get the FastAPI app from web UI service
-            app = web_ui_service.get_fastapi_app()
-            
-            config = uvicorn.Config(
-                app=app,
-                host=os.getenv("SECRETGPT_HUB_HOST", "0.0.0.0"),
-                port=int(os.getenv("SECRETGPT_HUB_PORT", "8000")),
-                log_level=settings.log_level.lower(),
-                access_log=True
-            )
-            server = uvicorn.Server(config)
-            
-            # Get system status
-            status = await hub.get_system_status()
-            logger.info(f"System status: {status}")
-            
-            # Get available models
-            models = await hub.get_available_models()
-            logger.info(f"Available models: {models}")
-            
-            logger.info("secretGPT Hub with Web UI started successfully")
-            logger.info(f"Web UI available at http://{config.host}:{config.port}")
-            
-            # Run the server
-            await server.serve()
-            
-        except ImportError as e:
-            logger.error(f"Web UI dependencies not available: {e}")
-            logger.info("Falling back to service mode without Web UI")
-            await run_service_mode()
-            
+        # Check for dual-domain mode
+        dual_domain_mode = os.getenv("SECRETGPT_DUAL_DOMAIN", "false").lower() == "true"
+        
+        if dual_domain_mode:
+            # Initialize Multi-UI service for dual-domain routing
+            logger.info("Initializing Multi-UI service for dual-domain routing...")
+            try:
+                from interfaces.multi_ui_service import MultiUIService
+                
+                ui_service = MultiUIService(hub)
+                hub.register_component(ComponentType.MULTI_UI_SERVICE, ui_service)
+                
+                # Get the FastAPI app from multi-UI service
+                app = ui_service.get_fastapi_app()
+                
+                logger.info("Multi-UI service initialized - supporting both AttestAI and SecretGPTee")
+                
+            except ImportError as e:
+                logger.error(f"Multi-UI dependencies not available: {e}")
+                logger.info("Falling back to single Web UI mode")
+                dual_domain_mode = False
+        
+        if not dual_domain_mode:
+            # Initialize single Web UI service (original AttestAI)
+            logger.info("Initializing Web UI service (single domain mode)...")
+            try:
+                from interfaces.web_ui.service import WebUIService
+                
+                ui_service = WebUIService(hub)
+                hub.register_component(ComponentType.WEB_UI, ui_service)
+                
+                # Get the FastAPI app from web UI service
+                app = ui_service.get_fastapi_app()
+                
+            except ImportError as e:
+                logger.error(f"Web UI dependencies not available: {e}")
+                logger.info("Falling back to service mode without Web UI")
+                await run_service_mode()
+                return
+        
+        # Start the server
+        import uvicorn
+        
+        config = uvicorn.Config(
+            app=app,
+            host=os.getenv("SECRETGPT_HUB_HOST", "0.0.0.0"),
+            port=int(os.getenv("SECRETGPT_HUB_PORT", "8000")),
+            log_level=settings.log_level.lower(),
+            access_log=True
+        )
+        server = uvicorn.Server(config)
+        
+        # Get system status
+        status = await hub.get_system_status()
+        logger.info(f"System status: {status}")
+        
+        # Get available models
+        models = await hub.get_available_models()
+        logger.info(f"Available models: {models}")
+        
+        mode_info = "Multi-UI (AttestAI + SecretGPTee)" if dual_domain_mode else "Single Web UI (AttestAI)"
+        logger.info(f"secretGPT Hub started successfully - Mode: {mode_info}")
+        logger.info(f"Web interface available at http://{config.host}:{config.port}")
+        
+        if dual_domain_mode:
+            logger.info("Domain routing:")
+            logger.info("  - attestai.io → AttestAI interface")
+            logger.info("  - secretgptee.com → SecretGPTee interface") 
+            logger.info("  - localhost → AttestAI interface (default)")
+        
+        # Run the server
+        await server.serve()
+        
     except Exception as e:
         logger.error(f"Service error: {e}")
         raise
     finally:
-        if web_ui_service:
-            await web_ui_service.cleanup()
+        if ui_service:
+            await ui_service.cleanup()
         if hub:
             logger.info("Shutting down hub...")
             await hub.shutdown()
