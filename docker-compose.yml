@@ -24,7 +24,7 @@ services:
       - SECRET_MCP_URL=${SECRET_MCP_URL:-http://localhost:8002}
       
       # Secret AI API Key (loaded from private .env file only)
-      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY}
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-PLEASE_SET_IN_USR_DOT_ENV}
       
       # SecretVM Integration
       - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html

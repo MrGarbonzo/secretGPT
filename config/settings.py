@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Secret AI Configuration
     # REFERENCE: secretAI-setting-up-environment.txt
     secret_ai_api_key: str = Field(
-        ...,
+        default="",
         env="SECRET_AI_API_KEY",
         description="API key for Secret AI authentication"
     )
@@ -98,8 +98,13 @@ def validate_settings() -> bool:
         bool: True if all required settings are valid
     """
     # Phase 1: Only Secret AI API key is required
-    if not settings.secret_ai_api_key:
-        return False
+    if not settings.secret_ai_api_key or settings.secret_ai_api_key == "PLEASE_SET_IN_USR_DOT_ENV":
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("SECRET_AI_API_KEY not set! Please create usr/.env file with your API key.")
+        logger.warning("Copy .env.example to usr/.env and update with your values.")
+        # Allow hub to start without API key for now
+        return True
     
     
     # Phase 1: MCP is optional - hub can run without it
