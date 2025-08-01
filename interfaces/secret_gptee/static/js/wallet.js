@@ -239,7 +239,7 @@ const WalletInterface = {
                 refreshBtn.disabled = true;
             }
             
-            const response = await fetch('/secret_gptee/api/v1/wallet/balance', {
+            const response = await fetch('/api/v1/wallet/balance', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
