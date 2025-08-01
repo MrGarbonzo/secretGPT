@@ -69,8 +69,11 @@ class MultiUIService:
             try:
                 from interfaces.secret_gptee.service import SecretGPTeeService
                 self.secret_gptee_service = SecretGPTeeService(self.hub_router)
-            except ImportError:
-                logger.warning("SecretGPTee service not yet implemented, creating placeholder")
+            except ImportError as e:
+                logger.warning(f"SecretGPTee service not available: {e}")
+                self.secret_gptee_service = None
+            except Exception as e:
+                logger.error(f"Failed to initialize SecretGPTee service: {e}")
                 self.secret_gptee_service = None
             
             logger.info("UI services initialized successfully")
@@ -121,20 +124,30 @@ class MultiUIService:
                 # Determine target interface
                 interface_type = self.domain_mappings.get(domain, "attest_ai")
                 
-                # Rewrite path based on domain
+                # Rewrite path based on domain - avoid double prefixes
                 original_path = request.url.path
+                
+                # Only rewrite if path doesn't already have the correct prefix
                 if not original_path.startswith(("/attest_ai", "/secret_gptee")):
                     if interface_type == "secret_gptee":
                         request.scope["path"] = f"/secret_gptee{original_path}"
                     else:
                         request.scope["path"] = f"/attest_ai{original_path}"
+                # If path already has wrong prefix, fix it
+                elif interface_type == "secret_gptee" and original_path.startswith("/attest_ai"):
+                    request.scope["path"] = original_path.replace("/attest_ai", "/secret_gptee", 1)
+                elif interface_type == "attest_ai" and original_path.startswith("/secret_gptee"):
+                    request.scope["path"] = original_path.replace("/secret_gptee", "/attest_ai", 1)
                 
                 # Add interface type to request state for downstream handlers
                 request.state.interface_type = interface_type
                 request.state.domain = domain
                 
                 # Log routing decision
-                logger.debug(f"Routing {original_path} from {domain} to {interface_type}")
+                if original_path != request.scope["path"]:
+                    logger.info(f"Domain routing: {domain} -> {original_path} -> {request.scope['path']} ({interface_type})")
+                else:
+                    logger.debug(f"No path rewrite needed: {original_path} for {interface_type}")
                 
                 response = await call_next(request)
                 return response

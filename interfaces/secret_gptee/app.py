@@ -476,3 +476,7 @@ class SecretGPTeeInterface:
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance"""
         return self.app
+    
+    def get_fastapi_app(self) -> FastAPI:
+        """Get the FastAPI application instance (alias for compatibility)"""
+        return self.app

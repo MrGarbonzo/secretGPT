@@ -166,7 +166,7 @@ const ChatInterface = {
         this.updateSendButton();
         
         try {
-            const response = await fetch('/secret_gptee/api/v1/chat/stream', {
+            const response = await fetch('/api/v1/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ const ChatInterface = {
         this.updateSendButton();
         
         try {
-            const response = await fetch('/secret_gptee/api/v1/chat', {
+            const response = await fetch('/api/v1/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
