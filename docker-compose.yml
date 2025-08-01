@@ -20,8 +20,8 @@ services:
       - SECRETGPT_ENABLE_WEB_UI=true
       - MCP_ENABLED=true
       
-      # MCP Integration - HTTP External Server (loaded from .env)
-      - SECRET_MCP_URL=${SECRET_MCP_URL:-http://localhost:8002}
+      # MCP Integration - HTTP External Server (TEMPORARILY HARDCODED - REMOVE WHEN ENV UPLOAD FIXED)
+      - SECRET_MCP_URL=http://67.215.13.103:8002
       
       # Secret AI API Key (override in usr/.env or use fallback)
       - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
