@@ -186,6 +186,7 @@ class SecretGPTeeInterface:
                 async def event_generator():
                     """Generate Server-Sent Events for streaming response"""
                     try:
+                        logger.info("SecretGPTee: Starting stream generator")
                         # Stream through hub router
                         async for chunk_response in self.hub_router.stream_message(
                             interface="secret_gptee",
@@ -196,6 +197,7 @@ class SecretGPTeeInterface:
                                 "enable_tools": enable_tools
                             }
                         ):
+                            logger.info(f"SecretGPTee: Received chunk: {chunk_response}")
                             # Add SecretGPTee-specific metadata
                             event_data = {
                                 "success": chunk_response.get("success", True),
@@ -214,7 +216,10 @@ class SecretGPTeeInterface:
                             
                             # Send as SSE format
                             sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            logger.info(f"SecretGPTee: Yielding SSE: {sse_data[:100]}...")
                             yield sse_data
+                        
+                        logger.info("SecretGPTee: Stream generator completed successfully")
                             
                     except Exception as e:
                         logger.error(f"SecretGPTee streaming error: {e}")
