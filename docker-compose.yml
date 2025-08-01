@@ -23,8 +23,8 @@ services:
       # MCP Integration - HTTP External Server (loaded from .env)
       - SECRET_MCP_URL=${SECRET_MCP_URL:-http://localhost:8002}
       
-      # Secret AI API Key (loaded from private .env file with fallback)
-      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
+      # Secret AI API Key (loaded from private .env file only)
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY}
       
       # SecretVM Integration
       - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html

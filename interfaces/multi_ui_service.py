@@ -38,10 +38,10 @@ class MultiUIService:
         
         # Domain mappings
         self.domain_mappings = {
-            "attestai.io": "secret_gptee",  # Temporarily redirect to SecretGPTee for HTTPS testing
-            "www.attestai.io": "secret_gptee",  # Temporarily redirect to SecretGPTee for HTTPS testing
-            "secretgptee.com": "secret_gptee", 
-            "www.secretgptee.com": "secret_gptee",
+            "attestai.io": "attest_ai",  # AttestAI interface
+            "www.attestai.io": "attest_ai",  # AttestAI interface
+            "secretgptee.com": "secret_gptee",  # SecretGPTee interface
+            "www.secretgptee.com": "secret_gptee",  # SecretGPTee interface
             # Development domains
             "localhost": "attest_ai",  # Default to AttestAI for localhost
             "127.0.0.1": "attest_ai",
