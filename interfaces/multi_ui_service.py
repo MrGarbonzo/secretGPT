@@ -121,40 +121,23 @@ class MultiUIService:
                 host = request.headers.get("host", "").lower()
                 domain = host.split(":")[0]  # Remove port if present
                 
-                # DEBUG: Enhanced logging for domain detection
-                logger.info(f"DOMAIN DEBUG: Raw Host header: '{request.headers.get('host', 'MISSING')}'")
-                logger.info(f"DOMAIN DEBUG: Parsed domain: '{domain}'")
-                logger.info(f"DOMAIN DEBUG: Available mappings: {list(self.domain_mappings.keys())}")
-                
                 # Determine target interface
                 interface_type = self.domain_mappings.get(domain, "attest_ai")
-                logger.info(f"DOMAIN DEBUG: Mapped '{domain}' -> '{interface_type}'")
                 
                 # Rewrite path based on domain - avoid double prefixes
                 original_path = request.url.path
-                logger.info(f"PATH DEBUG: Original path: '{original_path}'")
-                logger.info(f"PATH DEBUG: Interface type: '{interface_type}'")
-                logger.info(f"PATH DEBUG: Path starts with /attest_ai: {original_path.startswith('/attest_ai')}")
-                logger.info(f"PATH DEBUG: Path starts with /secret_gptee: {original_path.startswith('/secret_gptee')}")
                 
                 # Only rewrite if path doesn't already have the correct prefix
                 if not original_path.startswith(("/attest_ai", "/secret_gptee")):
-                    logger.info("PATH DEBUG: No prefix detected, adding interface prefix")
                     if interface_type == "secret_gptee":
                         request.scope["path"] = f"/secret_gptee{original_path}"
-                        logger.info(f"PATH DEBUG: Added secret_gptee prefix: '{request.scope['path']}'")
                     else:
                         request.scope["path"] = f"/attest_ai{original_path}"
-                        logger.info(f"PATH DEBUG: Added attest_ai prefix: '{request.scope['path']}'")
                 # If path already has wrong prefix, fix it
                 elif interface_type == "secret_gptee" and original_path.startswith("/attest_ai"):
                     request.scope["path"] = original_path.replace("/attest_ai", "/secret_gptee", 1)
-                    logger.info(f"PATH DEBUG: Fixed wrong prefix (attest_ai -> secret_gptee): '{request.scope['path']}'")
                 elif interface_type == "attest_ai" and original_path.startswith("/secret_gptee"):
                     request.scope["path"] = original_path.replace("/secret_gptee", "/attest_ai", 1)
-                    logger.info(f"PATH DEBUG: Fixed wrong prefix (secret_gptee -> attest_ai): '{request.scope['path']}'")
-                else:
-                    logger.info(f"PATH DEBUG: Path already has correct prefix, no change needed")
                 
                 # Add interface type to request state for downstream handlers
                 request.state.interface_type = interface_type
