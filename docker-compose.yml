@@ -4,9 +4,9 @@ services:
     container_name: secretgpt-hub
     restart: unless-stopped
     
-    # Load environment variables from .env file
-    env_file:
-      - ./usr/.env
+    # Load environment variables from .env file (optional)
+    # env_file:
+    #   - ./usr/.env
     
     # Configuration merged with .env file for private values
     environment:
