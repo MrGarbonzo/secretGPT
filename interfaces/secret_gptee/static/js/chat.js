@@ -284,7 +284,9 @@ const ChatInterface = {
                                 console.log('SSE Event received:', data);
                                 
                                 if (data.success && data.chunk) {
-                                    if (data.chunk.type === 'content' || data.chunk.type === 'mcp_response') {
+                                    if (data.chunk.type === 'content' || 
+                                        data.chunk.type === 'mcp_response' || 
+                                        data.chunk.type === 'text_chunk') {
                                         this.appendToMessage(assistantMessageId, data.chunk.data);
                                     } else if (data.chunk.type === 'stream_complete') {
                                         console.log('Stream completed');
