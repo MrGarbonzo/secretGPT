@@ -67,6 +67,73 @@
         <!-- Main Content Area -->
         <main class="main-content">
             
+            <!-- Wallet Sidebar -->
+            <aside id="wallet-sidebar" class="wallet-sidebar hidden">
+                <div class="sidebar-header">
+                    <h3>Wallet</h3>
+                    <button class="close-btn" onclick="toggleWalletSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="sidebar-content">
+                    <!-- Wallet Info Section -->
+                    <div class="wallet-info-section">
+                        <div class="wallet-address-display">
+                            <label>Address</label>
+                            <div class="address-box">
+                                <span id="sidebar-wallet-address">Not Connected</span>
+                                <button class="copy-btn" onclick="copyWalletAddress()" title="Copy Address">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Balance Section -->
+                    <div class="balance-section">
+                        <div class="balance-header">
+                            <h4>Balances</h4>
+                            <button class="refresh-btn" onclick="refreshBalance()" title="Refresh Balances">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- SCRT Balance (Primary) -->
+                        <div class="token-balance primary-balance">
+                            <div class="token-info">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxYTFiMjMiLz4KPHBhdGggZD0iTTE2IDZMMTcuNTkgMTEuMDRMMjMgOEwyMC4wNCAxMy40MUwyNiAxNkwyMC4wNCAxNC40MUwxNiAyNkwxMS45NiAxNC40MUw2IDE2TDExLjk2IDEzLjQxTDkgOEwxNC40MSAxMS4wNEwxNiA2WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+" alt="SCRT" class="token-icon">
+                                <div class="token-details">
+                                    <span class="token-symbol">SCRT</span>
+                                    <span class="token-name">Secret</span>
+                                </div>
+                            </div>
+                            <div class="token-amount">
+                                <span id="scrt-balance" class="balance-value">0.000000</span>
+                                <span class="balance-usd">$0.00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Future: Additional Tokens -->
+                        <div id="additional-tokens" class="additional-tokens">
+                            <!-- Additional token balances will be added here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Actions Section -->
+                    <div class="wallet-actions">
+                        <button class="action-btn" onclick="showSendModal()">
+                            <i class="fas fa-paper-plane"></i>
+                            Send
+                        </button>
+                        <button class="action-btn" onclick="showReceiveModal()">
+                            <i class="fas fa-qrcode"></i>
+                            Receive
+                        </button>
+                    </div>
+                </div>
+            </aside>
+            
             <!-- Chat Container -->
             <div class="chat-container">
                 
