@@ -87,12 +87,16 @@ class WalletProxyService:
         try:
             async with self.session.get(f"{self.mcp_base_url}/api/health") as response:
                 if response.status == 200:
-                    return await response.json()
+                    data = await response.json()
+                    logger.info(f"MCP health check successful: {data}")
+                    return data
                 else:
-                    return {"success": False, "error": f"HTTP {response.status}"}
+                    error_msg = f"HTTP {response.status}: {response.reason}"
+                    logger.warning(f"MCP health check failed: {error_msg}")
+                    return {"success": False, "error": error_msg}
         except Exception as e:
-            logger.error(f"Health check failed: {e}")
-            return {"success": False, "error": str(e)}
+            logger.error(f"Health check failed - cannot connect to {self.mcp_base_url}: {e}")
+            return {"success": False, "error": f"Connection failed: {str(e)}"}
     
     async def _send_request(self, wallet_request: WalletRequest) -> Dict[str, Any]:
         """
