@@ -413,6 +413,9 @@ const ChatInterface = {
         messageWrapper.appendChild(messageElement);
         
         messagesContainer.appendChild(messageWrapper);
+        
+        // Auto-scroll to bottom after adding message
+        setTimeout(() => this.scrollToBottom(), 100);
     },
     
     // Update existing message element
@@ -458,8 +461,17 @@ const ChatInterface = {
     formatMessageMeta(message) {
         const parts = [];
         
-        // Timestamp
-        parts.push(`<span class="timestamp">${SecretGPTee.formatTimestamp(message.timestamp)}</span>`);
+        // Timestamp with fallback
+        let timestampStr = 'now';
+        try {
+            if (message.timestamp) {
+                timestampStr = SecretGPTee.formatTimestamp(message.timestamp);
+            }
+        } catch (error) {
+            console.warn('Error formatting timestamp:', error, message.timestamp);
+            timestampStr = 'now';
+        }
+        parts.push(`<span class="timestamp">${timestampStr}</span>`);
         
         // Model info (for assistant messages)
         if (message.role === 'assistant' && message.metadata.model) {
@@ -762,7 +774,17 @@ const ChatInterface = {
             const saved = localStorage.getItem('secretgptee-current-conversation');
             if (saved) {
                 const data = JSON.parse(saved);
-                ChatState.messages = data.messages || [];
+                ChatState.messages = (data.messages || []).map(msg => {
+                    // Convert timestamp back to Date object if it's a string
+                    if (msg.timestamp && typeof msg.timestamp === 'string') {
+                        msg.timestamp = new Date(msg.timestamp);
+                    }
+                    // Ensure metadata exists
+                    if (!msg.metadata) {
+                        msg.metadata = {};
+                    }
+                    return msg;
+                });
                 ChatState.conversationId = data.conversation_id;
                 
                 // Re-render messages
@@ -771,6 +793,31 @@ const ChatInterface = {
             }
         } catch (error) {
             console.error('Failed to load conversation history:', error);
+        }
+    },
+    
+    // Scroll to bottom of messages area
+    scrollToBottom(smooth = true) {
+        try {
+            const messagesArea = document.getElementById('messages');
+            if (messagesArea) {
+                const scrollOptions = {
+                    top: messagesArea.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                };
+                messagesArea.scrollTo(scrollOptions);
+                
+                // Also try scrolling the main container if needed
+                const chatContainer = document.querySelector('.chat-container');
+                if (chatContainer) {
+                    chatContainer.scrollTo({
+                        top: chatContainer.scrollHeight,
+                        behavior: smooth ? 'smooth' : 'auto'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error scrolling to bottom:', error);
         }
     },
     
@@ -790,6 +837,33 @@ const ChatInterface = {
             localStorage.setItem('secretgptee-current-conversation', JSON.stringify(data));
         } catch (error) {
             console.error('Failed to save conversation:', error);
+        }
+    },
+    
+    // Clear conversation history
+    clearConversationHistory() {
+        try {
+            // Clear from memory
+            ChatState.messages = [];
+            ChatState.conversationId = null;
+            
+            // Clear from localStorage
+            localStorage.removeItem('secretgptee-current-conversation');
+            
+            // Clear messages from UI
+            const messagesContainer = document.getElementById('messages');
+            if (messagesContainer) {
+                // Keep the welcome message, remove others
+                const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+                messagesContainer.innerHTML = '';
+                if (welcomeMessage) {
+                    messagesContainer.appendChild(welcomeMessage);
+                }
+            }
+            
+            console.log('Conversation history cleared');
+        } catch (error) {
+            console.error('Failed to clear conversation history:', error);
         }
     },
     
@@ -837,4 +911,9 @@ window.ChatInterface = ChatInterface;
 // Global initialization function for HTML
 window.initializeChat = function() {
     ChatInterface.init();
+};
+
+// Global function to clear chat history (for testing)
+window.clearChatHistory = function() {
+    ChatInterface.clearConversationHistory();
 };

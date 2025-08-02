@@ -3,17 +3,28 @@
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: calc(100vh - 80px); /* Account for header */
     max-width: 1200px;
     margin: 0 auto;
     background: var(--bg-color);
 }
 
+/* Messages area - match HTML class name */
+.messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    scroll-behavior: smooth;
+    min-height: 0; /* Important for flex scrolling */
+}
+
+/* Keep old class for backward compatibility */
 .messages-container {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
     scroll-behavior: smooth;
+    min-height: 0;
 }
 
 .message-wrapper {
@@ -128,10 +139,26 @@
     gap: 0.5rem;
 }
 
-.chat-input-area {
+/* Input area - match HTML class name */
+.input-area {
+    flex-shrink: 0; /* Don't shrink */
     padding: 1rem;
     border-top: 1px solid var(--border-color);
     background: var(--card-bg);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+/* Keep old class for backward compatibility */
+.chat-input-area {
+    flex-shrink: 0;
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--card-bg);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
 .input-container {
