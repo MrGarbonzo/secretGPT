@@ -87,7 +87,7 @@ const WalletInterface = {
     
     // Setup event listeners
     setupEventListeners() {
-        const connectBtn = document.getElementById('connect-wallet-btn');
+        const connectBtn = document.getElementById('wallet-connect-btn');
         const disconnectBtn = document.getElementById('disconnect-wallet-btn');
         const refreshBalanceBtn = document.getElementById('refresh-balance-btn');
         
@@ -715,10 +715,15 @@ window.TransactionHelpers = TransactionHelpers;
 // Global functions for HTML onclick handlers
 window.toggleWallet = function() {
     if (WalletState.connected) {
-        WalletInterface.disconnect();
+        WalletInterface.disconnectWallet();
     } else {
-        WalletInterface.connect();
+        WalletInterface.connectWallet();
     }
+};
+
+// Initialize wallet interface when called from HTML
+window.initializeWallet = function() {
+    WalletInterface.init();
 };
 
 window.refreshBalance = function() {
