@@ -833,3 +833,8 @@ const ChatInterface = {
 
 // Export for global access
 window.ChatInterface = ChatInterface;
+
+// Global initialization function for HTML
+window.initializeChat = function() {
+    ChatInterface.init();
+};

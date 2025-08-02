@@ -659,3 +659,8 @@ const SettingsInterface = {
 window.SettingsInterface = SettingsInterface;
 window.SettingsState = SettingsState;
 window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+
+// Global initialization function for HTML
+window.initializeSettings = function() {
+    SettingsInterface.init();
+};

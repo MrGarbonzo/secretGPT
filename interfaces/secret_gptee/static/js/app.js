@@ -376,6 +376,16 @@ function removeToast(toast) {
 
 // Utility functions
 function formatTimestamp(date = new Date()) {
+    // Handle both Date objects and timestamp strings/numbers
+    if (!(date instanceof Date)) {
+        date = new Date(date);
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        date = new Date(); // Fallback to current time
+    }
+    
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -651,6 +661,15 @@ if (document.readyState === 'loading') {
 } else {
     // DOM is already ready
     initializeApp();
+}
+
+// Global sendMessage function for HTML onclick handlers
+function sendMessage() {
+    if (window.ChatInterface && typeof window.ChatInterface.sendMessage === 'function') {
+        window.ChatInterface.sendMessage();
+    } else {
+        console.error('ChatInterface not available');
+    }
 }
 
 // Export for use in other scripts
