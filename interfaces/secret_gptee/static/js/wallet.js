@@ -354,14 +354,14 @@ const WalletInterface = {
         this.updateBalanceDisplay();
     },
     
-    // Update wallet status indicator
+    // Update Keplr wallet status indicator
     updateWalletStatus() {
         const statusElement = document.getElementById('wallet-status');
         if (statusElement) {
             if (WalletState.connected) {
                 statusElement.innerHTML = `
                     <span class="status-dot connected"></span>
-                    <span>Connected</span>
+                    <span>Keplr Connected</span>
                 `;
                 statusElement.className = 'wallet-status connected';
             } else if (!WalletState.keplrInstalled) {
@@ -373,35 +373,36 @@ const WalletInterface = {
             } else {
                 statusElement.innerHTML = `
                     <span class="status-dot disconnected"></span>
-                    <span>Disconnected</span>
+                    <span>Keplr Disconnected</span>
                 `;
                 statusElement.className = 'wallet-status disconnected';
             }
         }
     },
     
-    // Update connect button  
+    // Update Keplr connect button  
     updateConnectButton() {
         const connectBtn = document.getElementById('wallet-connect-btn');
         const statusSpan = document.getElementById('wallet-status');
         
         if (connectBtn && statusSpan) {
+            // Remove all state classes
+            connectBtn.classList.remove('connecting', 'connected');
+            
             if (WalletState.isConnecting) {
-                statusSpan.textContent = 'Connecting...';
+                statusSpan.textContent = 'Connecting to Keplr...';
                 connectBtn.disabled = true;
-                connectBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+                connectBtn.classList.add('connecting');
             } else if (WalletState.connected) {
-                statusSpan.textContent = 'Connected';
+                statusSpan.textContent = 'Keplr Connected';
                 connectBtn.disabled = false;
-                connectBtn.querySelector('i').className = 'fas fa-wallet';
+                connectBtn.classList.add('connected');
             } else if (!WalletState.keplrInstalled) {
                 statusSpan.textContent = 'Install Keplr';
                 connectBtn.disabled = false;
-                connectBtn.querySelector('i').className = 'fas fa-download';
             } else {
-                statusSpan.textContent = 'Connect Wallet';
+                statusSpan.textContent = 'Connect Keplr';
                 connectBtn.disabled = false;
-                connectBtn.querySelector('i').className = 'fas fa-wallet';
             }
         }
         
@@ -511,7 +512,7 @@ const WalletInterface = {
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p>To use SecretGPTee's wallet features, you need to install the Keplr wallet extension.</p>
+                    <p>SecretGPTee requires the Keplr wallet extension to connect to the Secret Network. Keplr is the most popular and secure wallet for Secret Network.</p>
                     <div class="install-options">
                         <a href="https://chrome.google.com/webstore/detail/keplr/dmkamcknogkgcdfhhbddcghachkejeap" 
                            target="_blank" class="install-btn chrome">

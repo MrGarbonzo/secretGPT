@@ -6,9 +6,9 @@
     <title>{{ title }}</title>
     
     <!-- SecretGPTee Styling -->
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/chat.css">
-    <link rel="stylesheet" href="/static/css/wallet.css">
+    <link rel="stylesheet" href="/static/css/main.css?v=2025010106">
+    <link rel="stylesheet" href="/static/css/chat.css?v=2025010106">
+    <link rel="stylesheet" href="/static/css/wallet.css?v=2025010106">
     
     <!-- Modern fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -39,11 +39,11 @@
                 
                 <!-- Header Actions -->
                 <div class="header-right">
-                    <!-- Wallet Connection -->
+                    <!-- Keplr Wallet Connection -->
                     <div class="wallet-section">
-                        <button id="wallet-connect-btn" class="wallet-btn" onclick="toggleWallet()">
-                            <i class="fas fa-wallet"></i>
-                            <span id="wallet-status">Connect Wallet</span>
+                        <button id="wallet-connect-btn" class="wallet-btn keplr-btn" onclick="toggleWallet()">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA2TDE3Ljc0IDEzLjA5TDIyIDEyTDE0Ljc0IDEzLjA5TDEyIDIyTDkuMjYgMTMuMDlMMiAxMkw2LjI2IDEzLjA5TDQgNkwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJjdXJyZW50Q29sb3IiLz4KPC9zdmc+" alt="Keplr" class="keplr-logo">
+                            <span id="wallet-status">Connect Keplr</span>
                         </button>
                         <div id="wallet-info" class="wallet-info hidden">
                             <div class="wallet-address" id="wallet-address"></div>
@@ -87,7 +87,7 @@
                                     <li>💰 Wallet balance checks and transactions</li>
                                     <li>📊 Live blockchain data and statistics</li>
                                 </ul>
-                                <p>Connect your Keplr wallet to unlock blockchain features, or just start chatting!</p>
+                                <p>Connect your <strong>Keplr wallet</strong> to unlock Secret Network features, or just start chatting!</p>
                             </div>
                         </div>
                     </div>
@@ -231,11 +231,11 @@
     </div>
     
     <!-- JavaScript -->
-    <script src="/static/js/app.js?v=2025010105"></script>
-    <script src="/static/js/chat.js?v=2025010105"></script>
-    <script src="/static/js/wallet.js?v=2025010105"></script>
-    <script src="/static/js/debug-wallet.js?v=2025010105"></script>
-    <script src="/static/js/settings.js?v=2025010105"></script>
+    <script src="/static/js/app.js?v=2025010106"></script>
+    <script src="/static/js/chat.js?v=2025010106"></script>
+    <script src="/static/js/wallet.js?v=2025010106"></script>
+    <script src="/static/js/debug-wallet.js?v=2025010106"></script>
+    <script src="/static/js/settings.js?v=2025010106"></script>
     
     <!-- Initialize App -->
     <script>

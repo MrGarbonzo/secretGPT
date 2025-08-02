@@ -459,3 +459,66 @@
         min-width: auto;
     }
 }
+
+/* Keplr-specific button styling */
+.keplr-btn {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.keplr-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
+.keplr-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.keplr-btn:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.keplr-logo {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) invert(1); /* Make logo white */
+}
+
+.keplr-btn.connected {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.keplr-btn.connected:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+}
+
+.keplr-btn.connecting {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    cursor: wait;
+}
+
+.keplr-btn.connecting .keplr-logo {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
