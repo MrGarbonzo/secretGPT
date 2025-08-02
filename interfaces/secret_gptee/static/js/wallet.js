@@ -239,14 +239,11 @@ const WalletInterface = {
                 refreshBtn.disabled = true;
             }
             
-            const response = await fetch('/api/v1/wallet/balance', {
-                method: 'POST',
+            const response = await fetch(`/api/wallet/balance/${WalletState.address}`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    address: WalletState.address
-                })
+                }
             });
             
             if (!response.ok) {

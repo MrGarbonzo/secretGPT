@@ -275,17 +275,12 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 
             except Exception as e:
                 logger.error(f"DEBUG STREAM: Secret Network tool execution failed: {e}")
-                yield {
-                    "success": False,
-                    "chunk": {
-                        "type": "mcp_response", 
-                        "data": f"❌ **Tool Execution Failed**\n\nError: {str(e)}",
-                        "metadata": {"mcp_command": True, "tool_execution": True, "error": True}
-                    },
-                    "interface": interface,
-                    "model": "mcp_service"
-                }
-                return
+                # Instead of returning, continue with regular AI chat but include the error context
+                logger.info("DEBUG STREAM: Falling back to regular AI chat with error context")
+                
+                # Add error context to the message for AI to understand
+                error_context = f"\n\n[Note: I tried to query Secret Network blockchain data but encountered an error: {str(e)}. I'll provide a general response instead.]"
+                message = message + error_context
         
         if (message.strip().startswith('/mcp') or 
             message_clean.startswith('mcp ') or
@@ -969,3 +964,113 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             # Fallback to original response with tool results appended
             original_response["tool_results"] = tool_results
             return original_response
+    
+    # Wallet Proxy Methods (Bridge-Ready for Attestation)
+    
+    async def connect_wallet(self, address: str, name: str = None, is_hardware: bool = False) -> Dict[str, Any]:
+        """Connect wallet through bridge-ready proxy service"""
+        wallet_proxy = self.get_component(ComponentType.WALLET_PROXY)
+        if not wallet_proxy:
+            logger.error("Wallet proxy service not registered")
+            return {
+                "success": False,
+                "error": "Wallet proxy service not available",
+                "bridge_ready": False
+            }
+        
+        try:
+            result = await wallet_proxy.connect_wallet(address, name, is_hardware)
+            logger.info(f"Wallet connection result: {result.get('success', False)}")
+            return result
+        except Exception as e:
+            logger.error(f"Wallet connection failed: {e}")
+            return {
+                "success": False,
+                "error": f"Connection failed: {str(e)}",
+                "bridge_ready": True
+            }
+    
+    async def get_wallet_balance(self, address: str) -> Dict[str, Any]:
+        """Get wallet balance through bridge-ready proxy service"""
+        wallet_proxy = self.get_component(ComponentType.WALLET_PROXY)
+        if not wallet_proxy:
+            logger.error("Wallet proxy service not registered")
+            return {
+                "success": False,
+                "error": "Wallet proxy service not available"
+            }
+        
+        try:
+            result = await wallet_proxy.get_wallet_balance(address)
+            logger.info(f"Balance query result: {result.get('success', False)}")
+            return result
+        except Exception as e:
+            logger.error(f"Balance query failed: {e}")
+            return {
+                "success": False,
+                "error": f"Balance query failed: {str(e)}"
+            }
+    
+    async def get_transaction_status(self, tx_hash: str) -> Dict[str, Any]:
+        """Get transaction status through bridge-ready proxy service"""
+        wallet_proxy = self.get_component(ComponentType.WALLET_PROXY)
+        if not wallet_proxy:
+            logger.error("Wallet proxy service not registered")
+            return {
+                "success": False,
+                "error": "Wallet proxy service not available"
+            }
+        
+        try:
+            result = await wallet_proxy.get_transaction_status(tx_hash)
+            logger.info(f"Transaction status result: {result.get('success', False)}")
+            return result
+        except Exception as e:
+            logger.error(f"Transaction status query failed: {e}")
+            return {
+                "success": False,
+                "error": f"Transaction status query failed: {str(e)}"
+            }
+    
+    async def disconnect_wallet(self, address: str) -> Dict[str, Any]:
+        """Disconnect wallet through bridge-ready proxy service"""
+        wallet_proxy = self.get_component(ComponentType.WALLET_PROXY)
+        if not wallet_proxy:
+            logger.error("Wallet proxy service not registered")
+            return {
+                "success": False,
+                "error": "Wallet proxy service not available"
+            }
+        
+        try:
+            result = await wallet_proxy.disconnect_wallet(address)
+            logger.info(f"Wallet disconnect result: {result.get('success', False)}")
+            return result
+        except Exception as e:
+            logger.error(f"Wallet disconnect failed: {e}")
+            return {
+                "success": False,
+                "error": f"Disconnect failed: {str(e)}"
+            }
+    
+    async def get_wallet_status(self) -> Dict[str, Any]:
+        """Get wallet proxy status with bridge information"""
+        wallet_proxy = self.get_component(ComponentType.WALLET_PROXY)
+        if not wallet_proxy:
+            return {
+                "success": False,
+                "error": "Wallet proxy service not registered",
+                "bridge_ready": False
+            }
+        
+        try:
+            result = await wallet_proxy.get_status()
+            logger.info(f"Wallet status result: {result.get('success', False)}")
+            return result
+        except Exception as e:
+            logger.error(f"Wallet status check failed: {e}")
+            return {
+                "success": False,
+                "error": f"Status check failed: {str(e)}",
+                "bridge_ready": True
+            }

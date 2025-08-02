@@ -106,6 +106,18 @@ async def run_service_mode():
         mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
+        # Initialize wallet proxy service for SecretGPTee (Bridge-Ready)
+        logger.info("Initializing Wallet Proxy service...")
+        try:
+            from services.wallet_service.proxy import WalletProxyService
+            wallet_proxy = WalletProxyService()
+            initialization_result = await wallet_proxy.initialize()
+            hub.register_component(ComponentType.WALLET_PROXY, wallet_proxy)
+            logger.info(f"Wallet Proxy service registered: {initialization_result.get('message', 'Success')}")
+            logger.info(f"Bridge mode: {initialization_result.get('bridge_mode', 'http')}")
+        except Exception as e:
+            logger.warning(f"Wallet Proxy service not available: {e}")
+        
         # Initialize the hub
         await hub.initialize()
         
@@ -167,14 +179,15 @@ async def run_with_web_ui():
         mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
-        # Initialize wallet proxy service for SecretGPTee
+        # Initialize wallet proxy service for SecretGPTee (Bridge-Ready)
         logger.info("Initializing Wallet Proxy service...")
         try:
-            from services.wallet_proxy import create_wallet_proxy_service
-            wallet_proxy = create_wallet_proxy_service()
-            await wallet_proxy.initialize()
+            from services.wallet_service.proxy import WalletProxyService
+            wallet_proxy = WalletProxyService()
+            initialization_result = await wallet_proxy.initialize()
             hub.register_component(ComponentType.WALLET_PROXY, wallet_proxy)
-            logger.info("Wallet Proxy service registered successfully")
+            logger.info(f"Wallet Proxy service registered: {initialization_result.get('message', 'Success')}")
+            logger.info(f"Bridge mode: {initialization_result.get('bridge_mode', 'http')}")
         except Exception as e:
             logger.warning(f"Wallet Proxy service not available: {e}")
         

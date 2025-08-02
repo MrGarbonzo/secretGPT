@@ -473,6 +473,102 @@ class SecretGPTeeInterface:
             except Exception as e:
                 logger.error(f"Settings update error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+        
+        # Wallet API Endpoints (Bridge-Ready for Attestation)
+        
+        @self.app.post("/api/wallet/connect")
+        async def connect_wallet(request: Request):
+            """Connect Keplr wallet through bridge-ready proxy"""
+            try:
+                data = await request.json()
+                address = data.get("address")
+                name = data.get("name", "Keplr Wallet")
+                is_hardware = data.get("isHardwareWallet", False)
+                
+                if not address:
+                    raise HTTPException(status_code=400, detail="Wallet address is required")
+                
+                # Route through hub router to wallet proxy
+                result = await self.hub_router.connect_wallet(address, name, is_hardware)
+                
+                return result
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Wallet connect error: {e}")
+                raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
+        
+        @self.app.get("/api/wallet/balance/{address}")
+        async def get_wallet_balance(address: str):
+            """Get wallet balance through bridge-ready proxy"""
+            try:
+                if not address or not address.startswith("secret1"):
+                    raise HTTPException(status_code=400, detail="Valid Secret Network address required")
+                
+                # Route through hub router to wallet proxy
+                result = await self.hub_router.get_wallet_balance(address)
+                
+                return result
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Balance query error: {e}")
+                raise HTTPException(status_code=500, detail=f"Balance query failed: {str(e)}")
+        
+        @self.app.get("/api/wallet/transaction/{tx_hash}")
+        async def get_transaction_status(tx_hash: str):
+            """Get transaction status through bridge-ready proxy"""
+            try:
+                if not tx_hash or len(tx_hash) != 64:
+                    raise HTTPException(status_code=400, detail="Valid transaction hash required")
+                
+                # Route through hub router to wallet proxy
+                result = await self.hub_router.get_transaction_status(tx_hash)
+                
+                return result
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Transaction status error: {e}")
+                raise HTTPException(status_code=500, detail=f"Transaction status query failed: {str(e)}")
+        
+        @self.app.delete("/api/wallet/disconnect/{address}")
+        async def disconnect_wallet(address: str):
+            """Disconnect wallet through bridge-ready proxy"""
+            try:
+                if not address or not address.startswith("secret1"):
+                    raise HTTPException(status_code=400, detail="Valid Secret Network address required")
+                
+                # Route through hub router to wallet proxy
+                result = await self.hub_router.disconnect_wallet(address)
+                
+                return result
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Wallet disconnect error: {e}")
+                raise HTTPException(status_code=500, detail=f"Disconnect failed: {str(e)}")
+        
+        @self.app.get("/api/wallet/status")
+        async def get_wallet_status():
+            """Get wallet proxy status with bridge information"""
+            try:
+                # Route through hub router to wallet proxy
+                result = await self.hub_router.get_wallet_status()
+                
+                # Add SecretGPTee-specific context
+                result["interface"] = "secret_gptee"
+                result["attestation_ready"] = True
+                
+                return result
+                
+            except Exception as e:
+                logger.error(f"Wallet status error: {e}")
+                raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
     
     def _get_wallet_proxy(self):
         """Get wallet proxy service from hub router"""
