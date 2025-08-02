@@ -68,20 +68,40 @@ const WalletInterface = {
         console.log('✅ Wallet interface initialized');
     },
     
-    // Check if Keplr wallet is installed
+    // Check if Keplr wallet is installed (with proper detection)
     checkKeplrInstallation() {
-        if (window.keplr) {
-            WalletState.keplrInstalled = true;
-            console.log('✅ Keplr wallet detected');
-        } else {
-            WalletState.keplrInstalled = false;
-            console.log('❌ Keplr wallet not found');
+        const checkKeplr = () => {
+            if (window.keplr) {
+                WalletState.keplrInstalled = true;
+                console.log('✅ Keplr wallet detected');
+                return true;
+            } else {
+                WalletState.keplrInstalled = false;
+                console.log('❌ Keplr wallet not found');
+                return false;
+            }
+        };
+        
+        // Check immediately
+        if (!checkKeplr()) {
+            // Keplr might not be loaded yet, wait a bit and check again
+            setTimeout(() => {
+                checkKeplr();
+                this.updateUI();
+            }, 100);
         }
         
-        // Listen for Keplr installation
+        // Listen for Keplr installation and keystore changes
         window.addEventListener('keplr_keystorechange', () => {
             console.log('🔄 Keplr keystore changed, refreshing connection...');
             this.refreshConnection();
+        });
+        
+        // Listen for Keplr extension installation
+        document.addEventListener('keplr_extension_change', () => {
+            console.log('🔄 Keplr extension status changed...');
+            checkKeplr();
+            this.updateUI();
         });
     },
     
@@ -141,11 +161,12 @@ const WalletInterface = {
             // Add Secret Network to Keplr
             await this.addSecretNetworkToKeplr();
             
-            // Enable Secret Network in Keplr
-            await window.keplr.enable(KEPLR_CHAIN_CONFIG.chainId);
+            // Enable Secret Network in Keplr (following official docs)
+            const chainId = KEPLR_CHAIN_CONFIG.chainId;
+            await window.keplr.enable(chainId);
             
-            // Get the offline signer
-            const offlineSigner = window.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
+            // Get the offline signer (correct API usage)
+            const offlineSigner = window.keplr.getOfflineSigner(chainId);
             const accounts = await offlineSigner.getAccounts();
             
             if (accounts.length === 0) {
@@ -193,10 +214,19 @@ const WalletInterface = {
             });
             
             if (showMessages) {
-                // More descriptive error messages
+                // More descriptive error messages based on Keplr error types
                 let errorMsg = 'Failed to connect wallet';
-                if (error.message.includes('rejected')) {
+                
+                if (error.message.includes('Request rejected')) {
                     errorMsg = 'Connection rejected by user';
+                } else if (error.message.includes('There is no chain info')) {
+                    errorMsg = 'Secret Network not configured in Keplr - please add the network manually';
+                } else if (error.message.includes('No accounts')) {
+                    errorMsg = 'No accounts found in Keplr - please create or import an account';
+                } else if (error.message.includes('User denied account access')) {
+                    errorMsg = 'Account access denied by user';
+                } else if (error.message.includes('Keplr extension')) {
+                    errorMsg = 'Keplr extension error - please refresh page and try again';
                 } else if (error.message.includes('HTTP')) {
                     errorMsg = 'SecretGPT service not available - please check if the service is running';
                 } else {
@@ -714,10 +744,24 @@ window.TransactionHelpers = TransactionHelpers;
 
 // Global functions for HTML onclick handlers
 window.toggleWallet = function() {
+    console.log('toggleWallet called, connected state:', WalletState.connected);
+    console.log('WalletInterface methods available:', {
+        connectWallet: typeof WalletInterface.connectWallet,
+        disconnectWallet: typeof WalletInterface.disconnectWallet
+    });
+    
     if (WalletState.connected) {
-        WalletInterface.disconnectWallet();
+        if (typeof WalletInterface.disconnectWallet === 'function') {
+            WalletInterface.disconnectWallet();
+        } else {
+            console.error('disconnectWallet method not found');
+        }
     } else {
-        WalletInterface.connectWallet();
+        if (typeof WalletInterface.connectWallet === 'function') {
+            WalletInterface.connectWallet();
+        } else {
+            console.error('connectWallet method not found');
+        }
     }
 };
 
