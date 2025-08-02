@@ -171,16 +171,38 @@ const WalletInterface = {
                 SecretGPTee.showToast('Wallet connected successfully', 'success');
             }
             
-            // Get balance
-            await this.refreshBalance();
+            // Try to get balance, but don't fail connection if this fails
+            try {
+                await this.refreshBalance();
+            } catch (balanceError) {
+                console.warn('Balance refresh failed, but wallet connection successful:', balanceError);
+                if (showMessages) {
+                    SecretGPTee.showToast('Wallet connected, but balance unavailable', 'warning');
+                }
+            }
             
             this.updateUI();
             return true;
             
         } catch (error) {
             console.error('Wallet connection failed:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
             if (showMessages) {
-                SecretGPTee.showToast('Failed to connect wallet: ' + error.message, 'error');
+                // More descriptive error messages
+                let errorMsg = 'Failed to connect wallet';
+                if (error.message.includes('rejected')) {
+                    errorMsg = 'Connection rejected by user';
+                } else if (error.message.includes('HTTP')) {
+                    errorMsg = 'SecretGPT service not available - please check if the service is running';
+                } else {
+                    errorMsg = `Failed to connect wallet: ${error.message}`;
+                }
+                SecretGPTee.showToast(errorMsg, 'error');
             }
             WalletState.connected = false;
             WalletState.address = null;
@@ -262,7 +284,22 @@ const WalletInterface = {
             
         } catch (error) {
             console.error('Balance refresh failed:', error);
-            SecretGPTee.showToast('Failed to refresh balance', 'error');
+            console.error('Balance error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            let errorMsg = 'Failed to refresh balance';
+            if (error.message.includes('HTTP 404')) {
+                errorMsg = 'Wallet service not found - please ensure secretGPT Hub is running';
+            } else if (error.message.includes('HTTP 500')) {
+                errorMsg = 'Wallet service error - please check secretGPT logs';
+            } else if (error.message.includes('HTTP')) {
+                errorMsg = `Service error: ${error.message}`;
+            }
+            
+            SecretGPTee.showToast(errorMsg, 'error');
         } finally {
             const refreshBtn = document.getElementById('refresh-balance-btn');
             if (refreshBtn) {
