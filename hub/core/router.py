@@ -90,18 +90,63 @@ class HubRouter:
             logger.info(f"DEBUG: Normalized command: '{normalized_cmd}'")
             return await self._handle_mcp_debug_command(normalized_cmd, interface)
         
-        logger.info(f"DEBUG: Not an MCP command, proceeding with normal routing")
+        logger.info(f"DEBUG: Not an MCP command, proceeding with Keplr → MCP → LLM priority chain")
         
-        # Pre-analyze message for Secret Network queries (aggressive detection)
+        # LAYER 1: Check Keplr wallet data first (highest priority)
+        wallet_connected = options.get("wallet_connected", False) if options else False
         wallet_address = options.get("wallet_address") if options else None
+        
+        if wallet_connected and wallet_address:
+            logger.info(f"🔵 KEPLR LAYER: Checking if Keplr can handle query...")
+            keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address)
+            if keplr_response:
+                logger.info(f"🔵 KEPLR LAYER: Query handled directly by Keplr layer")
+                return keplr_response
+            else:
+                logger.info(f"🔵 KEPLR LAYER: Cannot handle query, passing to MCP layer")
+        else:
+            logger.info(f"🔵 KEPLR LAYER: Wallet not connected, skipping to MCP layer")
+        
+        # LAYER 2: Check MCP/Secret Network queries (medium priority) 
+        logger.info(f"🟠 MCP LAYER: Checking for Secret Network queries...")
         forced_tool_calls = self._detect_secret_network_queries(message, wallet_address)
         if forced_tool_calls:
-            logger.info(f"Pre-detected Secret Network query, forcing tool execution: {forced_tool_calls}")
+            logger.info(f"🟠 MCP LAYER: Secret Network query detected, executing tools: {[tc['name'] for tc in forced_tool_calls]}")
+            
+            # Execute MCP tools and return result
+            try:
+                tool_results = await self._execute_tools(forced_tool_calls)
+                
+                # Format tool results for display
+                tool_summary = "\n\n".join([
+                    f"**{result['tool']}**: " + 
+                    (self._format_tool_result(result['result']) if result['success'] else f"Error - {result['error']}")
+                    for result in tool_results
+                ])
+                
+                return {
+                    "success": True,
+                    "content": f"🔗 **Secret Network Tool Results**\n\n{tool_summary}",
+                    "interface": interface,
+                    "model": "mcp_service",
+                    "source": "mcp_layer",
+                    "tools_used": [tc['name'] for tc in forced_tool_calls]
+                }
+                
+            except Exception as e:
+                logger.error(f"🟠 MCP LAYER: Tool execution failed: {e}")
+                # Fall through to LLM layer
+                logger.info(f"🟠 MCP LAYER: Failed, passing to LLM layer")
+        else:
+            logger.info(f"🟠 MCP LAYER: No Secret Network queries detected, passing to LLM layer")
+        
+        # LAYER 3: Use LLM for general questions (lowest priority)
+        logger.info(f"🟢 LLM LAYER: Handling general query with AI...")
         
         # Get Secret AI service
         secret_ai = self.get_component(ComponentType.SECRET_AI)
         if not secret_ai:
-            logger.error("Secret AI service not registered")
+            logger.error("🟢 LLM LAYER: Secret AI service not registered")
             return {
                 "success": False,
                 "error": "Secret AI service not available",
@@ -244,12 +289,38 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         message_clean = message.strip().lower()
         logger.info(f"DEBUG STREAM: Cleaned message: '{message_clean}'")
         
-        # Check for Secret Network queries before explicit MCP commands
+        # Implement Keplr → MCP → LLM priority chain for streaming
+        wallet_connected = options.get("wallet_connected", False) if options else False
         wallet_address = options.get("wallet_address") if options else None
+        
+        # LAYER 1: Check Keplr wallet data first
+        if wallet_connected and wallet_address:
+            logger.info(f"🔵 KEPLR LAYER STREAM: Checking if Keplr can handle query...")
+            keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address)
+            if keplr_response:
+                logger.info(f"🔵 KEPLR LAYER STREAM: Query handled directly by Keplr layer")
+                yield {
+                    "success": True,
+                    "chunk": {
+                        "type": "keplr_response",
+                        "data": keplr_response["content"],
+                        "metadata": {"keplr_direct": True, "source": "keplr_layer"}
+                    },
+                    "interface": interface,
+                    "model": "keplr_wallet"
+                }
+                return
+            else:
+                logger.info(f"🔵 KEPLR LAYER STREAM: Cannot handle query, passing to MCP layer")
+        else:
+            logger.info(f"🔵 KEPLR LAYER STREAM: Wallet not connected, skipping to MCP layer")
+        
+        # LAYER 2: Check MCP/Secret Network queries
+        logger.info(f"🟠 MCP LAYER STREAM: Checking for Secret Network queries...")
         forced_tool_calls = self._detect_secret_network_queries(message, wallet_address)
-        logger.info(f"DEBUG STREAM: Secret Network pre-detection found {len(forced_tool_calls)} tool calls")
+        logger.info(f"🟠 MCP LAYER STREAM: Secret Network pre-detection found {len(forced_tool_calls)} tool calls")
         if forced_tool_calls:
-            logger.info(f"DEBUG STREAM: Secret Network query detected! Executing tools: {[tc['name'] for tc in forced_tool_calls]}")
+            logger.info(f"🟠 MCP LAYER STREAM: Secret Network query detected! Executing tools: {[tc['name'] for tc in forced_tool_calls]}")
             
             # Execute tools and return response
             try:
@@ -276,13 +347,14 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 return
                 
             except Exception as e:
-                logger.error(f"DEBUG STREAM: Secret Network tool execution failed: {e}")
-                # Instead of returning, continue with regular AI chat but include the error context
-                logger.info("DEBUG STREAM: Falling back to regular AI chat with error context")
-                
-                # Add error context to the message for AI to understand
-                error_context = f"\n\n[Note: I tried to query Secret Network blockchain data but encountered an error: {str(e)}. I'll provide a general response instead.]"
-                message = message + error_context
+                logger.error(f"🟠 MCP LAYER STREAM: Secret Network tool execution failed: {e}")
+                # Fall through to LLM layer
+                logger.info("🟠 MCP LAYER STREAM: Falling back to LLM layer")
+        else:
+            logger.info(f"🟠 MCP LAYER STREAM: No Secret Network queries detected, passing to LLM layer")
+        
+        # LAYER 3: Use LLM for general questions
+        logger.info(f"🟢 LLM LAYER STREAM: Handling general query with AI...")
         
         if (message.strip().startswith('/mcp') or 
             message_clean.startswith('mcp ') or
@@ -637,6 +709,93 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 "error": str(e)
             }
     
+    async def _check_keplr_data(self, message: str, wallet_connected: bool = False, wallet_address: str = None) -> Dict[str, Any]:
+        """
+        Check if query can be answered directly from connected Keplr wallet data
+        This is the FIRST layer in the Keplr → MCP → LLM chain
+        
+        Args:
+            message: The user's message
+            wallet_connected: Whether Keplr wallet is connected
+            wallet_address: The connected wallet address
+            
+        Returns:
+            Response dict if handled, None if should pass to next layer
+        """
+        if not wallet_connected or not wallet_address:
+            return None
+            
+        message_lower = message.lower()
+        
+        try:
+            # Personal balance queries - get directly from wallet API
+            if any(keyword in message_lower for keyword in [
+                'my balance', 'my scrt', 'my wallet balance', 'my account balance',
+                'what is my balance', 'show my balance', 'check my balance',
+                'how much scrt do i have', 'how much do i have',
+                'what\'s my balance', 'whats my balance',
+                'my scrt balance', 'my secret balance'
+            ]):
+                logger.info(f"🔵 KEPLR LAYER: Handling personal balance query for {wallet_address}")
+                
+                # Get balance directly from our wallet service
+                balance_result = await self.get_wallet_balance(wallet_address)
+                if balance_result.get("success"):
+                    balance_amount = balance_result.get("balance", {}).get("amount", "0")
+                    formatted_balance = balance_result.get("formatted", "0.000000 SCRT")
+                    
+                    response_text = f"💰 **Your SCRT Balance**\n\n**{formatted_balance}**\n\nAddress: `{wallet_address}`"
+                    if balance_result.get("mock_data"):
+                        response_text += "\n\n*Note: Using fallback data for testing*"
+                    
+                    return {
+                        "success": True,
+                        "content": response_text,
+                        "interface": "keplr_direct",
+                        "model": "keplr_wallet",
+                        "source": "keplr_layer",
+                        "wallet_data": balance_result
+                    }
+            
+            # Wallet address queries
+            elif any(keyword in message_lower for keyword in [
+                'my address', 'my wallet address', 'what is my address',
+                'show my address', 'my secret address', 'wallet address'
+            ]):
+                logger.info(f"🔵 KEPLR LAYER: Handling address query for {wallet_address}")
+                
+                # Format address for display
+                short_address = f"{wallet_address[:10]}...{wallet_address[-8:]}"
+                
+                return {
+                    "success": True,
+                    "content": f"🏠 **Your Wallet Address**\n\n**Full Address:**\n`{wallet_address}`\n\n**Short Address:**\n`{short_address}`",
+                    "interface": "keplr_direct", 
+                    "model": "keplr_wallet",
+                    "source": "keplr_layer"
+                }
+            
+            # Wallet connection status
+            elif any(keyword in message_lower for keyword in [
+                'am i connected', 'is my wallet connected', 'wallet status',
+                'connection status', 'is keplr connected'
+            ]):
+                logger.info(f"🔵 KEPLR LAYER: Handling connection status query")
+                
+                return {
+                    "success": True,
+                    "content": f"🟢 **Wallet Connected**\n\nYour Keplr wallet is connected and ready to use.\n\n**Address:** `{wallet_address}`\n**Network:** Secret Network (secret-4)",
+                    "interface": "keplr_direct",
+                    "model": "keplr_wallet", 
+                    "source": "keplr_layer"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in Keplr data layer: {e}")
+            
+        # If we get here, Keplr layer cannot handle this query
+        return None
+    
     def _detect_secret_network_queries(self, message: str, wallet_address: str = None) -> List[Dict[str, Any]]:
         """
         Aggressively detect Secret Network queries from user message before AI processing
@@ -653,22 +812,9 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         message_lower = message.lower()
         
         try:
-            # Personal balance queries (check FIRST before any other queries)
-            if wallet_address and any(keyword in message_lower for keyword in [
-                'my balance', 'my scrt', 'my wallet', 'my account',
-                'what is my balance', 'show my balance', 'check my balance',
-                'how much scrt do i have', 'how much do i have',
-                'what\'s my balance', 'whats my balance',
-                'my scrt balance', 'my secret balance', 'my wallet balance'
-            ]):
-                tool_calls.append({
-                    "name": "secret_query_balance",
-                    "arguments": {"address": wallet_address}
-                })
-                logger.info(f"Pre-detected: Personal balance query for connected wallet {wallet_address}")
-            
-            # Balance queries with address detection (check SECOND before network queries)
-            elif 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
+            # Personal balance queries are now handled by Keplr layer, so skip them here
+            # Balance queries with address detection (check FIRST since personal queries are handled above)
+            if 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
                 secret_addr_pattern = r'secret1[a-z0-9]{38}'  # More specific pattern
                 addr_matches = re.findall(secret_addr_pattern, message)
                 if addr_matches:
