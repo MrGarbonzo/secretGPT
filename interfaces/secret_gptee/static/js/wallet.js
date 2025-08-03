@@ -305,13 +305,16 @@ const WalletInterface = {
             }
             
             const data = await response.json();
+            console.log('🔍 Full balance API response:', data);
             
             if (data.success) {
                 WalletState.balance = data.balance;
                 console.log('💰 Balance updated:', data.balance);
+                console.log('📊 Formatted balance:', this.formatBalance(data.balance));
                 this.updateBalanceDisplay();
+                this.updateSidebar();
             } else {
-                throw new Error('Failed to fetch balance');
+                throw new Error(data.error || 'Failed to fetch balance');
             }
             
         } catch (error) {
