@@ -653,8 +653,35 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         message_lower = message.lower()
         
         try:
-            # Block queries (check FIRST before general network queries)
-            if any(keyword in message_lower for keyword in [
+            # Personal balance queries (check FIRST before any other queries)
+            if wallet_address and any(keyword in message_lower for keyword in [
+                'my balance', 'my scrt', 'my wallet', 'my account',
+                'what is my balance', 'show my balance', 'check my balance',
+                'how much scrt do i have', 'how much do i have',
+                'what\'s my balance', 'whats my balance',
+                'my scrt balance', 'my secret balance', 'my wallet balance'
+            ]):
+                tool_calls.append({
+                    "name": "secret_query_balance",
+                    "arguments": {"address": wallet_address}
+                })
+                logger.info(f"Pre-detected: Personal balance query for connected wallet {wallet_address}")
+            
+            # Balance queries with address detection (check SECOND before network queries)
+            elif 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
+                secret_addr_pattern = r'secret1[a-z0-9]{38}'  # More specific pattern
+                addr_matches = re.findall(secret_addr_pattern, message)
+                if addr_matches:
+                    for addr in addr_matches:
+                        tool_calls.append({
+                            "name": "secret_query_balance",
+                            "arguments": {"address": addr}
+                        })
+                        logger.info(f"Pre-detected: Balance query for address {addr}")
+                        break  # Only do first address to avoid spam
+            
+            # Block queries
+            elif any(keyword in message_lower for keyword in [
                 'latest block', 'current block', 'recent block', 'block info',
                 'block information', 'block details', 'last block', 'newest block',
                 'block height', 'current height', 'latest height', 'what is the block height',
@@ -666,7 +693,18 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 })
                 logger.info("Pre-detected: Block information query")
             
-            # Network status and chain info queries (simplified logic)
+            # Specific block number queries
+            elif re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower):
+                import re
+                block_number_match = re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower)
+                block_height = int(block_number_match.group(1) or block_number_match.group(2) or block_number_match.group(3))
+                tool_calls.append({
+                    "name": "secret_query_block",
+                    "arguments": {"height": block_height}
+                })
+                logger.info(f"Pre-detected: Specific block query for height {block_height}")
+            
+            # Network status and chain info queries (move to LAST to avoid catching balance queries)
             elif any(keyword in message_lower for keyword in [
                 'secret network', 'scrt network', 'chain info', 'network status', 
                 'chain information', 'network info', 'secret chain', 'scrt chain',
@@ -688,44 +726,6 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                         "arguments": {}
                     })
                     logger.info("Pre-detected: Generic Secret Network query")
-            
-            # Specific block number queries
-            import re
-            block_number_match = re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower)
-            if block_number_match:
-                block_height = int(block_number_match.group(1) or block_number_match.group(2) or block_number_match.group(3))
-                tool_calls.append({
-                    "name": "secret_query_block",
-                    "arguments": {"height": block_height}
-                })
-                logger.info(f"Pre-detected: Specific block query for height {block_height}")
-            
-            # Personal balance queries (when user asks about "my" balance)
-            if wallet_address and any(keyword in message_lower for keyword in [
-                'my balance', 'my scrt', 'my wallet', 'my account',
-                'what is my balance', 'show my balance', 'check my balance',
-                'how much scrt do i have', 'how much do i have',
-                'what\'s my balance', 'whats my balance',
-                'my scrt balance', 'my secret balance', 'my wallet balance'
-            ]):
-                tool_calls.append({
-                    "name": "secret_query_balance",
-                    "arguments": {"address": wallet_address}
-                })
-                logger.info(f"Pre-detected: Personal balance query for connected wallet {wallet_address}")
-            
-            # Balance queries with address detection
-            elif 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
-                secret_addr_pattern = r'secret1[a-z0-9]{38}'  # More specific pattern
-                addr_matches = re.findall(secret_addr_pattern, message)
-                if addr_matches:
-                    for addr in addr_matches:
-                        tool_calls.append({
-                            "name": "secret_query_balance",
-                            "arguments": {"address": addr}
-                        })
-                        logger.info(f"Pre-detected: Balance query for address {addr}")
-                        break  # Only do first address to avoid spam
             
             # Transaction queries
             tx_hash_pattern = r'[a-fA-F0-9]{64}'  # 64-character hex string
@@ -766,13 +766,15 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                     })
                     logger.info("Pre-detected: Test phrase triggered Secret Network status")
             
-            # Generic Secret Network mentions (fallback)
+            # Generic Secret Network mentions (fallback) - but exclude balance/personal queries
             if not tool_calls and any(keyword in message_lower for keyword in [
-                'secret network', 'scrt', 'secret blockchain'
+                'secret network', 'secret blockchain'
             ]) and any(question in message_lower for question in [
                 'what', 'how', 'show', 'get', 'tell', 'info', 'status', 'current'
+            ]) and not any(personal in message_lower for personal in [
+                'my', 'balance', 'wallet', 'account', 'i have', 'scrt'
             ]):
-                # Default to network status for generic queries
+                # Default to network status for generic queries (excluding personal/balance queries)
                 tool_calls.append({
                     "name": "secret_network_status", 
                     "arguments": {}
