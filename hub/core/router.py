@@ -93,7 +93,8 @@ class HubRouter:
         logger.info(f"DEBUG: Not an MCP command, proceeding with normal routing")
         
         # Pre-analyze message for Secret Network queries (aggressive detection)
-        forced_tool_calls = self._detect_secret_network_queries(message)
+        wallet_address = options.get("wallet_address") if options else None
+        forced_tool_calls = self._detect_secret_network_queries(message, wallet_address)
         if forced_tool_calls:
             logger.info(f"Pre-detected Secret Network query, forcing tool execution: {forced_tool_calls}")
         
@@ -244,7 +245,8 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         logger.info(f"DEBUG STREAM: Cleaned message: '{message_clean}'")
         
         # Check for Secret Network queries before explicit MCP commands
-        forced_tool_calls = self._detect_secret_network_queries(message)
+        wallet_address = options.get("wallet_address") if options else None
+        forced_tool_calls = self._detect_secret_network_queries(message, wallet_address)
         logger.info(f"DEBUG STREAM: Secret Network pre-detection found {len(forced_tool_calls)} tool calls")
         if forced_tool_calls:
             logger.info(f"DEBUG STREAM: Secret Network query detected! Executing tools: {[tc['name'] for tc in forced_tool_calls]}")
@@ -635,13 +637,14 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 "error": str(e)
             }
     
-    def _detect_secret_network_queries(self, message: str) -> List[Dict[str, Any]]:
+    def _detect_secret_network_queries(self, message: str, wallet_address: str = None) -> List[Dict[str, Any]]:
         """
         Aggressively detect Secret Network queries from user message before AI processing
         This helps with AI models like DeepSeek R1 that might not follow tool instructions
         
         Args:
             message: The user's original message
+            wallet_address: The connected wallet address (if any)
             
         Returns:
             List of tool calls that should be executed
@@ -697,8 +700,22 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 })
                 logger.info(f"Pre-detected: Specific block query for height {block_height}")
             
+            # Personal balance queries (when user asks about "my" balance)
+            if wallet_address and any(keyword in message_lower for keyword in [
+                'my balance', 'my scrt', 'my wallet', 'my account',
+                'what is my balance', 'show my balance', 'check my balance',
+                'how much scrt do i have', 'how much do i have',
+                'what\'s my balance', 'whats my balance',
+                'my scrt balance', 'my secret balance', 'my wallet balance'
+            ]):
+                tool_calls.append({
+                    "name": "secret_query_balance",
+                    "arguments": {"address": wallet_address}
+                })
+                logger.info(f"Pre-detected: Personal balance query for connected wallet {wallet_address}")
+            
             # Balance queries with address detection
-            if 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
+            elif 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
                 secret_addr_pattern = r'secret1[a-z0-9]{38}'  # More specific pattern
                 addr_matches = re.findall(secret_addr_pattern, message)
                 if addr_matches:

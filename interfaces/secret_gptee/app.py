@@ -135,7 +135,9 @@ class SecretGPTeeInterface:
                     options={
                         "temperature": temperature,
                         "system_prompt": system_prompt,
-                        "enable_tools": enable_tools
+                        "enable_tools": enable_tools,
+                        "wallet_connected": wallet_connected,
+                        "wallet_address": wallet_address
                     }
                 )
                 
@@ -194,7 +196,9 @@ class SecretGPTeeInterface:
                             options={
                                 "temperature": temperature,
                                 "system_prompt": system_prompt,
-                                "enable_tools": enable_tools
+                                "enable_tools": enable_tools,
+                                "wallet_connected": wallet_connected,
+                                "wallet_address": wallet_address
                             }
                         ):
                             logger.info(f"SecretGPTee: Received chunk: {chunk_response}")
