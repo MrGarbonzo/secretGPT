@@ -1012,7 +1012,9 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         import aiohttp
         import os
         
-        mcp_url = os.getenv("SECRET_NETWORK_MCP_URL", "http://localhost:8002")
+        # Check multiple possible env var names for MCP URL
+        mcp_url = os.getenv("SECRET_NETWORK_MCP_URL") or os.getenv("SECRET_MCP_URL") or "http://localhost:8002"
+        logger.info(f"Using MCP URL: {mcp_url}")
         
         try:
             async with aiohttp.ClientSession() as session:
