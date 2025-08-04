@@ -96,6 +96,9 @@ class HubRouter:
         wallet_connected = options.get("wallet_connected", False) if options else False
         wallet_address = options.get("wallet_address") if options else None
         
+        logger.info(f"📥 Full options received: {options}")
+        logger.info(f"🔵 KEPLR LAYER: wallet_connected={wallet_connected}, wallet_address={wallet_address}")
+        
         if wallet_connected and wallet_address:
             logger.info(f"🔵 KEPLR LAYER: Checking if Keplr can handle query...")
             keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address)
@@ -726,16 +729,25 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             return None
             
         message_lower = message.lower()
+        logger.info(f"🔵 KEPLR: Checking message: '{message}' (lower: '{message_lower}')")
         
         try:
             # Personal balance queries - get directly from wallet API
-            if any(keyword in message_lower for keyword in [
+            personal_balance_keywords = [
                 'my balance', 'my scrt', 'my wallet balance', 'my account balance',
                 'what is my balance', 'show my balance', 'check my balance',
                 'how much scrt do i have', 'how much do i have',
                 'what\'s my balance', 'whats my balance',
                 'my scrt balance', 'my secret balance'
-            ]):
+            ]
+            keyword_matched = None
+            for keyword in personal_balance_keywords:
+                if keyword in message_lower:
+                    keyword_matched = keyword
+                    break
+                    
+            if keyword_matched:
+                logger.info(f"🔵 KEPLR LAYER: Personal balance keyword matched: '{keyword_matched}'")
                 logger.info(f"🔵 KEPLR LAYER: Handling personal balance query for {wallet_address}")
                 
                 # Get balance directly from our wallet service
