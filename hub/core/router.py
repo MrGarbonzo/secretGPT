@@ -302,16 +302,30 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address)
             if keplr_response:
                 logger.info(f"🔵 KEPLR LAYER STREAM: Query handled directly by Keplr layer")
-                yield {
-                    "success": True,
-                    "chunk": {
-                        "type": "keplr_response",
-                        "data": keplr_response["content"],
-                        "metadata": {"keplr_direct": True, "source": "keplr_layer"}
-                    },
-                    "interface": interface,
-                    "model": "keplr_wallet"
-                }
+                
+                # Stream the content progressively like other responses
+                content = keplr_response["content"]
+                
+                # Send content in chunks to simulate streaming
+                chunk_size = 50  # Characters per chunk
+                for i in range(0, len(content), chunk_size):
+                    chunk_text = content[i:i + chunk_size]
+                    yield {
+                        "success": True,
+                        "chunk": {
+                            "type": "content",  # Use 'content' type for consistency
+                            "data": chunk_text,
+                            "metadata": {"keplr_direct": True, "source": "keplr_layer"}
+                        },
+                        "interface": interface,
+                        "model": "keplr_wallet",
+                        "stream_id": f"keplr_{hash(content) % 10000}"
+                    }
+                    
+                    # Small delay to make streaming visible
+                    import asyncio
+                    await asyncio.sleep(0.05)
+                
                 # Send stream completion signal
                 yield {
                     "success": True,

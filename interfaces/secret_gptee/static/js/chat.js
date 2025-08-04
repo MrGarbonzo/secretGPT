@@ -458,6 +458,7 @@ const ChatInterface = {
             }
             
             // Auto-scroll to bottom to keep up with content updates
+            console.log('📝 Message updated, calling scrollToBottom()');
             this.scrollToBottom();
         }
     },
@@ -784,45 +785,40 @@ const ChatInterface = {
         SecretGPTee.showToast(`Chat exported as ${filename}`, 'success');
     },
     
-    // Scroll to bottom of chat (with throttling and smart scrolling)
+    // Scroll to bottom of chat (simplified and more reliable)
     scrollToBottom(force = false) {
-        const now = Date.now();
-        
-        // Throttle scrolling to prevent excessive calls (max once per 50ms)
-        if (!force && now - ChatState.lastScrollTime < 50) {
-            console.log('🚫 Scroll throttled');
-            return;
-        }
-        
         const messagesContainer = document.getElementById('messages');
+        console.log('🔍 scrollToBottom called:', { force, containerFound: !!messagesContainer });
+        
         if (messagesContainer) {
             const scrollHeight = messagesContainer.scrollHeight;
             const scrollTop = messagesContainer.scrollTop;
             const clientHeight = messagesContainer.clientHeight;
             const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
             
-            console.log('📏 Scroll debug:', {
-                force,
+            console.log('📏 Scroll metrics:', {
                 scrollHeight,
                 scrollTop,
                 clientHeight,
-                distanceFromBottom
+                distanceFromBottom,
+                isAtBottom: distanceFromBottom < 5
             });
             
-            // Check if user is near bottom (within 100px) - only auto-scroll if they are
-            const isNearBottom = force || distanceFromBottom < 100;
+            // Always scroll if forced, or if we're close to bottom (within 50px)
+            const shouldScroll = force || distanceFromBottom < 50;
             
-            if (isNearBottom) {
-                ChatState.lastScrollTime = now;
+            if (shouldScroll) {
                 console.log('⬇️ Scrolling to bottom');
+                // Use immediate scrolling and also set with delay as backup
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 setTimeout(() => {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }, 10); // Reduced delay for faster response
+                }, 50);
             } else {
-                console.log('⏸️ Not scrolling - user scrolled up');
+                console.log('⏸️ Not scrolling - user scrolled up (distance:', distanceFromBottom, ')');
             }
         } else {
-            console.warn('❌ Messages container not found');
+            console.warn('❌ Messages container #messages not found');
         }
     },
     
