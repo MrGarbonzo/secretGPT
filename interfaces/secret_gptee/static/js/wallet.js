@@ -605,10 +605,18 @@ const WalletInterface = {
         }
         
         try {
+            // Debug: Check if SecretJS is available
+            console.log('🔍 Debug: window.SecretJS available?', !!window.SecretJS);
+            console.log('🔍 Debug: window.SecretJS keys:', window.SecretJS ? Object.keys(window.SecretJS) : 'N/A');
+            
             // Get the offline signer from Keplr
             const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
             
             // Import SecretJS
+            if (!window.SecretJS) {
+                throw new Error('SecretJS not loaded. Please refresh the page.');
+            }
+            
             const { SecretNetworkClient } = window.SecretJS;
             
             // Create SecretJS client with Keplr signer
