@@ -312,6 +312,17 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                     "interface": interface,
                     "model": "keplr_wallet"
                 }
+                # Send stream completion signal
+                yield {
+                    "success": True,
+                    "chunk": {
+                        "type": "stream_complete",
+                        "data": "",
+                        "metadata": {"completed": True}
+                    },
+                    "interface": interface,
+                    "model": "keplr_wallet"
+                }
                 return
             else:
                 logger.info(f"🔵 KEPLR LAYER STREAM: Cannot handle query, passing to MCP layer")

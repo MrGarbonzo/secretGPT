@@ -301,13 +301,17 @@ const ChatInterface = {
                                 console.log('SSE Event received:', data);
                                 
                                 if (data.success && data.chunk) {
+                                    console.log('🔍 Processing chunk type:', data.chunk.type);
                                     if (data.chunk.type === 'content' || 
                                         data.chunk.type === 'mcp_response' || 
                                         data.chunk.type === 'keplr_response' ||
                                         data.chunk.type === 'text_chunk') {
+                                        console.log('✅ Appending chunk data:', data.chunk.data.substring(0, 100) + '...');
                                         this.appendToMessage(assistantMessageId, data.chunk.data);
                                     } else if (data.chunk.type === 'stream_complete') {
-                                        console.log('Stream completed');
+                                        console.log('🏁 Stream completed');
+                                    } else {
+                                        console.warn('⚠️ Unknown chunk type:', data.chunk.type);
                                     }
                                 } else if (!data.success) {
                                     this.appendToMessage(assistantMessageId, '\n\n❌ Error: ' + (data.error || 'Unknown error'));
@@ -786,21 +790,39 @@ const ChatInterface = {
         
         // Throttle scrolling to prevent excessive calls (max once per 50ms)
         if (!force && now - ChatState.lastScrollTime < 50) {
+            console.log('🚫 Scroll throttled');
             return;
         }
         
         const messagesContainer = document.getElementById('messages');
         if (messagesContainer) {
+            const scrollHeight = messagesContainer.scrollHeight;
+            const scrollTop = messagesContainer.scrollTop;
+            const clientHeight = messagesContainer.clientHeight;
+            const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+            
+            console.log('📏 Scroll debug:', {
+                force,
+                scrollHeight,
+                scrollTop,
+                clientHeight,
+                distanceFromBottom
+            });
+            
             // Check if user is near bottom (within 100px) - only auto-scroll if they are
-            const isNearBottom = force || 
-                (messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight) < 100;
+            const isNearBottom = force || distanceFromBottom < 100;
             
             if (isNearBottom) {
                 ChatState.lastScrollTime = now;
+                console.log('⬇️ Scrolling to bottom');
                 setTimeout(() => {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }, 10); // Reduced delay for faster response
+            } else {
+                console.log('⏸️ Not scrolling - user scrolled up');
             }
+        } else {
+            console.warn('❌ Messages container not found');
         }
     },
     
