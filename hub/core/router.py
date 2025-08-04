@@ -757,6 +757,98 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         logger.info(f"🔵 KEPLR: Checking message: '{message}' (lower: '{message_lower}')")
         
         try:
+            # Transaction requests - detect send/transfer commands
+            import re
+            transaction_patterns = [
+                r'send\s+(\d+(?:\.\d+)?)\s+scrt\s+to\s+(secret1[a-z0-9]{38})',
+                r'transfer\s+(\d+(?:\.\d+)?)\s+scrt\s+to\s+(secret1[a-z0-9]{38})',
+                r'send\s+(\d+(?:\.\d+)?)\s+to\s+(secret1[a-z0-9]{38})',
+                r'pay\s+(\d+(?:\.\d+)?)\s+scrt\s+to\s+(secret1[a-z0-9]{38})'
+            ]
+            
+            transaction_match = None
+            for pattern in transaction_patterns:
+                match = re.search(pattern, message_lower)
+                if match:
+                    amount, recipient = match.groups()
+                    transaction_match = {
+                        'amount': amount,
+                        'recipient': recipient,
+                        'memo': self._extract_memo(message)
+                    }
+                    break
+            
+            if transaction_match:
+                logger.info(f"🔵 KEPLR LAYER: Transaction request detected - {transaction_match['amount']} SCRT to {transaction_match['recipient']}")
+                
+                # Validate transaction parameters
+                try:
+                    amount_float = float(transaction_match['amount'])
+                    if amount_float <= 0:
+                        raise ValueError("Amount must be positive")
+                    
+                    # Get current balance for validation
+                    balance_result = await self.get_wallet_balance(wallet_address)
+                    if balance_result.get("success"):
+                        balance_amount = float(balance_result.get("balance", {}).get("amount", "0")) / 1000000
+                        if amount_float > balance_amount:
+                            return {
+                                "success": True,
+                                "content": f"❌ **Insufficient Balance**\n\nRequested: {amount_float} SCRT\nAvailable: {balance_amount:.6f} SCRT\n\nPlease check your balance and try again.",
+                                "interface": "keplr_direct",
+                                "model": "keplr_wallet",
+                                "source": "keplr_layer"
+                            }
+                    
+                    # Calculate fee estimate (0.025 SCRT standard)
+                    fee_scrt = 0.025
+                    total_needed = amount_float + fee_scrt
+                    
+                    response_text = f"💸 **Transaction Request**\n\n"
+                    response_text += f"**Amount:** {amount_float} SCRT\n"
+                    response_text += f"**Recipient:** `{transaction_match['recipient']}`\n"
+                    response_text += f"**Fee:** ~{fee_scrt} SCRT\n"
+                    response_text += f"**Total:** ~{total_needed:.6f} SCRT\n"
+                    if transaction_match['memo']:
+                        response_text += f"**Memo:** {transaction_match['memo']}\n"
+                    response_text += f"\n**From:** `{wallet_address}`\n\n"
+                    response_text += f"⚠️ **Please confirm this transaction in your Keplr wallet.**\n\n"
+                    response_text += f"*This transaction will be processed through your connected Keplr wallet.*"
+                    
+                    return {
+                        "success": True,
+                        "content": response_text,
+                        "interface": "keplr_direct",
+                        "model": "keplr_wallet",
+                        "source": "keplr_layer",
+                        "transaction_data": {
+                            "type": "send_scrt",
+                            "amount": transaction_match['amount'],
+                            "recipient": transaction_match['recipient'],
+                            "memo": transaction_match['memo'] or "",
+                            "sender": wallet_address,
+                            "fee_estimate": fee_scrt
+                        }
+                    }
+                    
+                except ValueError as e:
+                    return {
+                        "success": True,
+                        "content": f"❌ **Invalid Transaction**\n\n{str(e)}\n\nPlease check your transaction details and try again.",
+                        "interface": "keplr_direct",
+                        "model": "keplr_wallet", 
+                        "source": "keplr_layer"
+                    }
+                except Exception as e:
+                    logger.error(f"Transaction validation error: {e}")
+                    return {
+                        "success": True,
+                        "content": f"❌ **Transaction Error**\n\nUnable to process transaction request. Please try again.",
+                        "interface": "keplr_direct",
+                        "model": "keplr_wallet",
+                        "source": "keplr_layer"
+                    }
+            
             # Personal balance queries - get directly from wallet API
             personal_balance_keywords = [
                 'my balance', 'my scrt', 'my wallet balance', 'my account balance',
@@ -833,6 +925,24 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             
         # If we get here, Keplr layer cannot handle this query
         return None
+    
+    def _extract_memo(self, message: str) -> str:
+        """Extract memo from transaction message if present"""
+        import re
+        
+        # Look for memo patterns like "memo: text" or "with memo text"
+        memo_patterns = [
+            r'memo[:\s]+([^,\n]+)',
+            r'with\s+memo\s+([^,\n]+)',
+            r'message[:\s]+([^,\n]+)'
+        ]
+        
+        for pattern in memo_patterns:
+            match = re.search(pattern, message.lower())
+            if match:
+                return match.group(1).strip()
+        
+        return ""
     
     def _detect_secret_network_queries(self, message: str, wallet_address: str = None) -> List[Dict[str, Any]]:
         """

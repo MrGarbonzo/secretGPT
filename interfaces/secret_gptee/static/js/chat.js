@@ -245,6 +245,12 @@ const ChatInterface = {
             this.hideTypingIndicator();
             
             if (data.success) {
+                // Check if this is a transaction response that needs special handling
+                if (data.transaction_data) {
+                    this.handleTransactionResponse(data);
+                    return;
+                }
+                
                 this.addMessage('assistant', data.response, {
                     model: data.model,
                     tools_used: data.tools_used
@@ -932,6 +938,145 @@ const ChatInterface = {
         ChatState.temperature = temperature;
         this.updateTemperatureDisplay();
         this.saveSettings();
+    },
+    
+    // Handle transaction response from chat
+    handleTransactionResponse(responseData) {
+        console.log('🔥 Transaction response received:', responseData);
+        
+        // Add the transaction preview message to chat
+        this.addMessage('assistant', responseData.response, {
+            model: responseData.model,
+            transaction_data: responseData.transaction_data
+        });
+        
+        // Create and show transaction confirmation modal
+        this.showTransactionConfirmationModal(responseData.transaction_data);
+    },
+    
+    // Show transaction confirmation modal
+    showTransactionConfirmationModal(transactionData) {
+        const modal = document.createElement('div');
+        modal.className = 'transaction-modal-overlay';
+        modal.innerHTML = `
+            <div class="transaction-modal">
+                <div class="modal-header">
+                    <h3>🔐 Confirm Transaction</h3>
+                    <button class="close-btn" onclick="this.closest('.transaction-modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="transaction-details">
+                        <div class="detail-row">
+                            <label>From:</label>
+                            <span class="address">${transactionData.sender}</span>
+                        </div>
+                        <div class="detail-row">
+                            <label>To:</label>
+                            <span class="address">${transactionData.recipient}</span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Amount:</label>
+                            <span class="amount">${transactionData.amount} SCRT</span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Fee:</label>
+                            <span class="fee">~${transactionData.fee_estimate} SCRT</span>
+                        </div>
+                        ${transactionData.memo ? `
+                        <div class="detail-row">
+                            <label>Memo:</label>
+                            <span class="memo">${transactionData.memo}</span>
+                        </div>
+                        ` : ''}
+                        <div class="detail-row total">
+                            <label>Total:</label>
+                            <span class="total-amount">~${(parseFloat(transactionData.amount) + transactionData.fee_estimate).toFixed(6)} SCRT</span>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>This transaction will be signed by your Keplr wallet. Please review the details carefully before confirming.</p>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" onclick="this.closest('.transaction-modal-overlay').remove()">
+                            Cancel
+                        </button>
+                        <button type="button" class="confirm-btn" onclick="ChatInterface.executeTransaction('${JSON.stringify(transactionData).replace(/'/g, "\\'")}')">
+                            <i class="fas fa-paper-plane"></i> Confirm & Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    },
+    
+    // Execute the transaction through Keplr
+    async executeTransaction(transactionDataStr) {
+        try {
+            const transactionData = JSON.parse(transactionDataStr);
+            console.log('🚀 Executing transaction:', transactionData);
+            
+            // Close the confirmation modal
+            const modal = document.querySelector('.transaction-modal-overlay');
+            if (modal) modal.remove();
+            
+            // Show transaction in progress message
+            const messageId = this.addMessage('assistant', '⏳ **Processing Transaction...**\n\nPlease approve the transaction in your Keplr wallet.');
+            
+            // Use the existing wallet sendTransaction method
+            const result = await WalletInterface.sendTransaction(
+                transactionData.recipient,
+                transactionData.amount,
+                transactionData.memo
+            );
+            
+            // Update message with success
+            if (result.code === 0) {
+                this.updateMessageElement(messageId, 
+                    `✅ **Transaction Successful!**\n\n**Transaction Hash:** \`${result.transactionHash}\`\n\n**Amount:** ${transactionData.amount} SCRT\n**Recipient:** \`${transactionData.recipient}\`\n\nThe transaction has been broadcast to the Secret Network.`, 
+                    false
+                );
+                
+                SecretGPTee.showToast('Transaction sent successfully!', 'success');
+                
+                // Refresh balance after a delay
+                setTimeout(() => {
+                    if (window.WalletInterface && WalletState.connected) {
+                        WalletInterface.refreshBalance();
+                    }
+                }, 3000);
+            } else {
+                this.updateMessageElement(messageId, 
+                    `❌ **Transaction Failed**\n\n${result.rawLog || 'Unknown error occurred'}\n\nPlease try again.`, 
+                    false
+                );
+                SecretGPTee.showToast('Transaction failed', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Transaction execution error:', error);
+            
+            // Close modal if still open
+            const modal = document.querySelector('.transaction-modal-overlay');
+            if (modal) modal.remove();
+            
+            // Show error message
+            this.addMessage('assistant', `❌ **Transaction Error**\n\n${error.message}\n\nPlease try again.`);
+            SecretGPTee.showToast('Transaction error: ' + error.message, 'error');
+        }
     }
 };
 
