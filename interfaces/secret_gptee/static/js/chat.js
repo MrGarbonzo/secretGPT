@@ -310,6 +310,11 @@ const ChatInterface = {
                                 const data = JSON.parse(jsonStr);
                                 
                                 console.log('SSE Event received:', data);
+                                console.log('🔍 Full SSE data keys:', Object.keys(data));
+                                console.log('🔍 Has transaction_data?', !!data.transaction_data);
+                                if (data.transaction_data) {
+                                    console.log('🔍 Transaction data details:', data.transaction_data);
+                                }
                                 
                                 // Check for transaction data in streaming response
                                 if (data.transaction_data) {
