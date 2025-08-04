@@ -303,6 +303,7 @@ const ChatInterface = {
                                 if (data.success && data.chunk) {
                                     if (data.chunk.type === 'content' || 
                                         data.chunk.type === 'mcp_response' || 
+                                        data.chunk.type === 'keplr_response' ||
                                         data.chunk.type === 'text_chunk') {
                                         this.appendToMessage(assistantMessageId, data.chunk.data);
                                     } else if (data.chunk.type === 'stream_complete') {
