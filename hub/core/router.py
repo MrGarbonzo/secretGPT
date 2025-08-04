@@ -753,17 +753,17 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         if not wallet_connected or not wallet_address:
             return None
             
+        import re  # Import at method level to avoid scope issues
         message_lower = message.lower()
         logger.info(f"🔵 KEPLR: Checking message: '{message}' (lower: '{message_lower}')")
         
         try:
             # Transaction requests - detect send/transfer commands
-            import re
             transaction_patterns = [
-                r'send\s+(\d+(?:\.\d+)?)\s+scrt\s+to\s+(secret1[a-z0-9]{38})',
-                r'transfer\s+(\d+(?:\.\d+)?)\s+scrt\s+to\s+(secret1[a-z0-9]{38})',
-                r'send\s+(\d+(?:\.\d+)?)\s+to\s+(secret1[a-z0-9]{38})',
-                r'pay\s+(\d+(?:\.\d+)?)\s+scrt\s+to\s+(secret1[a-z0-9]{38})'
+                r'send\s+(\d*\.?\d+)\s+scrt\s+to\s+(secret1[a-z0-9]{38})',
+                r'transfer\s+(\d*\.?\d+)\s+scrt\s+to\s+(secret1[a-z0-9]{38})',
+                r'send\s+(\d*\.?\d+)\s+to\s+(secret1[a-z0-9]{38})',
+                r'pay\s+(\d*\.?\d+)\s+scrt\s+to\s+(secret1[a-z0-9]{38})'
             ]
             
             transaction_match = None
@@ -928,7 +928,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
     
     def _extract_memo(self, message: str) -> str:
         """Extract memo from transaction message if present"""
-        import re
+        import re  # Local import to avoid scope issues
         
         # Look for memo patterns like "memo: text" or "with memo text"
         memo_patterns = [
@@ -956,6 +956,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         Returns:
             List of tool calls that should be executed
         """
+        import re  # Import at method level to avoid scope issues
         tool_calls = []
         message_lower = message.lower()
         
@@ -989,7 +990,6 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             
             # Specific block number queries
             elif re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower):
-                import re
                 block_number_match = re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower)
                 block_height = int(block_number_match.group(1) or block_number_match.group(2) or block_number_match.group(3))
                 tool_calls.append({
