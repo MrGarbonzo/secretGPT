@@ -166,19 +166,27 @@ const ChatInterface = {
         this.updateSendButton();
         
         try {
+            const requestData = {
+                message: message,
+                temperature: ChatState.temperature,
+                enable_tools: ChatState.enableTools,
+                wallet_connected: ChatState.walletConnected,
+                wallet_address: ChatState.walletAddress,
+                system_prompt: this.getSystemPrompt()
+            };
+            
+            console.log('📤 Sending streaming chat request with wallet info:', {
+                wallet_connected: requestData.wallet_connected,
+                wallet_address: requestData.wallet_address,
+                message: requestData.message
+            });
+            
             const response = await fetch('/api/v1/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    message: message,
-                    temperature: ChatState.temperature,
-                    enable_tools: ChatState.enableTools,
-                    wallet_connected: ChatState.walletConnected,
-                    wallet_address: ChatState.walletAddress,
-                    system_prompt: this.getSystemPrompt()
-                })
+                body: JSON.stringify(requestData)
             });
             
             if (!response.ok) {
@@ -204,19 +212,27 @@ const ChatInterface = {
         this.updateSendButton();
         
         try {
+            const requestData = {
+                message: message,
+                temperature: ChatState.temperature,
+                enable_tools: ChatState.enableTools,
+                wallet_connected: ChatState.walletConnected,
+                wallet_address: ChatState.walletAddress,
+                system_prompt: this.getSystemPrompt()
+            };
+            
+            console.log('📤 Sending chat request with wallet info:', {
+                wallet_connected: requestData.wallet_connected,
+                wallet_address: requestData.wallet_address,
+                message: requestData.message
+            });
+            
             const response = await fetch('/api/v1/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    message: message,
-                    temperature: ChatState.temperature,
-                    enable_tools: ChatState.enableTools,
-                    wallet_connected: ChatState.walletConnected,
-                    wallet_address: ChatState.walletAddress,
-                    system_prompt: this.getSystemPrompt()
-                })
+                body: JSON.stringify(requestData)
             });
             
             if (!response.ok) {
@@ -907,6 +923,7 @@ const ChatInterface = {
 
 // Export for global access
 window.ChatInterface = ChatInterface;
+window.ChatState = ChatState;  // Make ChatState globally accessible
 
 // Global initialization function for HTML
 window.initializeChat = function() {

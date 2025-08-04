@@ -123,8 +123,10 @@ const WalletInterface = {
             refreshBalanceBtn.addEventListener('click', this.refreshBalance.bind(this));
         }
         
-        // Auto-connect if previously connected
-        this.tryAutoConnect();
+        // Auto-connect if previously connected (with slight delay to ensure ChatState is ready)
+        setTimeout(() => {
+            this.tryAutoConnect();
+        }, 100);
     },
     
     // Try to auto-connect wallet if previously connected
@@ -185,6 +187,12 @@ const WalletInterface = {
             if (window.ChatState) {
                 window.ChatState.walletConnected = true;
                 window.ChatState.walletAddress = account.address;
+                console.log('✅ ChatState updated with wallet info:', {
+                    connected: window.ChatState.walletConnected,
+                    address: window.ChatState.walletAddress
+                });
+            } else {
+                console.warn('⚠️ window.ChatState not available, wallet info not propagated to chat');
             }
             
             console.log('✅ Wallet connected:', account.address);

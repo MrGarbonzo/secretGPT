@@ -738,7 +738,8 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 'what is my balance', 'show my balance', 'check my balance',
                 'how much scrt do i have', 'how much do i have',
                 'what\'s my balance', 'whats my balance',
-                'my scrt balance', 'my secret balance'
+                'my scrt balance', 'my secret balance',
+                'what is my scrt balance'  # Exact match for user's query
             ]
             keyword_matched = None
             for keyword in personal_balance_keywords:
