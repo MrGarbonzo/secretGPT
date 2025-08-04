@@ -9,7 +9,8 @@ const ChatState = {
     temperature: 0.7,
     enableTools: true,
     walletConnected: false,
-    walletAddress: null
+    walletAddress: null,
+    lastScrollTime: 0  // For throttling scroll updates
 };
 
 // Chat interface management
@@ -68,7 +69,7 @@ const ChatInterface = {
     initializeUI() {
         this.updateSendButton();
         this.updateTemperatureDisplay();
-        this.scrollToBottom();
+        this.scrollToBottom(true); // Force scroll during initialization
     },
     
     // Handle input change
@@ -341,7 +342,7 @@ const ChatInterface = {
         
         ChatState.messages.push(message);
         this.renderMessage(message);
-        this.scrollToBottom();
+        this.scrollToBottom(true); // Force scroll for new messages
         this.saveConversation();
         
         return messageId;
@@ -353,6 +354,7 @@ const ChatInterface = {
         if (message) {
             message.content += content;
             this.updateMessageElement(messageId, message.content);
+            // Note: scrollToBottom is called in updateMessageElement
         }
     },
     
@@ -431,7 +433,7 @@ const ChatInterface = {
         messagesContainer.appendChild(messageWrapper);
         
         // Auto-scroll to bottom after adding message
-        setTimeout(() => this.scrollToBottom(), 100);
+        setTimeout(() => this.scrollToBottom(true), 50); // Force scroll for new messages
     },
     
     // Update existing message element
@@ -449,6 +451,9 @@ const ChatInterface = {
             } else {
                 textElement.classList.remove('streaming');
             }
+            
+            // Auto-scroll to bottom to keep up with content updates
+            this.scrollToBottom();
         }
     },
     
@@ -507,7 +512,7 @@ const ChatInterface = {
         const indicator = document.getElementById('typing-indicator');
         if (indicator) {
             indicator.style.display = 'block';
-            this.scrollToBottom();
+            this.scrollToBottom(true); // Force scroll when showing typing indicator
         }
     },
     
@@ -680,7 +685,7 @@ const ChatInterface = {
     // Show welcome message
     showWelcomeMessage() {
         // Welcome message is in the HTML template
-        this.scrollToBottom();
+        this.scrollToBottom(true); // Force scroll to welcome message
     },
     
     // Export chat
@@ -774,13 +779,27 @@ const ChatInterface = {
         SecretGPTee.showToast(`Chat exported as ${filename}`, 'success');
     },
     
-    // Scroll to bottom of chat
-    scrollToBottom() {
+    // Scroll to bottom of chat (with throttling and smart scrolling)
+    scrollToBottom(force = false) {
+        const now = Date.now();
+        
+        // Throttle scrolling to prevent excessive calls (max once per 50ms)
+        if (!force && now - ChatState.lastScrollTime < 50) {
+            return;
+        }
+        
         const messagesContainer = document.getElementById('messages');
         if (messagesContainer) {
-            setTimeout(() => {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }, 100);
+            // Check if user is near bottom (within 100px) - only auto-scroll if they are
+            const isNearBottom = force || 
+                (messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight) < 100;
+            
+            if (isNearBottom) {
+                ChatState.lastScrollTime = now;
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 10); // Reduced delay for faster response
+            }
         }
     },
     
@@ -805,37 +824,13 @@ const ChatInterface = {
                 
                 // Re-render messages
                 ChatState.messages.forEach(msg => this.renderMessage(msg));
-                this.scrollToBottom();
+                this.scrollToBottom(true); // Force scroll when loading history
             }
         } catch (error) {
             console.error('Failed to load conversation history:', error);
         }
     },
     
-    // Scroll to bottom of messages area
-    scrollToBottom(smooth = true) {
-        try {
-            const messagesArea = document.getElementById('messages');
-            if (messagesArea) {
-                const scrollOptions = {
-                    top: messagesArea.scrollHeight,
-                    behavior: smooth ? 'smooth' : 'auto'
-                };
-                messagesArea.scrollTo(scrollOptions);
-                
-                // Also try scrolling the main container if needed
-                const chatContainer = document.querySelector('.chat-container');
-                if (chatContainer) {
-                    chatContainer.scrollTo({
-                        top: chatContainer.scrollHeight,
-                        behavior: smooth ? 'smooth' : 'auto'
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('Error scrolling to bottom:', error);
-        }
-    },
     
     // Save conversation
     saveConversation() {
