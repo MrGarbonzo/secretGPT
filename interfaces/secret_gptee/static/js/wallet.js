@@ -598,62 +598,59 @@ const WalletInterface = {
         });
     },
     
-    // Send SCRT transaction
+    // Send SCRT transaction using SecretJS
     async sendTransaction(recipientAddress, amount, memo = '') {
         if (!WalletState.connected || !window.keplr) {
             throw new Error('Wallet not connected');
         }
         
         try {
-            // Get the offline signer
-            const offlineSigner = window.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
+            // Get the offline signer from Keplr
+            const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
             
-            // Import CosmJS
-            const { SigningCosmWasmClient } = window.cosmjs;
+            // Import SecretJS
+            const { SecretNetworkClient } = window.SecretJS;
             
-            // Create signing client
-            const client = await SigningCosmWasmClient.connectWithSigner(
-                KEPLR_CHAIN_CONFIG.rpc,
-                offlineSigner
-            );
+            // Create SecretJS client with Keplr signer
+            const secretjs = new SecretNetworkClient({
+                url: KEPLR_CHAIN_CONFIG.rpc,
+                chainId: KEPLR_CHAIN_CONFIG.chainId,
+                wallet: offlineSigner,
+                walletAddress: WalletState.address
+            });
             
             // Convert SCRT to uscrt (multiply by 1,000,000)
             const amountInUscrt = Math.floor(parseFloat(amount) * 1000000);
             
-            // Create send message
-            const sendMsg = {
-                typeUrl: '/cosmos.bank.v1beta1.MsgSend',
-                value: {
-                    fromAddress: WalletState.address,
-                    toAddress: recipientAddress,
+            // Create and broadcast transaction using SecretJS
+            const tx = await secretjs.tx.bank.send(
+                {
+                    from_address: WalletState.address,
+                    to_address: recipientAddress,
                     amount: [{
                         denom: 'uscrt',
                         amount: amountInUscrt.toString()
                     }]
+                },
+                {
+                    memo: memo,
+                    gasLimit: 100000,
+                    gasPriceInFeeDenom: 0.25,
+                    feeDenom: 'uscrt'
                 }
-            };
-            
-            // Calculate fee
-            const fee = {
-                amount: [{
-                    denom: 'uscrt',
-                    amount: '25000' // 0.025 SCRT
-                }],
-                gas: '100000'
-            };
-            
-            // Sign and broadcast transaction
-            const result = await client.signAndBroadcast(
-                WalletState.address,
-                [sendMsg],
-                fee,
-                memo
             );
             
-            return result;
+            // Return result in expected format
+            return {
+                code: tx.code,
+                transactionHash: tx.transactionHash,
+                rawLog: tx.rawLog,
+                gasUsed: tx.gasUsed,
+                gasWanted: tx.gasWanted
+            };
             
         } catch (error) {
-            console.error('Transaction failed:', error);
+            console.error('SecretJS transaction failed:', error);
             throw error;
         }
     },
