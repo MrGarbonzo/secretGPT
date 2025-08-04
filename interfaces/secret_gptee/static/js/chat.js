@@ -245,10 +245,15 @@ const ChatInterface = {
             this.hideTypingIndicator();
             
             if (data.success) {
+                console.log('📥 Chat response received:', data);
+                
                 // Check if this is a transaction response that needs special handling
                 if (data.transaction_data) {
+                    console.log('💸 Transaction data found, showing confirmation modal');
                     this.handleTransactionResponse(data);
                     return;
+                } else {
+                    console.log('ℹ️ No transaction data, adding normal message');
                 }
                 
                 this.addMessage('assistant', data.response, {
@@ -305,6 +310,14 @@ const ChatInterface = {
                                 const data = JSON.parse(jsonStr);
                                 
                                 console.log('SSE Event received:', data);
+                                
+                                // Check for transaction data in streaming response
+                                if (data.transaction_data) {
+                                    console.log('💸 Transaction data found in stream, showing confirmation modal');
+                                    this.finalizeMessage(assistantMessageId);
+                                    this.handleTransactionResponse(data);
+                                    return;
+                                }
                                 
                                 if (data.success && data.chunk) {
                                     console.log('🔍 Processing chunk type:', data.chunk.type);
