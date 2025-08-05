@@ -1047,12 +1047,22 @@ const ChatInterface = {
             const transactionData = JSON.parse(transactionDataStr);
             console.log('🚀 Executing transaction:', transactionData);
             
-            // Close the confirmation modal
+            // Close the confirmation modal FIRST to prevent interference with Keplr popup
             const modal = document.querySelector('.transaction-modal-overlay');
-            if (modal) modal.remove();
+            if (modal) {
+                modal.remove();
+                // Small delay to ensure modal is fully removed from DOM
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
             
             // Show transaction in progress message
             const messageId = this.addMessage('assistant', '⏳ **Processing Transaction...**\n\nPlease approve the transaction in your Keplr wallet.');
+            
+            // Ensure no other modals or overlays are blocking Keplr
+            const allModals = document.querySelectorAll('.modal-overlay, .transaction-modal-overlay, .install-modal-overlay');
+            allModals.forEach(m => m.remove());
+            
+            console.log('🔐 About to call Keplr transaction - ensure popup is not blocked');
             
             // Use the existing wallet sendTransaction method
             const result = await WalletInterface.sendTransaction(
