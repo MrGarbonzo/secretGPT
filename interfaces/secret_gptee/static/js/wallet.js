@@ -598,50 +598,71 @@ const WalletInterface = {
         });
     },
     
-    // Send SCRT transaction using SecretJS
+    // Send SCRT transaction using SecretJS + Keplr integration
     async sendTransaction(recipientAddress, amount, memo = '') {
         if (!WalletState.connected || !window.keplr) {
             throw new Error('Wallet not connected');
         }
         
         try {
-            // Debug: Check if SecretJS is available
-            console.log('🔍 Debug: window.secretjs available?', !!window.secretjs);
-            console.log('🔍 Debug: window.SecretJS available?', !!window.SecretJS);
-            console.log('🔍 Debug: window.secretjs keys:', window.secretjs ? Object.keys(window.secretjs) : 'N/A');
+            const chainId = KEPLR_CHAIN_CONFIG.chainId;
             
-            // Get the offline signer from Keplr
-            const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
+            // Wait for Keplr to be available (following official docs)
+            console.log('🔍 Waiting for Keplr to load...');
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             
-            // Import SecretJS - try both possible names
+            while (!window.keplr) {
+                await sleep(50);
+            }
+            
+            // Enable Keplr for the chain (following official docs pattern)
+            console.log('🔍 Enabling Keplr for chain:', chainId);
+            await window.keplr.enable(chainId);
+            
+            // Get the offline signer from Keplr (official pattern)
+            const offlineSigner = window.keplr.getOfflineSigner(chainId);
+            const accounts = await offlineSigner.getAccounts();
+            
+            console.log('🔍 Got signer address from Keplr:', accounts[0].address);
+            
+            // Retrieve EnigmaUtils for encryption/decryption (official docs)
+            const enigmaUtils = window.keplr.getEnigmaUtils(chainId);
+            
+            // Import SecretJS - check both possible global names
             let SecretNetworkClient;
-            if (window.secretjs) {
+            if (window.secretjs && window.secretjs.SecretNetworkClient) {
                 SecretNetworkClient = window.secretjs.SecretNetworkClient;
-            } else if (window.SecretJS) {
+            } else if (window.SecretJS && window.SecretJS.SecretNetworkClient) {
                 SecretNetworkClient = window.SecretJS.SecretNetworkClient;
             } else {
                 throw new Error('SecretJS not loaded. Please refresh the page and ensure internet connectivity.');
             }
             
-            if (!SecretNetworkClient) {
-                throw new Error('SecretNetworkClient not found in SecretJS library.');
-            }
-            
-            // Create SecretJS client with Keplr signer
+            // Initialize the SecretJS client with Keplr's offline signer and EnigmaUtils (official pattern)
+            console.log('🔍 Creating SecretJS client with Keplr integration...');
             const secretjs = new SecretNetworkClient({
                 url: KEPLR_CHAIN_CONFIG.rpc,
-                chainId: KEPLR_CHAIN_CONFIG.chainId,
+                chainId: chainId,
                 wallet: offlineSigner,
-                walletAddress: WalletState.address
+                walletAddress: accounts[0].address,
+                encryptionUtils: enigmaUtils
             });
             
             // Convert SCRT to uscrt (multiply by 1,000,000)
             const amountInUscrt = Math.floor(parseFloat(amount) * 1000000);
             
-            // Create and broadcast transaction using SecretJS
+            console.log('🔐 Sending transaction via SecretJS (will trigger Keplr popup)...');
+            console.log('📋 Transaction details:', {
+                from: accounts[0].address,
+                to: recipientAddress,
+                amount: `${amount} SCRT (${amountInUscrt} uscrt)`,
+                memo: memo || 'Sent via SecretGPTee'
+            });
+            
+            // Send transaction using SecretJS (this WILL trigger Keplr popup)
             const tx = await secretjs.tx.bank.send(
                 {
-                    from_address: WalletState.address,
+                    from_address: accounts[0].address,
                     to_address: recipientAddress,
                     amount: [{
                         denom: 'uscrt',
@@ -649,16 +670,18 @@ const WalletInterface = {
                     }]
                 },
                 {
-                    memo: memo,
+                    memo: memo || 'Sent via SecretGPTee',
                     gasLimit: 100000,
                     gasPriceInFeeDenom: 0.25,
                     feeDenom: 'uscrt'
                 }
             );
             
+            console.log('✅ Transaction completed:', tx);
+            
             // Return result in expected format
             return {
-                code: tx.code,
+                code: tx.code || 0,
                 transactionHash: tx.transactionHash,
                 rawLog: tx.rawLog,
                 gasUsed: tx.gasUsed,
@@ -666,8 +689,22 @@ const WalletInterface = {
             };
             
         } catch (error) {
-            console.error('SecretJS transaction failed:', error);
-            throw error;
+            console.error('SecretJS + Keplr transaction failed:', error);
+            
+            // Provide user-friendly error messages based on common Keplr errors
+            if (error.message.includes('Request rejected') || error.message.includes('rejected')) {
+                throw new Error('Transaction cancelled by user');
+            } else if (error.message.includes('insufficient funds')) {
+                throw new Error('Insufficient SCRT balance for transaction');
+            } else if (error.message.includes('User denied') || error.message.includes('denied')) {
+                throw new Error('Transaction denied by user');
+            } else if (error.message.includes('account sequence mismatch')) {
+                throw new Error('Transaction sequence error. Please try again.');
+            } else if (error.message.includes('gas')) {
+                throw new Error('Transaction failed due to gas estimation error');
+            } else {
+                throw error;
+            }
         }
     },
     
