@@ -1023,7 +1023,7 @@ const ChatInterface = {
                         <button type="button" class="cancel-btn" onclick="this.closest('.transaction-modal-overlay').remove()">
                             Cancel
                         </button>
-                        <button type="button" class="confirm-btn" onclick="ChatInterface.executeTransaction('${JSON.stringify(transactionData).replace(/'/g, "\\'")}')">
+                        <button type="button" class="confirm-btn" id="confirm-transaction-btn">
                             <i class="fas fa-paper-plane"></i> Confirm & Send
                         </button>
                     </div>
@@ -1032,6 +1032,12 @@ const ChatInterface = {
         `;
         
         document.body.appendChild(modal);
+        
+        // Add event listener for confirm button
+        const confirmBtn = modal.querySelector('#confirm-transaction-btn');
+        confirmBtn.addEventListener('click', () => {
+            this.executeTransaction(JSON.stringify(transactionData));
+        });
         
         // Close modal when clicking outside
         modal.addEventListener('click', (e) => {
@@ -1043,9 +1049,21 @@ const ChatInterface = {
     
     // Execute the transaction through Keplr
     async executeTransaction(transactionDataStr) {
+        console.log('🚀 executeTransaction called with:', transactionDataStr);
+        
         try {
             const transactionData = JSON.parse(transactionDataStr);
-            console.log('🚀 Executing transaction:', transactionData);
+            console.log('🚀 Parsed transaction data:', transactionData);
+            
+            // Check if WalletInterface is available
+            if (!window.WalletInterface) {
+                throw new Error('WalletInterface not available. Please refresh the page.');
+            }
+            
+            // Check if wallet is connected
+            if (!window.WalletState || !window.WalletState.connected) {
+                throw new Error('Wallet not connected. Please connect your Keplr wallet first.');
+            }
             
             // Close the confirmation modal FIRST to prevent interference with Keplr popup
             const modal = document.querySelector('.transaction-modal-overlay');
