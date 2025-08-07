@@ -44,12 +44,6 @@
     --transition-fast: 0.15s ease;
     --transition-normal: 0.2s ease;
     --transition-slow: 0.3s ease;
-    
-    /* Z-index layers - Keplr uses very high z-index values */
-    --z-modal: 1000;
-    --z-overlay: 1100;
-    --z-toast: 1200;
-    --z-keplr-safe: 999; /* Keep our modals below Keplr's z-index range */
 }
 
 /* Light Theme */
@@ -281,7 +275,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: var(--z-keplr-safe);
+    z-index: 1000;
     backdrop-filter: blur(4px);
 }
 
@@ -309,7 +303,7 @@ body {
     position: fixed;
     top: var(--spacing-lg);
     right: var(--spacing-lg);
-    z-index: var(--z-overlay);
+    z-index: 1100;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);

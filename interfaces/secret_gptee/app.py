@@ -142,7 +142,7 @@ class SecretGPTeeInterface:
                 )
                 
                 if response["success"]:
-                    result = {
+                    return {
                         "success": True,
                         "response": response["content"],
                         "model": response.get("model"),
@@ -153,12 +153,6 @@ class SecretGPTeeInterface:
                             "address": wallet_address if wallet_connected else None
                         }
                     }
-                    
-                    # Pass through transaction data if present
-                    if "transaction_data" in response:
-                        result["transaction_data"] = response["transaction_data"]
-                    
-                    return result
                 else:
                     logger.error(f"SecretGPTee chat failed: {response.get('error')}")
                     raise HTTPException(status_code=500, detail=response.get("error", "Chat failed"))
