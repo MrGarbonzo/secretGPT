@@ -598,113 +598,63 @@ const WalletInterface = {
         });
     },
     
-    // Send SCRT transaction using SecretJS + Keplr integration
+    // Send SCRT transaction
     async sendTransaction(recipientAddress, amount, memo = '') {
         if (!WalletState.connected || !window.keplr) {
             throw new Error('Wallet not connected');
         }
         
         try {
-            const chainId = KEPLR_CHAIN_CONFIG.chainId;
+            // Get the offline signer
+            const offlineSigner = window.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
             
-            // Wait for Keplr to be available (following official docs)
-            console.log('🔍 Waiting for Keplr to load...');
-            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            // Import CosmJS
+            const { SigningCosmWasmClient } = window.cosmjs;
             
-            while (!window.keplr) {
-                await sleep(50);
-            }
-            
-            // Enable Keplr for the chain (following official docs pattern)
-            console.log('🔍 Enabling Keplr for chain:', chainId);
-            await window.keplr.enable(chainId);
-            
-            // Get the offline signer from Keplr (official pattern)
-            const offlineSigner = window.keplr.getOfflineSigner(chainId);
-            const accounts = await offlineSigner.getAccounts();
-            
-            console.log('🔍 Got signer address from Keplr:', accounts[0].address);
-            
-            // Retrieve EnigmaUtils for encryption/decryption (official docs)
-            const enigmaUtils = window.keplr.getEnigmaUtils(chainId);
-            
-            // Import SecretJS - check both possible global names
-            let SecretNetworkClient;
-            if (window.secretjs && window.secretjs.SecretNetworkClient) {
-                SecretNetworkClient = window.secretjs.SecretNetworkClient;
-            } else if (window.SecretJS && window.SecretJS.SecretNetworkClient) {
-                SecretNetworkClient = window.SecretJS.SecretNetworkClient;
-            } else {
-                throw new Error('SecretJS not loaded. Please refresh the page and ensure internet connectivity.');
-            }
-            
-            // Initialize the SecretJS client with Keplr's offline signer and EnigmaUtils (official pattern)
-            console.log('🔍 Creating SecretJS client with Keplr integration...');
-            const secretjs = new SecretNetworkClient({
-                url: KEPLR_CHAIN_CONFIG.rpc,
-                chainId: chainId,
-                wallet: offlineSigner,
-                walletAddress: accounts[0].address,
-                encryptionUtils: enigmaUtils
-            });
+            // Create signing client
+            const client = await SigningCosmWasmClient.connectWithSigner(
+                KEPLR_CHAIN_CONFIG.rpc,
+                offlineSigner
+            );
             
             // Convert SCRT to uscrt (multiply by 1,000,000)
             const amountInUscrt = Math.floor(parseFloat(amount) * 1000000);
             
-            console.log('🔐 Sending transaction via SecretJS (will trigger Keplr popup)...');
-            console.log('📋 Transaction details:', {
-                from: accounts[0].address,
-                to: recipientAddress,
-                amount: `${amount} SCRT (${amountInUscrt} uscrt)`,
-                memo: memo || 'Sent via SecretGPTee'
-            });
-            
-            // Send transaction using SecretJS (this WILL trigger Keplr popup)
-            const tx = await secretjs.tx.bank.send(
-                {
-                    from_address: accounts[0].address,
-                    to_address: recipientAddress,
+            // Create send message
+            const sendMsg = {
+                typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+                value: {
+                    fromAddress: WalletState.address,
+                    toAddress: recipientAddress,
                     amount: [{
                         denom: 'uscrt',
                         amount: amountInUscrt.toString()
                     }]
-                },
-                {
-                    memo: memo || 'Sent via SecretGPTee',
-                    gasLimit: 100000,
-                    gasPriceInFeeDenom: 0.25,
-                    feeDenom: 'uscrt'
                 }
-            );
-            
-            console.log('✅ Transaction completed:', tx);
-            
-            // Return result in expected format
-            return {
-                code: tx.code || 0,
-                transactionHash: tx.transactionHash,
-                rawLog: tx.rawLog,
-                gasUsed: tx.gasUsed,
-                gasWanted: tx.gasWanted
             };
             
-        } catch (error) {
-            console.error('SecretJS + Keplr transaction failed:', error);
+            // Calculate fee
+            const fee = {
+                amount: [{
+                    denom: 'uscrt',
+                    amount: '25000' // 0.025 SCRT
+                }],
+                gas: '100000'
+            };
             
-            // Provide user-friendly error messages based on common Keplr errors
-            if (error.message.includes('Request rejected') || error.message.includes('rejected')) {
-                throw new Error('Transaction cancelled by user');
-            } else if (error.message.includes('insufficient funds')) {
-                throw new Error('Insufficient SCRT balance for transaction');
-            } else if (error.message.includes('User denied') || error.message.includes('denied')) {
-                throw new Error('Transaction denied by user');
-            } else if (error.message.includes('account sequence mismatch')) {
-                throw new Error('Transaction sequence error. Please try again.');
-            } else if (error.message.includes('gas')) {
-                throw new Error('Transaction failed due to gas estimation error');
-            } else {
-                throw error;
-            }
+            // Sign and broadcast transaction
+            const result = await client.signAndBroadcast(
+                WalletState.address,
+                [sendMsg],
+                fee,
+                memo
+            );
+            
+            return result;
+            
+        } catch (error) {
+            console.error('Transaction failed:', error);
+            throw error;
         }
     },
     
