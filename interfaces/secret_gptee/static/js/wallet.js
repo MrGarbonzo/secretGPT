@@ -15,7 +15,7 @@ const WalletState = {
 const KEPLR_CHAIN_CONFIG = {
     chainId: 'secret-4',
     chainName: 'Secret Network',
-    rpc: 'https://rpc.ankr.com/http/scrt_cosmos',
+    rpc: 'https://scrt.public-rpc.com/',
     rest: 'https://api.secret.network',
     bip44: {
         coinType: 529,
@@ -605,49 +605,39 @@ const WalletInterface = {
         }
         
         try {
-            // Get the offline signer
-            const offlineSigner = window.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
+            // Get the offline signer using Keplr
+            const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
+            const accounts = await offlineSigner.getAccounts();
             
-            // Import CosmJS
-            const { SigningCosmWasmClient } = window.cosmjs;
+            // Initialize SecretJS client
+            const { SecretNetworkClient } = window.secretjs;
             
-            // Create signing client
-            const client = await SigningCosmWasmClient.connectWithSigner(
-                KEPLR_CHAIN_CONFIG.rpc,
-                offlineSigner
-            );
+            const secretjs = new SecretNetworkClient({
+                url: KEPLR_CHAIN_CONFIG.rpc,
+                chainId: KEPLR_CHAIN_CONFIG.chainId,
+                wallet: offlineSigner,
+                walletAddress: accounts[0].address,
+                encryptionUtils: window.keplr.getEnigmaUtils(KEPLR_CHAIN_CONFIG.chainId)
+            });
             
             // Convert SCRT to uscrt (multiply by 1,000,000)
-            const amountInUscrt = Math.floor(parseFloat(amount) * 1000000);
+            const amountInUscrt = Math.floor(parseFloat(amount) * 1000000).toString();
             
-            // Create send message
-            const sendMsg = {
-                typeUrl: '/cosmos.bank.v1beta1.MsgSend',
-                value: {
-                    fromAddress: WalletState.address,
-                    toAddress: recipientAddress,
+            // Send transaction using SecretJS
+            const result = await secretjs.tx.bank.send(
+                {
+                    from_address: WalletState.address,
+                    to_address: recipientAddress,
                     amount: [{
                         denom: 'uscrt',
-                        amount: amountInUscrt.toString()
+                        amount: amountInUscrt
                     }]
+                },
+                {
+                    gasLimit: 100000,
+                    gasPriceInFeeDenom: 0.25,
+                    memo: memo
                 }
-            };
-            
-            // Calculate fee
-            const fee = {
-                amount: [{
-                    denom: 'uscrt',
-                    amount: '25000' // 0.025 SCRT
-                }],
-                gas: '100000'
-            };
-            
-            // Sign and broadcast transaction
-            const result = await client.signAndBroadcast(
-                WalletState.address,
-                [sendMsg],
-                fee,
-                memo
             );
             
             return result;
