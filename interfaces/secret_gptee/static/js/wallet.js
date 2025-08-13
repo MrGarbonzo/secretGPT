@@ -598,47 +598,37 @@ const WalletInterface = {
         });
     },
     
-    // Send SCRT transaction
+    // Send SCRT transaction through backend API
     async sendTransaction(recipientAddress, amount, memo = '') {
-        if (!WalletState.connected || !window.keplr) {
+        if (!WalletState.connected) {
             throw new Error('Wallet not connected');
         }
         
         try {
-            // Get the offline signer using Keplr
-            const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
-            const accounts = await offlineSigner.getAccounts();
-            
-            // Initialize SecretJS client
-            const { SecretNetworkClient } = window.secretjs;
-            
-            const secretjs = new SecretNetworkClient({
-                url: KEPLR_CHAIN_CONFIG.rpc,
-                chainId: KEPLR_CHAIN_CONFIG.chainId,
-                wallet: offlineSigner,
-                walletAddress: accounts[0].address,
-                encryptionUtils: window.keplr.getEnigmaUtils(KEPLR_CHAIN_CONFIG.chainId)
-            });
-            
-            // Convert SCRT to uscrt (multiply by 1,000,000)
-            const amountInUscrt = Math.floor(parseFloat(amount) * 1000000).toString();
-            
-            // Send transaction using SecretJS
-            const result = await secretjs.tx.bank.send(
-                {
+            // Send transaction through backend API which uses MCP
+            const response = await fetch('/api/wallet/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     from_address: WalletState.address,
                     to_address: recipientAddress,
-                    amount: [{
-                        denom: 'uscrt',
-                        amount: amountInUscrt
-                    }]
-                },
-                {
-                    gasLimit: 100000,
-                    gasPriceInFeeDenom: 0.25,
+                    amount: parseFloat(amount),
                     memo: memo
-                }
-            );
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Transaction failed');
+            }
             
             return result;
             
@@ -755,9 +745,9 @@ const TransactionHelpers = {
             
             const result = await WalletInterface.sendTransaction(recipientAddress, amount, memo);
             
-            if (result.code === 0) {
+            if (result.success) {
                 SecretGPTee.showToast('Transaction sent successfully!', 'success');
-                console.log('Transaction hash:', result.transactionHash);
+                console.log('Transaction result:', result.transaction);
                 
                 // Close modal
                 document.querySelector('.transaction-modal-overlay').remove();
@@ -767,7 +757,7 @@ const TransactionHelpers = {
                     WalletInterface.refreshBalance();
                 }, 2000);
             } else {
-                throw new Error(result.rawLog || 'Transaction failed');
+                throw new Error(result.error || 'Transaction failed');
             }
             
         } catch (error) {

@@ -573,6 +573,50 @@ class SecretGPTeeInterface:
             except Exception as e:
                 logger.error(f"Wallet status error: {e}")
                 raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
+        
+        @self.app.post("/api/wallet/send")
+        async def send_transaction(request: Request):
+            """Send SCRT tokens through MCP backend"""
+            try:
+                data = await request.json()
+                from_address = data.get("from_address")
+                to_address = data.get("to_address") 
+                amount = data.get("amount")
+                memo = data.get("memo", "")
+                
+                if not from_address or not to_address or not amount:
+                    raise HTTPException(status_code=400, detail="from_address, to_address, and amount are required")
+                
+                if not from_address.startswith("secret1") or not to_address.startswith("secret1"):
+                    raise HTTPException(status_code=400, detail="Invalid Secret Network address format")
+                
+                # Use MCP service to send transaction
+                mcp_service = self.hub_router.get_component(ComponentType.MCP_SERVICE)
+                if not mcp_service:
+                    raise HTTPException(status_code=503, detail="MCP service not available")
+                
+                # Execute secret_send_tokens through MCP
+                result = await mcp_service.execute_tool("secret_send_tokens", {
+                    "from_address": from_address,
+                    "to_address": to_address,
+                    "amount": str(amount),
+                    "memo": memo
+                })
+                
+                return {
+                    "success": True,
+                    "transaction": result,
+                    "from_address": from_address,
+                    "to_address": to_address,
+                    "amount": amount,
+                    "memo": memo
+                }
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Send transaction error: {e}")
+                raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")
     
     def _get_wallet_proxy(self):
         """Get wallet proxy service from hub router"""
