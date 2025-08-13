@@ -621,6 +621,10 @@ const WalletInterface = {
             
             if (!response.ok) {
                 const errorData = await response.json();
+                // Check for specific MCP tool availability error
+                if (errorData.detail && errorData.detail.includes('not available')) {
+                    throw new Error('Transaction sending is not yet implemented in the MCP server. This feature is coming soon.');
+                }
                 throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
             }
             
@@ -628,6 +632,29 @@ const WalletInterface = {
             
             if (!result.success) {
                 throw new Error(result.error || 'Transaction failed');
+            }
+            
+            // Check if MCP requires Keplr signing
+            if (result.requiresKeplrSigning) {
+                console.log('MCP requires Keplr signing. Transaction data:', result.transactionData);
+                
+                // For now, notify the user that Keplr signing is needed
+                // In a full implementation, this would trigger Keplr to sign the transaction
+                const txData = result.transactionData;
+                
+                // TODO: Implement actual Keplr signing here
+                // This would involve:
+                // 1. Using Keplr to sign the transaction with the provided data
+                // 2. Broadcasting the signed transaction to Secret Network
+                // 3. Returning the transaction hash
+                
+                // For now, return a message indicating manual signing is needed
+                return {
+                    success: true,
+                    requiresManualSigning: true,
+                    message: `Please manually send ${txData.amount} ${txData.denom} from ${txData.from} to ${txData.to}`,
+                    transactionData: txData
+                };
             }
             
             return result;
@@ -746,10 +773,33 @@ const TransactionHelpers = {
             const result = await WalletInterface.sendTransaction(recipientAddress, amount, memo);
             
             if (result.success) {
-                SecretGPTee.showToast('Transaction sent successfully!', 'success');
-                console.log('Transaction result:', result.transaction);
+                // Check if manual signing is required
+                if (result.requiresManualSigning) {
+                    SecretGPTee.showToast('Transaction prepared. Please sign with Keplr.', 'info');
+                    console.log('Transaction requires Keplr signing:', result.transactionData);
+                    
+                    // Show instructions to user
+                    const modal = document.getElementById('send-modal');
+                    const modalContent = modal.querySelector('.modal-body');
+                    modalContent.innerHTML = `
+                        <div class="signing-instructions">
+                            <h3>Keplr Signing Required</h3>
+                            <p>The transaction has been prepared. Please sign it with Keplr:</p>
+                            <div class="transaction-details">
+                                <p><strong>From:</strong> ${result.transactionData.from}</p>
+                                <p><strong>To:</strong> ${result.transactionData.to}</p>
+                                <p><strong>Amount:</strong> ${result.transactionData.amount} ${result.transactionData.denom}</p>
+                                ${result.transactionData.memo ? `<p><strong>Memo:</strong> ${result.transactionData.memo}</p>` : ''}
+                            </div>
+                            <p class="note">Note: Full Keplr integration for automatic signing is coming soon.</p>
+                        </div>
+                    `;
+                } else {
+                    SecretGPTee.showToast('Transaction sent successfully!', 'success');
+                    console.log('Transaction result:', result.transaction);
+                }
                 
-                // Close modal
+                // Close modal after delay
                 document.querySelector('.transaction-modal-overlay').remove();
                 
                 // Refresh balance

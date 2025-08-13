@@ -603,6 +603,21 @@ class SecretGPTeeInterface:
                     "memo": memo
                 })
                 
+                # Check if MCP indicates Keplr signing is required
+                if result.get("requiresKeplrSigning"):
+                    # Return transaction data for frontend to sign with Keplr
+                    return {
+                        "success": True,
+                        "requiresKeplrSigning": True,
+                        "transactionData": result.get("transactionData", {}),
+                        "message": "Transaction prepared. Please sign with Keplr.",
+                        "from_address": from_address,
+                        "to_address": to_address,
+                        "amount": amount,
+                        "memo": memo
+                    }
+                
+                # Normal response if transaction was somehow completed
                 return {
                     "success": True,
                     "transaction": result,
