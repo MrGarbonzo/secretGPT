@@ -298,75 +298,94 @@
     </div>
     
     <!-- JavaScript -->
-    <!-- SecretJS Library via dynamic import (more reliable) -->
+    <!-- SecretJS Library (Official UMD Browser Bundle) -->
     <script>
-        // Load SecretJS dynamically and expose globals
-        (async function loadSecretJS() {
-            try {
-                console.log('📦 Loading SecretJS...');
-                
-                // Try dynamic import first
-                const secretjs = await import('https://cdn.skypack.dev/secretjs@1.15.1');
-                console.log('✅ SecretJS imported successfully via Skypack');
-                
-                // Expose to global scope
-                window.SecretNetworkClient = secretjs.SecretNetworkClient;
-                window.MsgSend = secretjs.MsgSend;
-                window.calculateFee = secretjs.calculateFee;
-                
-                console.log('✅ SecretNetworkClient exposed globally:', window.SecretNetworkClient);
-                
-                // Dispatch event to notify wallet.js
-                window.dispatchEvent(new CustomEvent('secretjs-loaded'));
-                
-            } catch (error) {
-                console.error('❌ Skypack failed, trying jsDelivr...', error);
-                
-                try {
-                    const secretjs = await import('https://cdn.jsdelivr.net/npm/secretjs@1.15.1/+esm');
-                    console.log('✅ SecretJS imported successfully via jsDelivr');
-                    
-                    window.SecretNetworkClient = secretjs.SecretNetworkClient;
-                    window.MsgSend = secretjs.MsgSend;
-                    window.calculateFee = secretjs.calculateFee;
-                    
-                    console.log('✅ SecretNetworkClient exposed globally:', window.SecretNetworkClient);
-                    window.dispatchEvent(new CustomEvent('secretjs-loaded'));
-                    
-                } catch (error2) {
-                    console.error('❌ All SecretJS loading methods failed:', error2);
+        // Load SecretJS using official browser method with fallbacks
+        (function loadSecretJS() {
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            // CDN sources to try in order
+            const cdnSources = [
+                'https://unpkg.com/secretjs@1.15.1/dist/browser.js',
+                'https://cdn.jsdelivr.net/npm/secretjs@1.15.1/dist/browser.js', 
+                '/static/js/secretjs.browser.js' // Local fallback
+            ];
+            
+            function tryLoadFromCDN(index = 0) {
+                if (index >= cdnSources.length) {
+                    console.error('❌ All SecretJS CDN sources failed to load');
+                    return;
                 }
+                
+                const scriptSrc = cdnSources[index];
+                console.log(`📦 Loading SecretJS from: ${scriptSrc}`);
+                
+                const script = document.createElement('script');
+                script.src = scriptSrc;
+                
+                script.onload = function() {
+                    // Check if SecretJS loaded properly
+                    if (typeof window.secretjs !== 'undefined' && window.secretjs.SecretNetworkClient) {
+                        console.log('✅ SecretJS loaded successfully from:', scriptSrc);
+                        
+                        // Expose components to global scope for compatibility
+                        window.SecretNetworkClient = window.secretjs.SecretNetworkClient;
+                        window.MsgSend = window.secretjs.MsgSend;
+                        window.calculateFee = window.secretjs.calculateFee;
+                        
+                        console.log('✅ SecretNetworkClient exposed globally:', window.SecretNetworkClient);
+                        
+                        // Dispatch event to notify wallet.js
+                        window.dispatchEvent(new CustomEvent('secretjs-loaded'));
+                    } else {
+                        console.warn('⚠️ SecretJS script loaded but secretjs global not found');
+                        // Try next CDN
+                        tryLoadFromCDN(index + 1);
+                    }
+                };
+                
+                script.onerror = function() {
+                    console.warn(`❌ Failed to load SecretJS from: ${scriptSrc}`);
+                    // Try next CDN
+                    tryLoadFromCDN(index + 1);
+                };
+                
+                document.head.appendChild(script);
             }
+            
+            // Start loading
+            tryLoadFromCDN();
         })();
     </script>
     
     <!-- SecretJS Loading Verification -->
     <script>
-        // Verify SecretJS loaded successfully
+        // Final verification with timeout
         setTimeout(() => {
             if (typeof SecretNetworkClient !== 'undefined') {
-                console.log('✅ SecretJS loaded successfully');
-                console.log('SecretNetworkClient constructor:', SecretNetworkClient);
+                console.log('✅ Final verification: SecretJS loaded successfully');
+                console.log('SecretNetworkClient available:', typeof SecretNetworkClient);
+                console.log('window.secretjs available:', typeof window.secretjs);
             } else {
-                console.error('❌ SecretJS failed to load');
-                console.log('Checking for SecretJS globals...');
-                const secretGlobals = Object.keys(window).filter(k => 
-                    k.toLowerCase().includes('secret') || 
-                    k.includes('SecretJS') ||
-                    k.includes('secretjs')
+                console.error('❌ Final verification: SecretJS failed to load after all attempts');
+                console.log('Available globals containing "secret":', 
+                    Object.keys(window).filter(k => k.toLowerCase().includes('secret'))
                 );
-                console.log('Secret-related globals:', secretGlobals);
                 
+                // Show user-friendly error message
                 if (window.SecretGPTee && window.SecretGPTee.showToast) {
-                    window.SecretGPTee.showToast('SecretJS library failed to load. Please refresh the page.', 'error');
+                    window.SecretGPTee.showToast('SecretJS library failed to load. Please check your internet connection and refresh the page.', 'error');
+                } else {
+                    console.warn('SecretGPTee toast system not available yet');
                 }
             }
-        }, 500);
+        }, 3000); // Longer timeout to allow for CDN fallbacks
     </script>
     
     <script src="/static/js/app.js?v=2025010106"></script>
     <script src="/static/js/chat.js?v=2025010106"></script>
-    <script src="/static/js/wallet.js?v=2025081401"></script>
+    <script src="/static/js/wallet.js?v=2025081403"></script>
     <script src="/static/js/debug-wallet.js?v=2025010106"></script>
     <script src="/static/js/settings.js?v=2025010106"></script>
     
