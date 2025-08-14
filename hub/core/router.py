@@ -857,8 +857,8 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 secret_addr_pattern = r'secret1[a-z0-9]{38}'
                 addr_matches = re.findall(secret_addr_pattern, message)
                 
-                # Extract amount
-                amount_pattern = r'(\d+\.?\d*)\s*(?:scrt|SCRT)'
+                # Extract amount - improved pattern for decimals starting with dot
+                amount_pattern = r'(\d*\.?\d+)\s*(?:scrt|SCRT)'
                 amount_match = re.search(amount_pattern, message, re.IGNORECASE)
                 
                 if addr_matches and amount_match:

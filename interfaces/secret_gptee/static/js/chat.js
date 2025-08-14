@@ -381,9 +381,10 @@ const ChatInterface = {
     checkForTransactionRequest(content) {
         console.log('🔍 Checking for transaction request in AI response');
         
-        // Pattern to match transaction prepared messages
+        // Pattern to match transaction prepared messages (multiple formats)
         const txPattern = /Transaction prepared:[\s\S]*?From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
-        const match = content.match(txPattern);
+        const mcpPattern = /secret_send_tokens:[\s\S]*?From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
+        const match = content.match(txPattern) || content.match(mcpPattern);
         
         if (match) {
             const [, fromAddress, toAddress, amount] = match;
