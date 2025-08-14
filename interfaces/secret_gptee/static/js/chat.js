@@ -369,6 +369,55 @@ const ChatInterface = {
         if (message && message.metadata) {
             message.metadata.streaming = false;
             this.updateMessageElement(messageId, message.content, false);
+            
+            // Check if the message contains transaction information
+            if (message.role === 'assistant') {
+                this.checkForTransactionRequest(message.content);
+            }
+        }
+    },
+    
+    // Check if AI response contains transaction request
+    checkForTransactionRequest(content) {
+        console.log('🔍 Checking for transaction request in AI response');
+        
+        // Pattern to match transaction prepared messages
+        const txPattern = /Transaction prepared:[\s\S]*?From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
+        const match = content.match(txPattern);
+        
+        if (match) {
+            const [, fromAddress, toAddress, amount] = match;
+            console.log('💰 Transaction detected in AI response:', {
+                from: fromAddress,
+                to: toAddress,
+                amount: amount
+            });
+            
+            // Auto-trigger the transaction if wallet is connected
+            if (window.WalletInterface && window.WalletInterface.isConnected()) {
+                console.log('🚀 Auto-triggering transaction from AI response');
+                
+                // Show confirmation dialog
+                const confirmMsg = `The AI has prepared a transaction:\n\nFrom: ${fromAddress}\nTo: ${toAddress}\nAmount: ${amount} SCRT\n\nDo you want to execute this transaction?`;
+                
+                if (confirm(confirmMsg)) {
+                    // Set the transaction values in the UI
+                    const recipientInput = document.getElementById('recipient-address');
+                    const amountInput = document.getElementById('send-amount');
+                    
+                    if (recipientInput && amountInput) {
+                        recipientInput.value = toAddress;
+                        amountInput.value = amount;
+                        
+                        // Trigger the send transaction
+                        window.WalletInterface.handleSendTransaction();
+                    }
+                } else {
+                    console.log('❌ User cancelled the transaction');
+                }
+            } else {
+                console.log('⚠️ Wallet not connected, cannot auto-trigger transaction');
+            }
         }
     },
     
