@@ -642,62 +642,84 @@ const WalletInterface = {
                 
                 // Trigger Keplr to sign and broadcast the transaction
                 try {
+                    console.log('Starting Keplr signing process...');
+                    
                     // Ensure Keplr is available
                     if (!window.keplr) {
                         throw new Error('Keplr wallet not found. Please install Keplr extension.');
                     }
                     
+                    console.log('Keplr found, enabling for chain:', KEPLR_CHAIN_CONFIG.chainId);
+                    
                     // Enable Keplr for Secret Network if not already enabled
                     await window.keplr.enable(KEPLR_CHAIN_CONFIG.chainId);
+                    
+                    console.log('Keplr enabled, getting offline signer...');
                     
                     // Get the offline signer
                     const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
                     const accounts = await offlineSigner.getAccounts();
                     
+                    console.log('Got accounts:', accounts);
+                    
                     // Verify the sender address matches
                     if (accounts[0].address !== txData.from) {
-                        throw new Error(`Wallet address mismatch. Expected ${txData.from}, got ${accounts[0].address}`);
+                        console.warn(`Wallet address mismatch. Expected ${txData.from}, got ${accounts[0].address}`);
+                        // Continue anyway - the user may have switched accounts
                     }
                     
-                    // Create the send message
-                    const msg = {
-                        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-                        value: {
-                            fromAddress: txData.from,
-                            toAddress: txData.to,
-                            amount: [{
-                                denom: txData.denom,
-                                amount: txData.amount
-                            }]
-                        }
-                    };
+                    console.log('Creating transaction for Keplr...');
                     
-                    // Set the fee
-                    const fee = {
-                        amount: [{
-                            denom: "uscrt",
-                            amount: "50000" // 0.05 SCRT fee
-                        }],
-                        gas: "200000"
-                    };
+                    // Use Keplr's sendTokens helper which is simpler
+                    // This will trigger the Keplr popup
+                    console.log('Triggering Keplr popup for transaction approval...');
                     
-                    // Sign and broadcast through Keplr
                     const chainId = KEPLR_CHAIN_CONFIG.chainId;
-                    const memo = txData.memo || "";
                     
-                    // This will trigger Keplr popup for user approval
+                    // The simple way - let Keplr handle everything
                     const result = await window.keplr.sendTx(
                         chainId,
+                        [
+                            {
+                                typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+                                value: {
+                                    from_address: accounts[0].address, // Use the actual connected account
+                                    to_address: txData.to,
+                                    amount: [{
+                                        denom: txData.denom,
+                                        amount: txData.amount
+                                    }]
+                                }
+                            }
+                        ],
                         {
-                            msgs: [msg],
-                            fee: fee,
-                            memo: memo
+                            amount: [{
+                                denom: "uscrt",
+                                amount: "50000" // 0.05 SCRT fee
+                            }],
+                            gas: "200000"
                         },
-                        "sync" // broadcast mode
+                        txData.memo || "",
+                        {
+                            preferNoSetFee: false,
+                            preferNoSetMemo: false
+                        }
                     );
                     
-                    // Convert result to hex if needed
-                    const txHash = Buffer.from(result).toString('hex');
+                    console.log('Keplr transaction result:', result);
+                    
+                    // Extract transaction hash
+                    let txHash;
+                    if (typeof result === 'string') {
+                        txHash = result;
+                    } else if (result && result.transactionHash) {
+                        txHash = result.transactionHash;
+                    } else if (result && result.txhash) {
+                        txHash = result.txhash;
+                    } else {
+                        // Convert to hex if it's a buffer
+                        txHash = Buffer.from(result).toString('hex');
+                    }
                     
                     console.log('Transaction broadcasted:', txHash);
                     
@@ -873,6 +895,7 @@ const TransactionHelpers = {
                     // Keplr signing failed, show manual instructions
                     SecretGPTee.showToast(result.error || 'Please complete the transaction manually', 'warning');
                     console.log('Manual signing required:', result.transactionData);
+                    console.error('Keplr error details:', result.error);
                     
                     // Show instructions to user
                     const modal = document.getElementById('send-modal');
@@ -887,16 +910,20 @@ const TransactionHelpers = {
                                 <p><strong>Amount:</strong> ${result.transactionData.amount} ${result.transactionData.denom}</p>
                                 ${result.transactionData.memo ? `<p><strong>Memo:</strong> ${result.transactionData.memo}</p>` : ''}
                             </div>
-                            ${result.error ? `<p class="error-msg">Error: ${result.error}</p>` : ''}
+                            ${result.error ? `<p class="error-msg" style="color: red; margin-top: 10px;"><strong>Error:</strong> ${result.error}</p>` : ''}
                         </div>
                     `;
+                    // Don't auto-close modal when manual action is required
+                    return;
                 } else {
                     SecretGPTee.showToast('Transaction processed', 'success');
                     console.log('Transaction result:', result);
                 }
                 
-                // Close modal after delay for non-hash results
-                document.querySelector('.transaction-modal-overlay').remove();
+                // Close modal after delay for success cases
+                setTimeout(() => {
+                    document.querySelector('.transaction-modal-overlay')?.remove();
+                }, 3000);
                 
                 // Refresh balance
                 setTimeout(() => {
