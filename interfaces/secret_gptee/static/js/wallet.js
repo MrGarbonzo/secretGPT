@@ -884,8 +884,8 @@ const TransactionHelpers = {
                             <div class="transaction-details">
                                 <p><strong>Transaction Hash:</strong></p>
                                 <p class="tx-hash">${result.txHash}</p>
-                                <a href="https://www.mintscan.io/secret/tx/${result.txHash}" target="_blank" class="explorer-link">
-                                    View on Explorer <i class="fas fa-external-link-alt"></i>
+                                <a href="https://zonescan.io/blockchain/secret/explorer/transactions/${result.txHash}" target="_blank" class="explorer-link">
+                                    View on Zonescan <i class="fas fa-external-link-alt"></i>
                                 </a>
                             </div>
                         </div>
