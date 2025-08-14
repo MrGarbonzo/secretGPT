@@ -4,6 +4,7 @@ Implements the core hub architecture for secretGPT
 """
 import asyncio
 import logging
+import re
 from typing import Dict, Any, Optional, Callable, List, AsyncGenerator
 from enum import Enum
 
@@ -850,6 +851,35 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         message_lower = message.lower()
         
         try:
+            # Check for send/transfer transactions FIRST (highest priority)
+            if any(keyword in message_lower for keyword in ['send', 'transfer', 'pay']):
+                # Look for patterns like "send X scrt to address"
+                secret_addr_pattern = r'secret1[a-z0-9]{38}'
+                addr_matches = re.findall(secret_addr_pattern, message)
+                
+                # Extract amount
+                amount_pattern = r'(\d+\.?\d*)\s*(?:scrt|SCRT)'
+                amount_match = re.search(amount_pattern, message, re.IGNORECASE)
+                
+                if addr_matches and amount_match:
+                    # Found both address and amount - this is a send transaction
+                    to_address = addr_matches[0]  # Use first address found as recipient
+                    amount = amount_match.group(1)
+                    
+                    # Get wallet address from options if available
+                    wallet_address = options.get('wallet_address')
+                    if wallet_address:
+                        tool_calls.append({
+                            "name": "secret_send_tokens",
+                            "arguments": {
+                                "from_address": wallet_address,
+                                "to_address": to_address,
+                                "amount": amount
+                            }
+                        })
+                        logger.info(f"Pre-detected: Send transaction - {amount} SCRT from {wallet_address} to {to_address}")
+                        return tool_calls  # Return immediately for transaction requests
+            
             # Personal balance queries are now handled by Keplr layer, so skip them here
             # Balance queries with address detection (check FIRST since personal queries are handled above)
             if 'balance' in message_lower and any(term in message for term in ['secret1', 'SCRT', 'scrt']):
@@ -879,7 +909,6 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             
             # Specific block number queries
             elif re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower):
-                import re
                 block_number_match = re.search(r'block\s+(\d+)|block\s+#(\d+)|block\s+height\s+(\d+)', message_lower)
                 block_height = int(block_number_match.group(1) or block_number_match.group(2) or block_number_match.group(3))
                 tool_calls.append({
