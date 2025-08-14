@@ -301,6 +301,9 @@
     <!-- SecretJS Library (Hosted locally to avoid CSP issues) -->
     <script src="/static/js/secretjs.min.js?v=2025081401"></script>
     
+    <!-- SecretJS Wrapper (Exposes globals from ESM bundle) -->
+    <script src="/static/js/secretjs-wrapper.js?v=2025081401"></script>
+    
     <!-- SecretJS Loading Verification -->
     <script>
         // Verify SecretJS loaded successfully
@@ -309,11 +312,12 @@
                 console.log('✅ SecretJS loaded successfully from local source');
             } else {
                 console.error('❌ SecretJS failed to load from local source');
+                console.log('Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('secret')));
                 if (window.SecretGPTee && window.SecretGPTee.showToast) {
                     window.SecretGPTee.showToast('SecretJS library failed to load. Please refresh the page.', 'error');
                 }
             }
-        }, 100);
+        }, 300);
     </script>
     
     <script src="/static/js/app.js?v=2025010106"></script>
