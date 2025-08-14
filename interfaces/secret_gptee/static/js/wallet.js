@@ -670,41 +670,78 @@ const WalletInterface = {
                     
                     console.log('Creating transaction for Keplr...');
                     
-                    // Use Keplr's sendTokens helper which is simpler
-                    // This will trigger the Keplr popup
+                    // Request Keplr to send tokens - this should trigger the popup
                     console.log('Triggering Keplr popup for transaction approval...');
                     
                     const chainId = KEPLR_CHAIN_CONFIG.chainId;
                     
-                    // The simple way - let Keplr handle everything
-                    const result = await window.keplr.sendTx(
-                        chainId,
-                        [
-                            {
-                                typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-                                value: {
-                                    from_address: accounts[0].address, // Use the actual connected account
-                                    to_address: txData.to,
-                                    amount: [{
-                                        denom: txData.denom,
-                                        amount: txData.amount
-                                    }]
-                                }
-                            }
-                        ],
-                        {
+                    // Use Keplr's requestTransaction which is the proper method
+                    // This will definitely trigger the Keplr popup
+                    const msg = {
+                        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+                        value: {
+                            from_address: accounts[0].address,
+                            to_address: txData.to,
+                            amount: [{
+                                denom: txData.denom,
+                                amount: txData.amount
+                            }]
+                        }
+                    };
+                    
+                    console.log('Sending message:', msg);
+                    
+                    // Use signAmino which is widely supported
+                    const signDoc = {
+                        chain_id: chainId,
+                        account_number: "0", // Will be filled by Keplr
+                        sequence: "0", // Will be filled by Keplr
+                        fee: {
                             amount: [{
                                 denom: "uscrt",
-                                amount: "50000" // 0.05 SCRT fee
+                                amount: "50000"
                             }],
                             gas: "200000"
                         },
-                        txData.memo || "",
-                        {
-                            preferNoSetFee: false,
-                            preferNoSetMemo: false
-                        }
+                        msgs: [{
+                            type: "cosmos-sdk/MsgSend",
+                            value: {
+                                from_address: accounts[0].address,
+                                to_address: txData.to,
+                                amount: [{
+                                    denom: txData.denom,
+                                    amount: txData.amount
+                                }]
+                            }
+                        }],
+                        memo: txData.memo || ""
+                    };
+                    
+                    console.log('Requesting Keplr to sign transaction...');
+                    
+                    // This should trigger the Keplr popup
+                    const signed = await window.keplr.signAmino(
+                        chainId,
+                        accounts[0].address,
+                        signDoc
                     );
+                    
+                    console.log('Transaction signed:', signed);
+                    
+                    // Now we need to broadcast the signed transaction
+                    // For this we need to make a call to the RPC endpoint
+                    const broadcastResult = await fetch(KEPLR_CHAIN_CONFIG.rest + '/cosmos/tx/v1beta1/txs', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            tx_bytes: signed.signed,
+                            mode: 'BROADCAST_MODE_SYNC'
+                        })
+                    });
+                    
+                    const result = await broadcastResult.json();
                     
                     console.log('Keplr transaction result:', result);
                     
@@ -787,7 +824,7 @@ const TransactionHelpers = {
         const modal = document.createElement('div');
         modal.className = 'transaction-modal-overlay';
         modal.innerHTML = `
-            <div class="transaction-modal">
+            <div class="transaction-modal" id="send-modal">
                 <div class="modal-header">
                     <h3>Send SCRT</h3>
                     <button class="close-btn" onclick="this.closest('.transaction-modal-overlay').remove()">
@@ -871,8 +908,13 @@ const TransactionHelpers = {
                     console.log('Transaction hash:', result.txHash);
                     
                     // Show transaction details with explorer link
-                    const modal = document.getElementById('send-modal');
-                    const modalContent = modal.querySelector('.modal-body');
+                    const modal = document.querySelector('.transaction-modal');
+                    const modalContent = modal ? modal.querySelector('.modal-body') : null;
+                    
+                    if (!modalContent) {
+                        console.error('Modal not found for transaction success display');
+                        return result;
+                    }
                     modalContent.innerHTML = `
                         <div class="transaction-success">
                             <h3><i class="fas fa-check-circle" style="color: #4CAF50;"></i> Transaction Sent!</h3>
@@ -898,8 +940,13 @@ const TransactionHelpers = {
                     console.error('Keplr error details:', result.error);
                     
                     // Show instructions to user
-                    const modal = document.getElementById('send-modal');
-                    const modalContent = modal.querySelector('.modal-body');
+                    const modal = document.querySelector('.transaction-modal');
+                    const modalContent = modal ? modal.querySelector('.modal-body') : null;
+                    
+                    if (!modalContent) {
+                        console.error('Modal not found for manual signing display');
+                        return result;
+                    }
                     modalContent.innerHTML = `
                         <div class="signing-instructions">
                             <h3>Manual Action Required</h3>
