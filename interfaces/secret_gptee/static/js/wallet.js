@@ -82,19 +82,47 @@ const WalletInterface = {
         
         // Check SecretJS availability first
         if (typeof SecretNetworkClient === 'undefined') {
-            console.warn('⚠️ SecretJS not yet loaded, will retry in 1 second...');
+            console.log('⏳ Waiting for SecretJS to load...');
+            
+            // Listen for SecretJS loaded event
+            window.addEventListener('secretjs-loaded', () => {
+                console.log('✅ SecretJS loaded event received, continuing initialization...');
+                this.initAfterSecretJS();
+            }, { once: true });
+            
+            // Fallback timeout after 10 seconds
             setTimeout(() => {
-                this.init();
-            }, 1000);
+                if (typeof SecretNetworkClient === 'undefined') {
+                    console.error('❌ SecretJS failed to load after 10 seconds');
+                    this.showError('SecretJS library failed to load. Please refresh the page.');
+                }
+            }, 10000);
+            
             return;
         }
         
+        console.log('✅ SecretJS already available, continuing initialization...');
+        this.initAfterSecretJS();
+    },
+    
+    // Continue initialization after SecretJS is confirmed loaded
+    initAfterSecretJS() {
         console.log('✅ SecretJS detected, continuing initialization...');
         this.checkKeplrInstallation();
         this.setupEventListeners();
         this.updateUI();
         
         console.log('✅ Wallet interface initialized');
+    },
+    
+    // Show error message
+    showError(message) {
+        if (typeof SecretGPTee !== 'undefined' && SecretGPTee.showToast) {
+            SecretGPTee.showToast(message, 'error');
+        } else {
+            console.error(message);
+            alert(message); // Fallback
+        }
     },
     
     // Check if Keplr wallet is installed

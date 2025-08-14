@@ -298,11 +298,47 @@
     </div>
     
     <!-- JavaScript -->
-    <!-- SecretJS Library (UMD from CDN for proper global exposure) -->
-    <script src="https://unpkg.com/secretjs@1.15.1/dist/secretjs.umd.min.js"></script>
-    
-    <!-- SecretJS Wrapper (Debug and fallback) -->
-    <script src="/static/js/secretjs-wrapper.js?v=2025081402"></script>
+    <!-- SecretJS Library via dynamic import (more reliable) -->
+    <script>
+        // Load SecretJS dynamically and expose globals
+        (async function loadSecretJS() {
+            try {
+                console.log('📦 Loading SecretJS...');
+                
+                // Try dynamic import first
+                const secretjs = await import('https://cdn.skypack.dev/secretjs@1.15.1');
+                console.log('✅ SecretJS imported successfully via Skypack');
+                
+                // Expose to global scope
+                window.SecretNetworkClient = secretjs.SecretNetworkClient;
+                window.MsgSend = secretjs.MsgSend;
+                window.calculateFee = secretjs.calculateFee;
+                
+                console.log('✅ SecretNetworkClient exposed globally:', window.SecretNetworkClient);
+                
+                // Dispatch event to notify wallet.js
+                window.dispatchEvent(new CustomEvent('secretjs-loaded'));
+                
+            } catch (error) {
+                console.error('❌ Skypack failed, trying jsDelivr...', error);
+                
+                try {
+                    const secretjs = await import('https://cdn.jsdelivr.net/npm/secretjs@1.15.1/+esm');
+                    console.log('✅ SecretJS imported successfully via jsDelivr');
+                    
+                    window.SecretNetworkClient = secretjs.SecretNetworkClient;
+                    window.MsgSend = secretjs.MsgSend;
+                    window.calculateFee = secretjs.calculateFee;
+                    
+                    console.log('✅ SecretNetworkClient exposed globally:', window.SecretNetworkClient);
+                    window.dispatchEvent(new CustomEvent('secretjs-loaded'));
+                    
+                } catch (error2) {
+                    console.error('❌ All SecretJS loading methods failed:', error2);
+                }
+            }
+        })();
+    </script>
     
     <!-- SecretJS Loading Verification -->
     <script>
