@@ -21,8 +21,8 @@ const WalletState = {
 const KEPLR_CHAIN_CONFIG = {
     chainId: 'secret-4',
     chainName: 'Secret Network',
-    rpc: 'https://rpc.secret.express',
-    rest: 'https://lcd.secret.express',
+    rpc: 'https://rpc.ankr.com/http/scrt_cosmos',
+    rest: 'https://rpc.ankr.com/http/scrt_cosmos',
     bip44: {
         coinType: 529,
     },
