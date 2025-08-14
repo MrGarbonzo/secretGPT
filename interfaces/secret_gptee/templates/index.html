@@ -298,38 +298,22 @@
     </div>
     
     <!-- JavaScript -->
-    <!-- SecretJS Library (Required for proper Secret Network integration) -->
-    <script src="https://unpkg.com/secretjs@1.12.1/dist/secretjs.umd.js"></script>
+    <!-- SecretJS Library (Hosted locally to avoid CSP issues) -->
+    <script src="/static/js/secretjs.min.js?v=2025081401"></script>
     
-    <!-- SecretJS Loading Check and Fallback -->
+    <!-- SecretJS Loading Verification -->
     <script>
-        // Check if SecretJS loaded successfully after a brief delay
+        // Verify SecretJS loaded successfully
         setTimeout(() => {
-            if (typeof SecretNetworkClient === 'undefined') {
-                console.error('❌ SecretJS failed to load from CDN, trying alternative source...');
-                
-                // Try alternative CDN
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/secretjs@1.12.1/dist/secretjs.umd.min.js';
-                script.onerror = () => {
-                    console.error('❌ Alternative SecretJS CDN also failed');
-                    // Show user-friendly error
-                    if (window.SecretGPTee && window.SecretGPTee.showToast) {
-                        window.SecretGPTee.showToast('Failed to load SecretJS library. Please check your internet connection and refresh the page.', 'error');
-                    }
-                };
-                script.onload = () => {
-                    console.log('✅ SecretJS loaded from alternative CDN');
-                    // Reinitialize wallet if it failed before
-                    if (window.WalletInterface && typeof window.WalletInterface.init === 'function') {
-                        window.WalletInterface.init();
-                    }
-                };
-                document.head.appendChild(script);
+            if (typeof SecretNetworkClient !== 'undefined') {
+                console.log('✅ SecretJS loaded successfully from local source');
             } else {
-                console.log('✅ SecretJS loaded successfully from primary CDN');
+                console.error('❌ SecretJS failed to load from local source');
+                if (window.SecretGPTee && window.SecretGPTee.showToast) {
+                    window.SecretGPTee.showToast('SecretJS library failed to load. Please refresh the page.', 'error');
+                }
             }
-        }, 500);
+        }, 100);
     </script>
     
     <script src="/static/js/app.js?v=2025010106"></script>

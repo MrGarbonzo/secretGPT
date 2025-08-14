@@ -17,12 +17,12 @@ const WalletState = {
     enigmaUtils: null
 };
 
-// Keplr wallet configuration for Secret Network
+// Keplr wallet configuration for Secret Network (Latest recommended endpoints)
 const KEPLR_CHAIN_CONFIG = {
     chainId: 'secret-4',
     chainName: 'Secret Network',
-    rpc: 'https://lcd.mainnet.secretsaturn.net',
-    rest: 'https://lcd.mainnet.secretsaturn.net',
+    rpc: 'https://rpc.secret.express',
+    rest: 'https://lcd.secret.express',
     bip44: {
         coinType: 529,
     },
@@ -46,9 +46,9 @@ const KEPLR_CHAIN_CONFIG = {
         coinDecimals: 6,
         coinGeckoId: 'secret',
         gasPriceStep: {
-            low: 0.1,
-            average: 0.25,
-            high: 0.4,
+            low: 0.0125,
+            average: 0.025,
+            high: 0.05,
         },
     }],
     stakeCurrency: {
@@ -260,17 +260,38 @@ const WalletInterface = {
             
             if (showMessages) {
                 let errorMsg = 'Failed to connect wallet';
+                let troubleshooting = '';
                 
-                if (error.message.includes('Request rejected')) {
+                if (error.message.includes('Request rejected') || error.message.includes('rejected')) {
                     errorMsg = 'Connection rejected by user';
+                    troubleshooting = 'Please try connecting again and approve the request in Keplr.';
                 } else if (error.message.includes('SecretJS library not loaded')) {
-                    errorMsg = 'SecretJS library not loaded - please refresh the page';
+                    errorMsg = 'SecretJS library failed to load';
+                    troubleshooting = 'Please refresh the page and check your internet connection.';
                 } else if (error.message.includes('No accounts')) {
                     errorMsg = 'No accounts found in Keplr';
+                    troubleshooting = 'Please create or import an account in your Keplr wallet.';
+                } else if (error.message.includes('already exists') || error.message.includes('already added')) {
+                    errorMsg = 'Chain configuration issue';
+                    troubleshooting = 'The Secret Network chain is already configured. Please try connecting again.';
+                } else if (error.message.includes('fetch') || error.message.includes('network')) {
+                    errorMsg = 'Network connection failed';
+                    troubleshooting = 'Please check your internet connection and try again.';
+                } else if (error.message.includes('User denied') || error.message.includes('denied')) {
+                    errorMsg = 'Access denied by user';
+                    troubleshooting = 'Please approve the connection request in Keplr wallet.';
+                } else if (error.message.includes('timeout')) {
+                    errorMsg = 'Connection timeout';
+                    troubleshooting = 'The connection took too long. Please try again.';
                 } else {
-                    errorMsg = `Failed to connect: ${error.message}`;
+                    errorMsg = `Connection failed: ${error.message}`;
+                    troubleshooting = 'Please make sure Keplr is installed and unlocked, then try again.';
                 }
+                
                 SecretGPTee.showToast(errorMsg, 'error');
+                if (troubleshooting) {
+                    console.log('💡 Troubleshooting:', troubleshooting);
+                }
             }
             
             WalletState.connected = false;
@@ -407,7 +428,7 @@ const WalletInterface = {
                     },
                     {
                         gasLimit: 50_000,
-                        gasPriceInFeeDenom: 0.25,
+                        gasPriceInFeeDenom: 0.025,
                         feeDenom: 'uscrt',
                         memo: memo
                     }
@@ -443,7 +464,7 @@ const WalletInterface = {
                 // This will trigger Keplr popup automatically
                 const tx = await WalletState.secretjs.tx.broadcast([msg], {
                     gasLimit: 50_000,
-                    gasPriceInFeeDenom: 0.25,
+                    gasPriceInFeeDenom: 0.025,
                     feeDenom: 'uscrt',
                     memo: memo
                 });
@@ -466,12 +487,27 @@ const WalletInterface = {
         } catch (error) {
             console.error('Transaction failed:', error);
             
-            if (error.message.includes('rejected')) {
-                throw new Error('Transaction rejected by user');
-            } else if (error.message.includes('insufficient funds')) {
-                throw new Error('Insufficient funds for transaction');
+            // Provide specific error messages for common transaction failures
+            if (error.message.includes('rejected') || error.message.includes('Request rejected')) {
+                throw new Error('Transaction rejected by user in Keplr wallet');
+            } else if (error.message.includes('insufficient funds') || error.message.includes('insufficient coins')) {
+                throw new Error('Insufficient SCRT balance to complete transaction');
+            } else if (error.message.includes('invalid sequence') || error.message.includes('account sequence mismatch')) {
+                throw new Error('Account sequence error. Please try the transaction again.');
+            } else if (error.message.includes('gas') && error.message.includes('exceed')) {
+                throw new Error('Transaction requires more gas than estimated. Please try again.');
+            } else if (error.message.includes('invalid address') || error.message.includes('decoding bech32 failed')) {
+                throw new Error('Invalid recipient address format');
+            } else if (error.message.includes('timeout') || error.message.includes('deadline exceeded')) {
+                throw new Error('Transaction timeout. Please check network connection and try again.');
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                throw new Error('Network error. Please check your connection and try again.');
+            } else if (error.message.includes('memo too large')) {
+                throw new Error('Transaction memo is too long. Please use a shorter memo.');
             } else {
-                throw error;
+                // Log full error for debugging but provide user-friendly message
+                console.error('Full transaction error:', error);
+                throw new Error(`Transaction failed: ${error.message || 'Unknown error occurred'}`);
             }
         }
     },
