@@ -638,23 +638,93 @@ const WalletInterface = {
             if (result.requiresKeplrSigning) {
                 console.log('MCP requires Keplr signing. Transaction data:', result.transactionData);
                 
-                // For now, notify the user that Keplr signing is needed
-                // In a full implementation, this would trigger Keplr to sign the transaction
                 const txData = result.transactionData;
                 
-                // TODO: Implement actual Keplr signing here
-                // This would involve:
-                // 1. Using Keplr to sign the transaction with the provided data
-                // 2. Broadcasting the signed transaction to Secret Network
-                // 3. Returning the transaction hash
-                
-                // For now, return a message indicating manual signing is needed
-                return {
-                    success: true,
-                    requiresManualSigning: true,
-                    message: `Please manually send ${txData.amount} ${txData.denom} from ${txData.from} to ${txData.to}`,
-                    transactionData: txData
-                };
+                // Trigger Keplr to sign and broadcast the transaction
+                try {
+                    // Ensure Keplr is available
+                    if (!window.keplr) {
+                        throw new Error('Keplr wallet not found. Please install Keplr extension.');
+                    }
+                    
+                    // Enable Keplr for Secret Network if not already enabled
+                    await window.keplr.enable(KEPLR_CHAIN_CONFIG.chainId);
+                    
+                    // Get the offline signer
+                    const offlineSigner = window.keplr.getOfflineSigner(KEPLR_CHAIN_CONFIG.chainId);
+                    const accounts = await offlineSigner.getAccounts();
+                    
+                    // Verify the sender address matches
+                    if (accounts[0].address !== txData.from) {
+                        throw new Error(`Wallet address mismatch. Expected ${txData.from}, got ${accounts[0].address}`);
+                    }
+                    
+                    // Create the send message
+                    const msg = {
+                        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+                        value: {
+                            fromAddress: txData.from,
+                            toAddress: txData.to,
+                            amount: [{
+                                denom: txData.denom,
+                                amount: txData.amount
+                            }]
+                        }
+                    };
+                    
+                    // Set the fee
+                    const fee = {
+                        amount: [{
+                            denom: "uscrt",
+                            amount: "50000" // 0.05 SCRT fee
+                        }],
+                        gas: "200000"
+                    };
+                    
+                    // Sign and broadcast through Keplr
+                    const chainId = KEPLR_CHAIN_CONFIG.chainId;
+                    const memo = txData.memo || "";
+                    
+                    // This will trigger Keplr popup for user approval
+                    const result = await window.keplr.sendTx(
+                        chainId,
+                        {
+                            msgs: [msg],
+                            fee: fee,
+                            memo: memo
+                        },
+                        "sync" // broadcast mode
+                    );
+                    
+                    // Convert result to hex if needed
+                    const txHash = Buffer.from(result).toString('hex');
+                    
+                    console.log('Transaction broadcasted:', txHash);
+                    
+                    return {
+                        success: true,
+                        txHash: txHash,
+                        message: 'Transaction sent successfully!',
+                        transactionData: txData
+                    };
+                    
+                } catch (keplrError) {
+                    console.error('Keplr signing failed:', keplrError);
+                    
+                    // If user rejected in Keplr
+                    if (keplrError.message && keplrError.message.includes('rejected')) {
+                        throw new Error('Transaction rejected by user');
+                    }
+                    
+                    // Fallback to showing manual instructions
+                    return {
+                        success: false,
+                        requiresManualSigning: true,
+                        error: keplrError.message,
+                        message: `Keplr signing failed. Please manually send ${txData.amount} ${txData.denom} from ${txData.from} to ${txData.to}`,
+                        transactionData: txData
+                    };
+                }
             }
             
             return result;
@@ -773,33 +843,59 @@ const TransactionHelpers = {
             const result = await WalletInterface.sendTransaction(recipientAddress, amount, memo);
             
             if (result.success) {
-                // Check if manual signing is required
-                if (result.requiresManualSigning) {
-                    SecretGPTee.showToast('Transaction prepared. Please sign with Keplr.', 'info');
-                    console.log('Transaction requires Keplr signing:', result.transactionData);
+                // Check if we got a transaction hash (successful Keplr signing)
+                if (result.txHash) {
+                    SecretGPTee.showToast('Transaction sent successfully!', 'success');
+                    console.log('Transaction hash:', result.txHash);
+                    
+                    // Show transaction details with explorer link
+                    const modal = document.getElementById('send-modal');
+                    const modalContent = modal.querySelector('.modal-body');
+                    modalContent.innerHTML = `
+                        <div class="transaction-success">
+                            <h3><i class="fas fa-check-circle" style="color: #4CAF50;"></i> Transaction Sent!</h3>
+                            <div class="transaction-details">
+                                <p><strong>Transaction Hash:</strong></p>
+                                <p class="tx-hash">${result.txHash}</p>
+                                <a href="https://www.mintscan.io/secret/tx/${result.txHash}" target="_blank" class="explorer-link">
+                                    View on Explorer <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Auto-close modal after 5 seconds
+                    setTimeout(() => {
+                        document.querySelector('.transaction-modal-overlay')?.remove();
+                    }, 5000);
+                    
+                } else if (result.requiresManualSigning) {
+                    // Keplr signing failed, show manual instructions
+                    SecretGPTee.showToast(result.error || 'Please complete the transaction manually', 'warning');
+                    console.log('Manual signing required:', result.transactionData);
                     
                     // Show instructions to user
                     const modal = document.getElementById('send-modal');
                     const modalContent = modal.querySelector('.modal-body');
                     modalContent.innerHTML = `
                         <div class="signing-instructions">
-                            <h3>Keplr Signing Required</h3>
-                            <p>The transaction has been prepared. Please sign it with Keplr:</p>
+                            <h3>Manual Action Required</h3>
+                            <p>${result.message}</p>
                             <div class="transaction-details">
                                 <p><strong>From:</strong> ${result.transactionData.from}</p>
                                 <p><strong>To:</strong> ${result.transactionData.to}</p>
                                 <p><strong>Amount:</strong> ${result.transactionData.amount} ${result.transactionData.denom}</p>
                                 ${result.transactionData.memo ? `<p><strong>Memo:</strong> ${result.transactionData.memo}</p>` : ''}
                             </div>
-                            <p class="note">Note: Full Keplr integration for automatic signing is coming soon.</p>
+                            ${result.error ? `<p class="error-msg">Error: ${result.error}</p>` : ''}
                         </div>
                     `;
                 } else {
-                    SecretGPTee.showToast('Transaction sent successfully!', 'success');
-                    console.log('Transaction result:', result.transaction);
+                    SecretGPTee.showToast('Transaction processed', 'success');
+                    console.log('Transaction result:', result);
                 }
                 
-                // Close modal after delay
+                // Close modal after delay for non-hash results
                 document.querySelector('.transaction-modal-overlay').remove();
                 
                 // Refresh balance
