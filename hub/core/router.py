@@ -866,8 +866,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                     to_address = addr_matches[0]  # Use first address found as recipient
                     amount = amount_match.group(1)
                     
-                    # Get wallet address from options if available
-                    wallet_address = options.get('wallet_address')
+                    # Get wallet address from parameter
                     if wallet_address:
                         tool_calls.append({
                             "name": "secret_send_tokens",
