@@ -298,26 +298,34 @@
     </div>
     
     <!-- JavaScript -->
-    <!-- SecretJS Library (Hosted locally to avoid CSP issues) -->
-    <script src="/static/js/secretjs.min.js?v=2025081401"></script>
+    <!-- SecretJS Library (UMD from CDN for proper global exposure) -->
+    <script src="https://unpkg.com/secretjs@1.15.1/dist/secretjs.umd.min.js"></script>
     
-    <!-- SecretJS Wrapper (Exposes globals from ESM bundle) -->
-    <script src="/static/js/secretjs-wrapper.js?v=2025081401"></script>
+    <!-- SecretJS Wrapper (Debug and fallback) -->
+    <script src="/static/js/secretjs-wrapper.js?v=2025081402"></script>
     
     <!-- SecretJS Loading Verification -->
     <script>
         // Verify SecretJS loaded successfully
         setTimeout(() => {
             if (typeof SecretNetworkClient !== 'undefined') {
-                console.log('✅ SecretJS loaded successfully from local source');
+                console.log('✅ SecretJS loaded successfully');
+                console.log('SecretNetworkClient constructor:', SecretNetworkClient);
             } else {
-                console.error('❌ SecretJS failed to load from local source');
-                console.log('Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('secret')));
+                console.error('❌ SecretJS failed to load');
+                console.log('Checking for SecretJS globals...');
+                const secretGlobals = Object.keys(window).filter(k => 
+                    k.toLowerCase().includes('secret') || 
+                    k.includes('SecretJS') ||
+                    k.includes('secretjs')
+                );
+                console.log('Secret-related globals:', secretGlobals);
+                
                 if (window.SecretGPTee && window.SecretGPTee.showToast) {
                     window.SecretGPTee.showToast('SecretJS library failed to load. Please refresh the page.', 'error');
                 }
             }
-        }, 300);
+        }, 500);
     </script>
     
     <script src="/static/js/app.js?v=2025010106"></script>

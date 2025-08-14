@@ -8,43 +8,49 @@
     
     // Check what's available in the global scope after secretjs loads
     const checkGlobals = () => {
-        console.log('Checking for SecretJS exports...');
+        console.log('🔍 Debugging SecretJS wrapper...');
         
-        // List of possible global variable names where SecretJS might be exposed
-        const possibleNames = [
-            'browser$1',
-            'secretjs', 
-            'SecretJS',
-            'module',
-            'exports',
-            '__SECRETJS_EXPORTS__'
-        ];
+        // Log all window properties that might be related to secretjs
+        const allGlobals = Object.keys(window);
+        const secretRelated = allGlobals.filter(key => 
+            key.toLowerCase().includes('secret') || 
+            key.includes('$') || 
+            key.includes('browser') ||
+            key.includes('export') ||
+            key.includes('module')
+        );
+        console.log('All secret-related globals:', secretRelated);
         
-        for (const name of possibleNames) {
-            if (typeof window[name] !== 'undefined') {
-                console.log(`Found global: ${name}`, window[name]);
-                
-                // Check if it has exports
-                if (window[name] && window[name].exports) {
-                    console.log(`${name}.exports found:`, Object.keys(window[name].exports));
-                    
-                    const exports = window[name].exports;
-                    if (exports.SecretNetworkClient) {
-                        window.SecretNetworkClient = exports.SecretNetworkClient;
-                        console.log('✅ SecretNetworkClient exposed globally');
+        // Check for any object that might contain SecretNetworkClient
+        for (const key of allGlobals) {
+            try {
+                const obj = window[key];
+                if (obj && typeof obj === 'object') {
+                    if (obj.SecretNetworkClient) {
+                        console.log(`🎯 Found SecretNetworkClient in window.${key}`);
+                        window.SecretNetworkClient = obj.SecretNetworkClient;
+                        console.log('✅ SecretNetworkClient exposed globally from', key);
+                        return true;
+                    }
+                    if (obj.exports && obj.exports.SecretNetworkClient) {
+                        console.log(`🎯 Found SecretNetworkClient in window.${key}.exports`);
+                        window.SecretNetworkClient = obj.exports.SecretNetworkClient;
+                        console.log('✅ SecretNetworkClient exposed globally from exports');
                         return true;
                     }
                 }
-                
-                // Check if it directly contains SecretNetworkClient
-                if (window[name] && window[name].SecretNetworkClient) {
-                    window.SecretNetworkClient = window[name].SecretNetworkClient;
-                    console.log('✅ SecretNetworkClient found and exposed');
-                    return true;
-                }
+            } catch (e) {
+                // Skip objects that can't be accessed
             }
         }
         
+        // Check if it's already available but not detected
+        if (typeof window.SecretNetworkClient !== 'undefined') {
+            console.log('✅ SecretNetworkClient already available globally');
+            return true;
+        }
+        
+        console.log('❌ SecretNetworkClient not found in any globals');
         return false;
     };
     
@@ -61,21 +67,27 @@
     
 })();
 
-// Fallback: Use CDN if local loading fails completely
+// UMD should expose SecretNetworkClient directly
+// If it doesn't work, try loading from jsDelivr
 setTimeout(() => {
     if (typeof SecretNetworkClient === 'undefined') {
-        console.warn('⚠️ Local SecretJS failed, attempting CDN fallback...');
+        console.warn('⚠️ UMD SecretJS failed, attempting jsDelivr fallback...');
         
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/secretjs@1.15.1/+esm';
-        script.type = 'module';
+        script.src = 'https://cdn.jsdelivr.net/npm/secretjs@1.15.1/dist/secretjs.umd.min.js';
         script.onload = () => {
-            console.log('✅ SecretJS loaded from CDN fallback');
+            setTimeout(() => {
+                if (typeof SecretNetworkClient !== 'undefined') {
+                    console.log('✅ SecretJS loaded from jsDelivr fallback');
+                } else {
+                    console.error('❌ All SecretJS loading methods failed');
+                }
+            }, 100);
         };
         script.onerror = () => {
-            console.error('❌ CDN fallback also failed');
+            console.error('❌ jsDelivr fallback also failed');
         };
         
         document.head.appendChild(script);
     }
-}, 500);
+}, 1000);
