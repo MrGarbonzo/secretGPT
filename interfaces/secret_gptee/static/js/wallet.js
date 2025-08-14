@@ -80,6 +80,16 @@ const WalletInterface = {
     init() {
         console.log('🔮 Initializing SecretGPTee wallet interface with SecretJS...');
         
+        // Check SecretJS availability first
+        if (typeof SecretNetworkClient === 'undefined') {
+            console.warn('⚠️ SecretJS not yet loaded, will retry in 1 second...');
+            setTimeout(() => {
+                this.init();
+            }, 1000);
+            return;
+        }
+        
+        console.log('✅ SecretJS detected, continuing initialization...');
         this.checkKeplrInstallation();
         this.setupEventListeners();
         this.updateUI();
@@ -199,7 +209,9 @@ const WalletInterface = {
             
             // Check if SecretJS is available
             if (typeof SecretNetworkClient === 'undefined') {
-                throw new Error('SecretJS library not loaded. Please ensure secretjs is included.');
+                console.error('❌ SecretNetworkClient not available');
+                console.error('Available globals:', Object.keys(window).filter(k => k.includes('Secret')));
+                throw new Error('SecretJS library not loaded. Please refresh the page and ensure you have internet connectivity.');
             }
             
             const secretjs = new SecretNetworkClient({

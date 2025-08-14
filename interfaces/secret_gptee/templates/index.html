@@ -301,6 +301,37 @@
     <!-- SecretJS Library (Required for proper Secret Network integration) -->
     <script src="https://unpkg.com/secretjs@1.12.1/dist/secretjs.umd.js"></script>
     
+    <!-- SecretJS Loading Check and Fallback -->
+    <script>
+        // Check if SecretJS loaded successfully after a brief delay
+        setTimeout(() => {
+            if (typeof SecretNetworkClient === 'undefined') {
+                console.error('❌ SecretJS failed to load from CDN, trying alternative source...');
+                
+                // Try alternative CDN
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/secretjs@1.12.1/dist/secretjs.umd.min.js';
+                script.onerror = () => {
+                    console.error('❌ Alternative SecretJS CDN also failed');
+                    // Show user-friendly error
+                    if (window.SecretGPTee && window.SecretGPTee.showToast) {
+                        window.SecretGPTee.showToast('Failed to load SecretJS library. Please check your internet connection and refresh the page.', 'error');
+                    }
+                };
+                script.onload = () => {
+                    console.log('✅ SecretJS loaded from alternative CDN');
+                    // Reinitialize wallet if it failed before
+                    if (window.WalletInterface && typeof window.WalletInterface.init === 'function') {
+                        window.WalletInterface.init();
+                    }
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('✅ SecretJS loaded successfully from primary CDN');
+            }
+        }, 500);
+    </script>
+    
     <script src="/static/js/app.js?v=2025010106"></script>
     <script src="/static/js/chat.js?v=2025010106"></script>
     <script src="/static/js/wallet.js?v=2025081401"></script>
