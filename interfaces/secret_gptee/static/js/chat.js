@@ -544,7 +544,8 @@ const ChatInterface = {
             
             // Auto-scroll to bottom to keep up with content updates
             console.log('📝 Message updated, calling scrollToBottom()');
-            this.scrollToBottom();
+            // Force scroll during streaming to ensure content is visible
+            this.scrollToBottom(streaming);
         }
     },
     
@@ -889,8 +890,8 @@ const ChatInterface = {
                 isAtBottom: distanceFromBottom < 5
             });
             
-            // Always scroll if forced, or if we're close to bottom (within 50px)
-            const shouldScroll = force || distanceFromBottom < 50;
+            // Always scroll if forced, or if we're close to bottom (within 150px for better UX)
+            const shouldScroll = force || distanceFromBottom < 150;
             
             if (shouldScroll) {
                 console.log('⬇️ Scrolling to bottom');

@@ -13,18 +13,24 @@
 .messages-area {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrollbar */
     padding: 1rem;
     scroll-behavior: smooth;
     min-height: 0; /* Important for flex scrolling */
+    word-wrap: break-word;
+    word-break: break-word;
 }
 
 /* Keep old class for backward compatibility */
 .messages-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrollbar */
     padding: 1rem;
     scroll-behavior: smooth;
     min-height: 0;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 
 .message-wrapper {
@@ -123,6 +129,25 @@
 .message-text {
     line-height: 1.6;
     word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+/* Handle code blocks and preformatted text */
+.message-content pre,
+.message-content code {
+    overflow-x: auto;
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Handle transaction hashes and long URLs */
+.tx-hash {
+    word-break: break-all;
+    font-family: monospace;
+    font-size: 0.9em;
 }
 
 .message-text.streaming::after {
