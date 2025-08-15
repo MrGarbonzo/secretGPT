@@ -380,11 +380,20 @@ const ChatInterface = {
     // Check if AI response contains transaction request
     checkForTransactionRequest(content) {
         console.log('🔍 Checking for transaction request in AI response');
+        console.log('Content to check:', content);
         
         // Pattern to match transaction prepared messages (multiple formats)
+        // Updated to handle formats like "Amount: .1 SCRT (100000 uscrt)" and markdown bold text
         const txPattern = /Transaction prepared:[\s\S]*?From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
-        const mcpPattern = /secret_send_tokens:[\s\S]*?From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
-        const match = content.match(txPattern) || content.match(mcpPattern);
+        const mcpPattern = /secret_send_tokens[:\*\s]*Transaction prepared:[\s\S]*?From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
+        // Also try a simpler pattern that just looks for the key information
+        const simplePattern = /From:\s*(secret[a-z0-9]+)[\s\S]*?To:\s*(secret[a-z0-9]+)[\s\S]*?Amount:\s*([\d.]+)\s*SCRT/i;
+        
+        console.log('Trying txPattern:', txPattern.test(content));
+        console.log('Trying mcpPattern:', mcpPattern.test(content));
+        console.log('Trying simplePattern:', simplePattern.test(content));
+        
+        const match = content.match(txPattern) || content.match(mcpPattern) || content.match(simplePattern);
         
         if (match) {
             const [, fromAddress, toAddress, amount] = match;
