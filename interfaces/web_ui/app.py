@@ -231,11 +231,26 @@ class WebUIInterface:
                 attestation_service = self._get_attestation_service()
                 attestation_available = attestation_service is not None
                 
+                # Check Secret AI component status
+                secret_ai_status = "unavailable"
+                try:
+                    secret_ai = self.hub_router.get_component(ComponentType.SECRET_AI)
+                    if secret_ai and hasattr(secret_ai, 'chat_client'):
+                        secret_ai_status = "operational" if secret_ai.chat_client else "not_initialized"
+                    elif secret_ai:
+                        secret_ai_status = "registered"
+                except Exception as e:
+                    logger.warning(f"Could not check Secret AI status: {e}")
+                    secret_ai_status = "error"
+                
                 return {
                     "interface": "attest_ai",
                     "status": "operational",
                     "hub_connection": "connected",
                     "attestation_service": "operational" if attestation_available else "unavailable",
+                    "components": {
+                        "secret_ai": secret_ai_status
+                    },
                     "features": {
                         "chat": True,
                         "attestation": attestation_available,
