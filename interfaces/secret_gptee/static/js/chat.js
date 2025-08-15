@@ -249,6 +249,12 @@ const ChatInterface = {
                     model: data.model,
                     tools_used: data.tools_used
                 });
+                
+                // Check for transaction in non-streaming response
+                const lastMessage = ChatState.messages[ChatState.messages.length - 1];
+                if (lastMessage && lastMessage.role === 'assistant') {
+                    await this.checkForTransactionRequest(lastMessage.content);
+                }
             } else {
                 this.addMessage('assistant', '❌ ' + (data.error || 'Unknown error occurred'));
                 SecretGPTee.showToast('Chat error: ' + data.error, 'error');
@@ -378,7 +384,7 @@ const ChatInterface = {
     },
     
     // Check if AI response contains transaction request
-    checkForTransactionRequest(content) {
+    async checkForTransactionRequest(content, messageId = null) {
         console.log('🔍 Checking for transaction request in AI response');
         console.log('Content to check:', content);
         
@@ -405,25 +411,45 @@ const ChatInterface = {
             
             // Auto-trigger the transaction if wallet is connected
             if (window.WalletInterface && window.WalletState && window.WalletState.connected) {
-                console.log('🚀 Auto-triggering transaction from AI response');
+                console.log('🚀 Auto-triggering transaction from AI response - calling Keplr directly');
                 
-                // Show confirmation dialog
-                const confirmMsg = `The AI has prepared a transaction:\n\nFrom: ${fromAddress}\nTo: ${toAddress}\nAmount: ${amount} SCRT\n\nDo you want to execute this transaction?`;
-                
-                if (confirm(confirmMsg)) {
-                    // Set the transaction values in the UI
-                    const recipientInput = document.getElementById('recipient-address');
-                    const amountInput = document.getElementById('send-amount');
+                try {
+                    // Directly call the wallet's sendTransaction method (like the Send button does)
+                    // This will trigger Keplr popup automatically
+                    const result = await window.WalletInterface.sendTransaction(toAddress, amount);
                     
-                    if (recipientInput && amountInput) {
-                        recipientInput.value = toAddress;
-                        amountInput.value = amount;
+                    if (result.success) {
+                        console.log('✅ Transaction sent successfully!', result);
+                        // Show success message in chat if we have a messageId
+                        const successMsg = `\n\n✅ **Transaction sent!**\n**Hash:** ${result.txHash}\n[View on Zonescan](https://zonescan.io/blockchain/secret/explorer/transactions/${result.txHash})`;
                         
-                        // Trigger the send transaction
-                        window.WalletInterface.handleSendTransaction();
+                        // Find the latest assistant message to append to
+                        const messages = ChatState.messages.filter(m => m.role === 'assistant');
+                        const lastAssistantMsg = messages[messages.length - 1];
+                        if (lastAssistantMsg) {
+                            this.appendToMessage(lastAssistantMsg.id, successMsg);
+                        }
+                        
+                        // Show toast notification
+                        if (window.SecretGPTee && window.SecretGPTee.showToast) {
+                            window.SecretGPTee.showToast('Transaction sent successfully!', 'success');
+                        }
                     }
-                } else {
-                    console.log('❌ User cancelled the transaction');
+                } catch (error) {
+                    console.error('Transaction failed:', error);
+                    const errorMsg = `\n\n❌ **Transaction failed:** ${error.message}`;
+                    
+                    // Find the latest assistant message to append to
+                    const messages = ChatState.messages.filter(m => m.role === 'assistant');
+                    const lastAssistantMsg = messages[messages.length - 1];
+                    if (lastAssistantMsg) {
+                        this.appendToMessage(lastAssistantMsg.id, errorMsg);
+                    }
+                    
+                    // Show toast notification
+                    if (window.SecretGPTee && window.SecretGPTee.showToast) {
+                        window.SecretGPTee.showToast(`Transaction failed: ${error.message}`, 'error');
+                    }
                 }
             } else {
                 console.log('⚠️ Wallet not connected, cannot auto-trigger transaction');
