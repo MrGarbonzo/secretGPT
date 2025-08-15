@@ -404,7 +404,7 @@ const ChatInterface = {
             });
             
             // Auto-trigger the transaction if wallet is connected
-            if (window.WalletInterface && window.WalletInterface.isConnected()) {
+            if (window.WalletInterface && window.WalletState && window.WalletState.connected) {
                 console.log('🚀 Auto-triggering transaction from AI response');
                 
                 // Show confirmation dialog
