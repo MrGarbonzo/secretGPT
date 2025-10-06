@@ -18,11 +18,14 @@ const ChatInterface = {
     // Initialize chat interface
     init() {
         console.log('🔮 Initializing SecretGPTee chat interface...');
-        
+
         this.setupEventListeners();
         this.loadConversationHistory();
         this.initializeUI();
-        
+
+        // Sync wallet state on initialization
+        this.syncWalletState();
+
         console.log('✅ Chat interface initialized');
     },
     
@@ -126,10 +129,13 @@ const ChatInterface = {
     async sendMessage(message = null) {
         const messageInput = document.getElementById('message-input');
         const messageText = message || messageInput?.value?.trim();
-        
+
         if (!messageText || ChatState.isStreaming) {
             return;
         }
+
+        // Sync wallet state before sending message
+        this.syncWalletState();
         
         try {
             // Add user message to chat
@@ -165,7 +171,7 @@ const ChatInterface = {
     async sendStreamingMessage(message) {
         ChatState.isStreaming = true;
         this.updateSendButton();
-        
+
         try {
             const requestData = {
                 message: message,
@@ -175,6 +181,9 @@ const ChatInterface = {
                 wallet_address: ChatState.walletAddress,
                 system_prompt: this.getSystemPrompt()
             };
+
+            // Detect SNIP token queries and add viewing keys
+            await this.addViewingKeysToRequest(requestData, message);
             
             console.log('📤 Sending streaming chat request with wallet info:', {
                 wallet_connected: requestData.wallet_connected,
@@ -182,19 +191,19 @@ const ChatInterface = {
                 message: requestData.message
             });
             
-            const response = await fetch('/api/v1/chat/stream', {
+            const response = await fetch('/secret_gptee/api/v1/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(requestData)
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
-            await this.handleStreamingResponse(response);
+
+            await this.handleStreamingResponse(response, message);
             
         } catch (error) {
             console.error('Streaming error:', error);
@@ -211,7 +220,7 @@ const ChatInterface = {
     async sendDirectMessage(message) {
         ChatState.isStreaming = true;
         this.updateSendButton();
-        
+
         try {
             const requestData = {
                 message: message,
@@ -221,6 +230,9 @@ const ChatInterface = {
                 wallet_address: ChatState.walletAddress,
                 system_prompt: this.getSystemPrompt()
             };
+
+            // Detect SNIP token queries and add viewing keys
+            await this.addViewingKeysToRequest(requestData, message);
             
             console.log('📤 Sending chat request with wallet info:', {
                 wallet_connected: requestData.wallet_connected,
@@ -228,7 +240,7 @@ const ChatInterface = {
                 message: requestData.message
             });
             
-            const response = await fetch('/api/v1/chat', {
+            const response = await fetch('/secret_gptee/api/v1/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -249,15 +261,24 @@ const ChatInterface = {
                     model: data.model,
                     tools_used: data.tools_used
                 });
-                
+
                 // Check for transaction in non-streaming response
                 const lastMessage = ChatState.messages[ChatState.messages.length - 1];
                 if (lastMessage && lastMessage.role === 'assistant') {
                     await this.checkForTransactionRequest(lastMessage.content);
                 }
             } else {
-                this.addMessage('assistant', '❌ ' + (data.error || 'Unknown error occurred'));
-                SecretGPTee.showToast('Chat error: ' + data.error, 'error');
+                // Check if it's a viewing key error for SNIP tokens
+                if (data.error_type === 'viewing_key_required' && data.requires_user_action && window.SNIPTokenManager) {
+                    // Auto-trigger viewing key creation
+                    await this.autoCreateViewingKey(data, requestData.message);
+                } else if (data.error_type === 'viewing_key_required' && data.token && window.SNIPTokenManager) {
+                    // Fallback to old behavior if no action flag
+                    await this.handleViewingKeyRequired(data, requestData.message);
+                } else {
+                    this.addMessage('assistant', '❌ ' + (data.error || 'Unknown error occurred'));
+                    SecretGPTee.showToast('Chat error: ' + data.error, 'error');
+                }
             }
             
         } catch (error) {
@@ -272,14 +293,15 @@ const ChatInterface = {
     },
     
     // Handle streaming response
-    async handleStreamingResponse(response) {
+    async handleStreamingResponse(response, originalMessage = '') {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        
+
         this.hideTypingIndicator();
         let assistantMessageId = this.addMessage('assistant', '', { streaming: true });
-        
+
         let buffer = '';  // Buffer to handle partial SSE events
+        let fullMessage = '';  // Track the full message for viewing key detection
         
         try {
             while (true) {
@@ -308,11 +330,44 @@ const ChatInterface = {
                                 
                                 if (data.success && data.chunk) {
                                     console.log('🔍 Processing chunk type:', data.chunk.type);
-                                    if (data.chunk.type === 'content' || 
-                                        data.chunk.type === 'mcp_response' || 
+                                    if (data.chunk.type === 'content' ||
+                                        data.chunk.type === 'mcp_response' ||
                                         data.chunk.type === 'keplr_response' ||
                                         data.chunk.type === 'text_chunk') {
                                         console.log('✅ Appending chunk data:', data.chunk.data.substring(0, 100) + '...');
+
+                                        // Accumulate the full message
+                                        fullMessage += data.chunk.data;
+
+                                        // Check if this is a viewing key required response
+                                        console.log('🔍 Checking for viewing key error in full message so far');
+                                        if (fullMessage.includes('Viewing Key Required') ||
+                                            fullMessage.includes('Viewing key required')) {
+                                            console.log('🔑 VIEWING KEY REQUIRED DETECTED!');
+                                            console.log('🔍 Full message so far:', fullMessage);
+
+                                            // Parse token from the full message - look for SSCRT, SHD, etc
+                                            const tokenMatch = fullMessage.match(/query\s+(\w+)\s+balance/i) ||
+                                                             fullMessage.match(/to\s+query\s+(\w+)/i) ||
+                                                             fullMessage.match(/(\w+)\s+balance/i) ||
+                                                             fullMessage.match(/for\s+(\w+)/i);
+                                            console.log('🔍 Token match result:', tokenMatch);
+
+                                            if (tokenMatch && tokenMatch[1]) {
+                                                const tokenSymbol = tokenMatch[1].toLowerCase();
+                                                console.log(`🔑 Detected viewing key required for ${tokenSymbol}`);
+
+                                                // Clear the error message
+                                                this.finalizeMessage(assistantMessageId);
+
+                                                // Trigger viewing key creation
+                                                this.handleMissingViewingKey(tokenSymbol, originalMessage);
+                                                return; // Stop processing this stream
+                                            } else {
+                                                console.log('⚠️ Waiting for more chunks to parse token...');
+                                            }
+                                        }
+
                                         this.appendToMessage(assistantMessageId, data.chunk.data);
                                     } else if (data.chunk.type === 'stream_complete') {
                                         console.log('🏁 Stream completed');
@@ -320,7 +375,17 @@ const ChatInterface = {
                                         console.warn('⚠️ Unknown chunk type:', data.chunk.type);
                                     }
                                 } else if (!data.success) {
-                                    this.appendToMessage(assistantMessageId, '\n\n❌ Error: ' + (data.error || 'Unknown error'));
+                                    // Check if this is a viewing key required error with action flag
+                                    if (data.error_type === 'viewing_key_required' && data.requires_user_action && window.SNIPTokenManager) {
+                                        console.log('🔑 Viewing key required with action flag detected in stream');
+                                        // Clear any partial error message
+                                        this.finalizeMessage(assistantMessageId);
+                                        // Auto-trigger viewing key creation
+                                        await this.autoCreateViewingKey(data, originalMessage);
+                                        return; // Stop processing this stream
+                                    } else {
+                                        this.appendToMessage(assistantMessageId, '\n\n❌ Error: ' + (data.error || 'Unknown error'));
+                                    }
                                     break;
                                 }
                             } catch (e) {
@@ -375,9 +440,10 @@ const ChatInterface = {
         if (message && message.metadata) {
             message.metadata.streaming = false;
             this.updateMessageElement(messageId, message.content, false);
-            
-            // Check if the message contains transaction information
+
+            // Force scroll to ensure completed assistant message is visible
             if (message.role === 'assistant') {
+                setTimeout(() => this.scrollToBottom(true), 100);
                 this.checkForTransactionRequest(message.content);
             }
         }
@@ -743,6 +809,231 @@ const ChatInterface = {
         
         return prompt;
     },
+
+    // Handle missing viewing key for SNIP tokens
+    async handleMissingViewingKey(tokenSymbol, originalMessage) {
+        try {
+            console.log(`🔐 Handling missing viewing key for ${tokenSymbol}`);
+
+            // Show user that we're creating a viewing key
+            this.addMessage('assistant', `🔐 Creating viewing key for ${tokenSymbol.toUpperCase()}...\n\nPlease approve the transaction in Keplr.`);
+
+            // Try to create the viewing key
+            if (window.SNIPTokenManager) {
+                try {
+                    const viewingKey = await window.SNIPTokenManager.createViewingKey(tokenSymbol);
+
+                    // Success! Now query the balance directly
+                    this.addMessage('assistant', `✅ Viewing key created successfully! Fetching your ${tokenSymbol.toUpperCase()} balance...`);
+
+                    // Query the balance directly using the new viewing key
+                    try {
+                        const balanceResult = await window.SNIPTokenManager.querySnip20Balance(tokenSymbol);
+
+                        if (balanceResult.success) {
+                            // Show the balance result
+                            this.addMessage('assistant', `💎 **${tokenSymbol.toUpperCase()} Token Balance**\n\n${balanceResult.formatted}\n\nAddress: \`${WalletState.address}\``);
+                        } else {
+                            // If balance query fails, retry the original message
+                            this.addMessage('assistant', `⚠️ Couldn't fetch balance directly. Retrying...`);
+                            setTimeout(() => {
+                                this.sendMessage(originalMessage);
+                            }, 1000);
+                        }
+                    } catch (balanceError) {
+                        console.error('Error querying balance after key creation:', balanceError);
+                        // Fallback to resending the original query
+                        setTimeout(() => {
+                            this.sendMessage(originalMessage);
+                        }, 1000);
+                    }
+
+                } catch (error) {
+                    console.error('Failed to create viewing key:', error);
+
+                    if (error.message.includes('User denied') || error.message.includes('Request rejected')) {
+                        this.addMessage('assistant', `❌ Transaction cancelled. You need to approve the viewing key creation in Keplr to check your ${tokenSymbol.toUpperCase()} balance.`);
+                    } else if (!error.message.includes('createSecret20ViewingKey')) {
+                        // Only show error if it's not the old API error
+                        this.addMessage('assistant', `❌ Failed to create viewing key: ${error.message}`);
+                    }
+                }
+            } else {
+                this.addMessage('assistant', `❌ SNIP token manager not available. Please refresh the page.`);
+            }
+        } catch (error) {
+            console.error('Error in handleMissingViewingKey:', error);
+            this.addMessage('assistant', `❌ Error handling viewing key: ${error.message}`);
+        }
+    },
+
+    // Automatically create viewing key when backend requests it
+    async autoCreateViewingKey(errorData, originalMessage) {
+        try {
+            const tokenSymbol = errorData.token_symbol || errorData.token;
+            const contractAddress = errorData.contract_address;
+
+            console.log(`🔑 Auto-triggering viewing key creation for ${tokenSymbol}`);
+
+            // Show user that we're automatically creating the viewing key
+            this.addMessage('assistant', `🔐 **Creating Viewing Key for ${tokenSymbol.toUpperCase()}**\n\nI need to create a viewing key to check your balance. Please approve the transaction in your Keplr wallet popup.`);
+
+            // Automatically trigger the viewing key creation
+            try {
+                const viewingKey = await window.SNIPTokenManager.createViewingKey(tokenSymbol);
+
+                if (viewingKey) {
+                    // Success! Show success message
+                    this.addMessage('assistant', `✅ Viewing key created successfully! Now fetching your ${tokenSymbol.toUpperCase()} balance...`);
+
+                    // Retry the balance query with the new viewing key
+                    setTimeout(async () => {
+                        try {
+                            console.log(`🔄 Auto-retrying balance query for ${tokenSymbol} with new viewing key`);
+
+                            // Build a fresh request with the new viewing key directly
+                            const retryRequestData = {
+                                message: originalMessage,
+                                temperature: 0.7,
+                                enable_tools: true,
+                                wallet_connected: ChatState.walletConnected,
+                                wallet_address: ChatState.walletAddress,
+                                system_prompt: this.getSystemPrompt(),
+                                viewing_keys: {},
+                                snip_balances: {}
+                            };
+
+                            // Add the newly created viewing key directly
+                            retryRequestData.viewing_keys[tokenSymbol.toLowerCase()] = viewingKey;
+
+                            // Try to pre-fetch the balance for immediate response
+                            if (window.SNIPTokenManager) {
+                                try {
+                                    const balanceResult = await window.SNIPTokenManager.querySnip20Balance(tokenSymbol);
+                                    if (balanceResult && balanceResult.success) {
+                                        retryRequestData.snip_balances[tokenSymbol.toLowerCase()] = balanceResult;
+                                        console.log(`💎 Pre-fetched ${tokenSymbol} balance for retry:`, balanceResult.formatted);
+                                    }
+                                } catch (balanceError) {
+                                    console.log(`⚠️ Could not pre-fetch balance for ${tokenSymbol}:`, balanceError.message);
+                                }
+                            }
+
+                            // Send the retry request with the pre-built data
+                            const response = await fetch('/secret_gptee/api/v1/chat/stream', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(retryRequestData)
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
+
+                            // Process the streaming response
+                            await this.processStreamingResponse(response, originalMessage);
+                        } catch (retryError) {
+                            console.error('Auto-retry failed:', retryError);
+                            this.addMessage('assistant', `⚠️ Viewing key was created successfully, but the automatic balance query failed. Please ask about your ${tokenSymbol.toUpperCase()} balance again.`);
+                        }
+                    }, 1500); // Slightly longer delay to ensure viewing key is stored
+                }
+            } catch (error) {
+                console.error('Failed to create viewing key:', error);
+
+                if (error.message.includes('User denied') || error.message.includes('Request rejected')) {
+                    this.addMessage('assistant', `❌ **Transaction Cancelled**\n\nYou cancelled the viewing key creation. I need your approval to create a viewing key to check your ${tokenSymbol.toUpperCase()} balance.\n\nWould you like to try again?`);
+                } else if (error.message.includes('Insufficient')) {
+                    this.addMessage('assistant', `❌ **Insufficient Gas**\n\nYou need some SCRT in your wallet to pay for the transaction fee. Please add SCRT to your wallet and try again.`);
+                } else {
+                    this.addMessage('assistant', `❌ **Failed to Create Viewing Key**\n\n${error.message}\n\nPlease try again or check your wallet connection.`);
+                }
+            }
+        } catch (error) {
+            console.error('Error in autoCreateViewingKey:', error);
+            this.addMessage('assistant', `❌ Error creating viewing key: ${error.message}`);
+        }
+    },
+
+    // Handle viewing key required error for SNIP tokens (old behavior)
+    async handleViewingKeyRequired(errorData, originalMessage) {
+        try {
+            const tokenSymbol = errorData.token;
+            const contractAddress = errorData.contract_address;
+
+            console.log(`🔑 Handling viewing key required for ${tokenSymbol}`);
+
+            // Show user that viewing key is needed
+            this.addMessage('assistant', `🔑 **Viewing Key Required**\n\nTo query your ${tokenSymbol.toUpperCase()} balance, you need a viewing key. Would you like me to help you create one?`);
+
+            // Try to handle the viewing key creation
+            const viewingKey = await window.SNIPTokenManager.handleViewingKeyError(tokenSymbol, contractAddress);
+
+            if (viewingKey) {
+                // Viewing key created successfully, retry the original query
+                this.addMessage('assistant', `✅ Viewing key created! Let me retry your ${tokenSymbol.toUpperCase()} balance query...`);
+
+                // Re-send the original message to get the balance
+                setTimeout(async () => {
+                    try {
+                        const requestData = this.buildRequestData(originalMessage);
+
+                        const response = await fetch('/secret_gptee/api/v1/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                ...requestData,
+                                viewing_key: viewingKey,
+                                token_symbol: tokenSymbol
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        const retryData = await response.json();
+
+                        if (retryData.success) {
+                            this.addMessage('assistant', retryData.response, {
+                                model: retryData.model,
+                                tools_used: retryData.tools_used
+                            });
+                        } else {
+                            this.addMessage('assistant', `❌ Still unable to query ${tokenSymbol.toUpperCase()} balance: ${retryData.error || 'Unknown error'}`);
+                        }
+
+                    } catch (error) {
+                        console.error('Retry query failed:', error);
+                        this.addMessage('assistant', `❌ Failed to retry ${tokenSymbol.toUpperCase()} balance query. Please try again.`);
+                    }
+                }, 1000); // Small delay to let viewing key propagate
+
+            } else {
+                // User cancelled or viewing key creation failed
+                this.addMessage('assistant', `⚠️ Unable to create viewing key for ${tokenSymbol.toUpperCase()}. You can try again later or create one manually in your Keplr wallet.`);
+            }
+
+        } catch (error) {
+            console.error('Error handling viewing key requirement:', error);
+            this.addMessage('assistant', `❌ Error handling viewing key: ${error.message}`);
+        }
+    },
+
+    // Build request data for API calls
+    buildRequestData(message) {
+        return {
+            message: message,
+            wallet_connected: ChatState.walletConnected,
+            wallet_address: ChatState.walletAddress,
+            temperature: ChatState.temperature,
+            streaming: ChatState.streaming
+        };
+    },
     
     // Start new chat
     startNewChat() {
@@ -895,8 +1186,23 @@ const ChatInterface = {
             
             if (shouldScroll) {
                 console.log('⬇️ Scrolling to bottom');
-                // Use immediate scrolling and also set with delay as backup
+
+                // Enhanced scrolling with multiple fallbacks
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                // Use requestAnimationFrame for better timing
+                requestAnimationFrame(() => {
+                    messagesContainer.scrollTo({
+                        top: messagesContainer.scrollHeight,
+                        behavior: 'smooth'
+                    });
+
+                    // Final fallback to ensure visibility
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        console.log('🔄 Final scroll applied');
+                    }, 200);
+                });
                 setTimeout(() => {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }, 50);
@@ -1018,6 +1324,176 @@ const ChatInterface = {
         ChatState.temperature = temperature;
         this.updateTemperatureDisplay();
         this.saveSettings();
+    },
+
+    // Sync wallet state from localStorage and WalletState
+    syncWalletState() {
+        // Check localStorage for wallet connection
+        const savedAddress = localStorage.getItem('secretgptee-wallet-address');
+        const savedConnected = localStorage.getItem('secretgptee-wallet-connected') === 'true';
+
+        // Update ChatState if wallet is connected
+        if (savedConnected && savedAddress) {
+            ChatState.walletConnected = true;
+            ChatState.walletAddress = savedAddress;
+            console.log('📱 Wallet state synced:', {
+                connected: ChatState.walletConnected,
+                address: ChatState.walletAddress
+            });
+        } else {
+            ChatState.walletConnected = false;
+            ChatState.walletAddress = null;
+            console.log('📱 No wallet connected');
+        }
+
+        // Also check if WalletState is available and use it
+        if (window.WalletState && window.WalletState.connected) {
+            ChatState.walletConnected = true;
+            ChatState.walletAddress = window.WalletState.address;
+            console.log('📱 Synced from WalletState:', {
+                connected: ChatState.walletConnected,
+                address: ChatState.walletAddress
+            });
+        }
+    },
+
+    // Detect SNIP token queries and add viewing keys from Keplr
+    async addViewingKeysToRequest(requestData, message) {
+        console.log('🔍 CACHE TEST: addViewingKeysToRequest function updated v2025081414');
+
+        if (!ChatState.walletConnected) {
+            console.log('❌ Wallet not connected, skipping viewing key detection');
+            return;
+        }
+
+        if (!window.SNIPTokenManager) {
+            console.log('❌ SNIPTokenManager not available, skipping viewing key detection');
+            return;
+        }
+
+        console.log('✅ Wallet connected and SNIPTokenManager available');
+
+        try {
+            // Detect if message contains SNIP token queries
+            const messageLower = message.toLowerCase();
+            console.log(`🔍 Analyzing message: "${messageLower}"`);
+
+            // All supported SNIP tokens from backend registry
+            const snipTokens = [
+                'sscrt', 'silk', 'shd', 'stkd-scrt', 'sstjuno', 'sstatom', 'sstluna', 'sstosmo',
+                'sinj', 'swbtc', 'susdt', 'snobleusdc', 'sdydx', 'sarch', 'sakt', 'stia',
+                'butt', 'alter', 'amber'
+            ];
+
+            // Token aliases for natural language queries
+            const tokenAliases = {
+                'eth': ['seth', 'steth'],
+                'ethereum': ['seth', 'steth'],
+                'btc': ['sbtc', 'swbtc'],
+                'bitcoin': ['sbtc', 'swbtc'],
+                'wbtc': ['swbtc'],
+                'usdt': ['susdt'],
+                'tether': ['susdt'],
+                'usdc': ['snobleusdc'],
+                'dydx': ['sdydx'],
+                'injective': ['sinj'],
+                'inj': ['sinj'],
+                'arch': ['sarch'],
+                'akash': ['sakt'],
+                'akt': ['sakt'],
+                'celestia': ['stia'],
+                'tia': ['stia'],
+                'juno': ['sstjuno'],
+                'atom': ['sstatom'],
+                'luna': ['sstluna'],
+                'osmo': ['sstosmo'],
+                'osmosis': ['sstosmo'],
+                'scrt': ['sscrt', 'stkd-scrt']
+            };
+
+            // Check for token aliases first, then direct matches
+            let requestedTokens = [];
+
+            // Check aliases
+            for (const [alias, actualTokens] of Object.entries(tokenAliases)) {
+                if (messageLower.includes(alias) &&
+                    (messageLower.includes('balance') || messageLower.includes('how much'))) {
+                    requestedTokens.push(...actualTokens);
+                }
+            }
+
+            // Check direct token matches
+            const directMatches = snipTokens.filter(token =>
+                messageLower.includes(token) &&
+                (messageLower.includes('balance') || messageLower.includes('how much'))
+            );
+
+            requestedTokens.push(...directMatches);
+
+            // Remove duplicates
+            requestedTokens = [...new Set(requestedTokens)];
+
+            if (requestedTokens.length > 0) {
+                console.log(`🔍 Detected SNIP token query for: ${requestedTokens.join(', ')}`);
+
+                // Get viewing keys and query balances directly for detected tokens
+                const viewingKeys = {};
+                const snipBalances = {};
+
+                for (const token of requestedTokens) {
+                    try {
+                        console.log(`🔑 Attempting to get viewing key for ${token}...`);
+                        const viewingKey = await window.SNIPTokenManager.getViewingKey(token);
+
+                        if (viewingKey) {
+                            viewingKeys[token] = viewingKey;
+                            console.log(`✅ Retrieved viewing key for ${token}: KEY_EXISTS`);
+
+                            // Query balance directly using SecretJS in browser
+                            console.log(`💰 Querying ${token} balance directly in browser...`);
+                            try {
+                                const balanceResult = await window.SNIPTokenManager.querySnip20Balance(token);
+
+                                if (balanceResult.success) {
+                                    console.log(`✅ Got ${token} balance: ${balanceResult.formatted}`);
+                                    snipBalances[token] = balanceResult;
+                                } else {
+                                    console.log(`⚠️ Failed to query ${token} balance:`, balanceResult.error);
+                                }
+                            } catch (balanceError) {
+                                console.error(`❌ Error querying ${token} balance:`, balanceError);
+                            }
+                        } else {
+                            console.log(`❌ No viewing key found for ${token}`);
+                        }
+                    } catch (error) {
+                        console.log(`⚠️ No viewing key found for ${token}:`, error.message);
+                        // Continue with other tokens - backend will handle missing keys
+                    }
+                }
+
+                // Add viewing keys to request if any were found
+                if (Object.keys(viewingKeys).length > 0) {
+                    requestData.viewing_keys = viewingKeys;
+                    console.log(`📤 Added ${Object.keys(viewingKeys).length} viewing keys to request:`, Object.keys(viewingKeys));
+                }
+
+                // Add SNIP balances to request if any were found
+                if (Object.keys(snipBalances).length > 0) {
+                    requestData.snip_balances = snipBalances;
+                    console.log(`💎 Added ${Object.keys(snipBalances).length} SNIP balances to request:`, snipBalances);
+                }
+
+                if (Object.keys(viewingKeys).length === 0 && Object.keys(snipBalances).length === 0) {
+                    console.log('❌ No viewing keys or balances retrieved, backend will handle viewing key requirement');
+                }
+            } else {
+                console.log(`❌ No SNIP token queries detected in: "${messageLower}"`);
+            }
+        } catch (error) {
+            console.error('Error detecting SNIP tokens or getting viewing keys:', error);
+            // Continue without viewing keys - backend will handle the error
+        }
     }
 };
 
@@ -1028,6 +1504,14 @@ window.ChatState = ChatState;  // Make ChatState globally accessible
 // Global initialization function for HTML
 window.initializeChat = function() {
     ChatInterface.init();
+};
+
+// Global sync function for wallet integration
+window.syncWalletWithChat = function() {
+    console.log('🔄 Syncing wallet with chat...');
+    if (window.ChatInterface) {
+        window.ChatInterface.syncWalletState();
+    }
 };
 
 // Global function to clear chat history (for testing)

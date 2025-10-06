@@ -606,7 +606,7 @@ const WalletInterface = {
         
         try {
             // Send transaction through backend API which uses MCP
-            const response = await fetch('/api/wallet/send', {
+            const response = await fetch('api/wallet/send', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

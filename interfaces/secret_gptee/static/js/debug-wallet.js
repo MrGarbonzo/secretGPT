@@ -9,7 +9,7 @@ window.WalletDebug = {
         console.log('🔍 Testing secretGPT service connection...');
         
         try {
-            const response = await fetch('/api/system/status', {
+            const response = await fetch('api/system/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -35,7 +35,7 @@ window.WalletDebug = {
         console.log('🔍 Testing wallet service...');
         
         try {
-            const response = await fetch('/api/wallet/status', {
+            const response = await fetch('api/wallet/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

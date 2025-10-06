@@ -74,7 +74,7 @@ setTimeout(() => {
         console.warn('⚠️ UMD SecretJS failed, attempting jsDelivr fallback...');
         
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/secretjs@1.15.1/dist/secretjs.umd.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/secretjs@1.21.2/dist/secretjs.umd.min.js';
         script.onload = () => {
             setTimeout(() => {
                 if (typeof SecretNetworkClient !== 'undefined') {

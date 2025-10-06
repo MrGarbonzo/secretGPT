@@ -21,8 +21,8 @@ const WalletState = {
 const KEPLR_CHAIN_CONFIG = {
     chainId: 'secret-4',
     chainName: 'Secret Network',
-    rpc: 'https://rpc.ankr.com/http/scrt_cosmos',
-    rest: 'https://rpc.ankr.com/http/scrt_cosmos',
+    rpc: 'https://lcd.secret.adrius.starshell.net',
+    rest: 'https://lcd.secret.adrius.starshell.net',
     bip44: {
         coinType: 529,
     },
@@ -174,9 +174,10 @@ const WalletInterface = {
         }
         
         // Auto-connect if previously connected
+        // Increased delay to ensure ChatInterface is ready
         setTimeout(() => {
             this.tryAutoConnect();
-        }, 100);
+        }, 500);
     },
     
     // Try to auto-connect wallet if previously connected
@@ -261,10 +262,21 @@ const WalletInterface = {
             localStorage.setItem('secretgptee-wallet-address', accounts[0].address);
             localStorage.setItem('secretgptee-wallet-connected', 'true');
             
-            // Update chat state
+            // Update chat state with verification
             if (window.ChatState) {
                 window.ChatState.walletConnected = true;
                 window.ChatState.walletAddress = accounts[0].address;
+                console.log('✅ ChatState updated with wallet info:', {
+                    connected: window.ChatState.walletConnected,
+                    address: window.ChatState.walletAddress
+                });
+
+                // Trigger a sync to ensure chat knows about wallet
+                if (window.syncWalletWithChat) {
+                    window.syncWalletWithChat();
+                }
+            } else {
+                console.error('❌ ChatState not available! Wallet info not synced with chat');
             }
             
             console.log('✅ Wallet connected:', accounts[0].address);
@@ -402,7 +414,7 @@ const WalletInterface = {
             
             // Try backend fallback
             try {
-                const response = await fetch(`/api/wallet/balance/${WalletState.address}`);
+                const response = await fetch(`/secret_gptee/api/wallet/balance/${WalletState.address}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
@@ -1042,6 +1054,463 @@ window.showReceiveModal = function() {
         }
     };
 };
+
+// SNIP-20 Token and Viewing Key Management
+// Based on dash.scrt.network implementation patterns
+const SNIPTokenManager = {
+    // SNIP-20 tokens registry - matches backend config (all 24 tokens)
+    supportedTokens: {
+        // === NATIVE TOKENS ===
+        'sscrt': {
+            address: 'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek',
+            symbol: 'sSCRT',
+            name: 'Secret SCRT',
+            decimals: 6
+        },
+        'silk': {
+            address: 'secret1fl449muk5yq8dlad7a22nje4p5d2pnsgymhjfd',
+            symbol: 'SILK',
+            name: 'Silk Stablecoin',
+            decimals: 6
+        },
+        'shd': {
+            address: 'secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm',
+            symbol: 'SHD',
+            name: 'Shade',
+            decimals: 8
+        },
+
+        // === STAKING DERIVATIVES ===
+        'stkd-scrt': {
+            address: 'secret1k6u0cy4feepm6pehnz804zmwakuwdapm69tuc4',
+            symbol: 'stkd-SCRT',
+            name: 'Shade SCRT staking derivative',
+            decimals: 6
+        },
+        'sstjuno': {
+            address: 'secret1097nagcaavlkchl87xkqptww2qkwuvhdnsqs2v',
+            symbol: 'sstJUNO',
+            name: 'Secret stJUNO',
+            decimals: 6
+        },
+        'sstatom': {
+            address: 'secret155w9uxruypsltvqfygh5urghd5v0zc6f9g69sq',
+            symbol: 'sstATOM',
+            name: 'Secret stATOM',
+            decimals: 6
+        },
+        'sstluna': {
+            address: 'secret1rkgvpck36v2splc203sswdr0fxhyjcng7099a9',
+            symbol: 'sstLUNA',
+            name: 'Secret stLUNA',
+            decimals: 6
+        },
+        'sstosmo': {
+            address: 'secret1jrp6z8v679yaq65rndsr970mhaxzgfkymvc58g',
+            symbol: 'sstOSMO',
+            name: 'Secret stOSMO',
+            decimals: 6
+        },
+
+        // === MAJOR CROSS-CHAIN TOKENS ===
+        'sinj': {
+            address: 'secret14706vxakdzkz9a36872cs62vpl5qd84kpwvpew',
+            symbol: 'sINJ',
+            name: 'Secret INJ',
+            decimals: 18
+        },
+        'swbtc': {
+            address: 'secret1v2kgmfwgd2an0l5ddralajg5wfdkemxl2vg4jp',
+            symbol: 'sWBTC',
+            name: 'Secret WBTC',
+            decimals: 8
+        },
+        'susdt': {
+            address: 'secret1htd6s29m2j9h45knwkyucz98m306n32hx8dww3',
+            symbol: 'sUSDT',
+            name: 'Secret USDT',
+            decimals: 6
+        },
+        'snobleusdc': {
+            address: 'secret1chsejpk9kfj4vt9ec6xvyguw539gsdtr775us2',
+            symbol: 'sNobleUSDC',
+            name: 'Secret Noble USDC',
+            decimals: 6
+        },
+        'sdydx': {
+            address: 'secret13lndcagy53wfzh69rtv0dex3a7cks0dv5emwke',
+            symbol: 'sDYDX',
+            name: 'Secret dYdX',
+            decimals: 18
+        },
+        'sarch': {
+            address: 'secret188z7hncvphw4us4h6uy6vlq4qf20jd2vm2vu8c',
+            symbol: 'sARCH',
+            name: 'Secret ARCH',
+            decimals: 18
+        },
+        'sakt': {
+            address: 'secret168j5f78magfce5r2j4etaytyuy7ftjkh4cndqw',
+            symbol: 'sAKT',
+            name: 'Secret AKT',
+            decimals: 6
+        },
+        'stia': {
+            address: 'secret1s9h6mrp4k9gll4zfv5h78ll68hdq8ml7jrnn20',
+            symbol: 'sTIA',
+            name: 'Secret Celestia',
+            decimals: 6
+        },
+
+        // === ECOSYSTEM TOKENS ===
+        'butt': {
+            address: 'secret1yxcexylwyxlq58umhgsjgstgcg2a0ytfy4d9lt',
+            symbol: 'BUTT',
+            name: 'BTN.group coin',
+            decimals: 6
+        },
+        'alter': {
+            address: 'secret12rcvz0umvk875kd6a803txhtlu7y0pnd73kcej',
+            symbol: 'ALTER',
+            name: 'Alter',
+            decimals: 6
+        },
+        'amber': {
+            address: 'secret1s09x2xvfd2lp2skgzm29w2xtena7s8fq98v852',
+            symbol: 'AMBER',
+            name: 'Amber',
+            decimals: 6
+        }
+    },
+
+    // Create a new viewing key for a SNIP-20 token
+    async createViewingKey(tokenSymbol) {
+        if (!WalletState.connected) {
+            throw new Error('Wallet not connected');
+        }
+
+        if (!window.keplr) {
+            throw new Error('Keplr wallet not found');
+        }
+
+        const token = this.supportedTokens[tokenSymbol.toLowerCase()];
+        if (!token) {
+            throw new Error(`Unsupported token: ${tokenSymbol}`);
+        }
+
+        try {
+            console.log(`🔐 Creating viewing key for ${token.symbol}...`);
+
+            // First, suggest the token to Keplr (this ensures Keplr knows about it)
+            try {
+                await window.keplr.suggestToken(WalletState.network, token.address);
+                console.log(`✅ Suggested ${token.symbol} to Keplr`);
+            } catch (e) {
+                console.log(`Token ${token.symbol} already known to Keplr or suggestion failed:`, e);
+            }
+
+            // Generate a random viewing key
+            const entropy = crypto.getRandomValues(new Uint8Array(32));
+            const viewingKey = Array.from(entropy, byte => byte.toString(16).padStart(2, '0')).join('');
+
+            console.log(`🔑 Generated viewing key for ${token.symbol}`);
+
+            // Create the set_viewing_key message
+            const msg = {
+                set_viewing_key: {
+                    key: viewingKey,
+                    padding: null
+                }
+            };
+
+            console.log(`📝 Executing set_viewing_key transaction for ${token.symbol}...`);
+
+            // Execute the transaction through SecretJS - this triggers the Keplr popup
+            const result = await WalletState.secretjs.tx.compute.executeContract(
+                {
+                    sender: WalletState.address,
+                    contract_address: token.address,
+                    code_hash: this.getCodeHash(token.address),
+                    msg: msg,
+                    sent_funds: []
+                },
+                {
+                    gasLimit: 150000
+                }
+            );
+
+            console.log(`📋 Transaction result:`, result);
+
+            if (result.code !== 0) {
+                throw new Error(`Transaction failed: ${result.rawLog || result.raw_log}`);
+            }
+
+            console.log(`✅ Successfully set viewing key for ${token.symbol}`);
+
+            // The viewing key is now set on-chain, Keplr should auto-detect it
+            // But we can try to explicitly add it to Keplr's storage
+            try {
+                if (window.keplr.experimentalSuggestChain) {
+                    // Some versions of Keplr have this experimental API
+                    await window.keplr.experimentalAddSecret20ViewingKey(
+                        WalletState.network,
+                        token.address,
+                        viewingKey
+                    );
+                }
+            } catch (e) {
+                console.log('Could not add viewing key to Keplr storage:', e);
+            }
+
+            return viewingKey;
+
+        } catch (error) {
+            console.error(`Failed to create viewing key for ${token.symbol}:`, error);
+            throw error;
+        }
+    },
+
+    // Get code hash for a token contract
+    getCodeHash(contractAddress) {
+        // Map of known code hashes (from config.py)
+        const codeHashes = {
+            'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek': 'af74387e276be8874f07bec3a87023ee49b0e7ebe08178c49d0a49c3c98ed60e', // sSCRT
+            'secret1fl449muk5yq8dlad7a22nje4p5d2pnsgymhjfd': '638a3e1d50175fbcb8373cf801565283e3eb23d88a9b7b7f99fcc5eb1e6b561e', // SILK
+            'secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm': '638a3e1d50175fbcb8373cf801565283e3eb23d88a9b7b7f99fcc5eb1e6b561e', // SHD
+            'secret1k6u0cy4feepm6pehnz804zmwakuwdapm69tuc4': 'f6be719b3c6feb498d3554ca0398eb6b7e7db262acb33f84a8f12106da6bbb09', // stkd-SCRT
+            'secret1yxcexylwyxlq58umhgsjgstgcg2a0ytfy4d9lt': 'f8b27343ff08290827560a1ba358eece600c9ea7f403b02684ad87ae7af0f288', // BUTT
+            'secret12rcvz0umvk875kd6a803txhtlu7y0pnd73kcej': 'd4f32c1bca133f15f69d557bd0722da10f45e31e5475a12900ca1e62e63e8f76', // ALTER
+            'secret1s09x2xvfd2lp2skgzm29w2xtena7s8fq98v852': '9a00ca4ad505e9be7e6e6dddf8d939b7ec7e9ac8e109d2c9a8fb6bb7b8c0a820', // AMBER
+            'secret1chsejpk9kfj4vt9ec6xvyguw539gsdtr775us2': '5a085bd8ed89de92b35134ddd12505a602c7759ea25fb5c089ba03c8535b3042', // sNobleUSDC
+            'secret13lndcagy53wfzh69rtv0dex3a7cks0dv5emwke': '5a085bd8ed89de92b35134ddd12505a602c7759ea25fb5c089ba03c8535b3042', // sDYDX
+            'secret168j5f78magfce5r2j4etaytyuy7ftjkh4cndqw': '5a085bd8ed89de92b35134ddd12505a602c7759ea25fb5c089ba03c8535b3042', // sAKT
+            // Most other tokens use the standard code hash
+        };
+
+        return codeHashes[contractAddress] || '638a3e1d50175fbcb8373cf801565283e3eb23d88a9b7b7f99fcc5eb1e6b561e';
+    },
+
+    // Get viewing key from Keplr wallet for a specific token
+    async getViewingKey(tokenSymbol, createIfMissing = true) {
+        if (!WalletState.connected) {
+            throw new Error('Wallet not connected');
+        }
+
+        if (!window.keplr) {
+            throw new Error('Keplr wallet not found');
+        }
+
+        const token = this.supportedTokens[tokenSymbol.toLowerCase()];
+        if (!token) {
+            throw new Error(`Unsupported token: ${tokenSymbol}`);
+        }
+
+        try {
+            console.log(`🔑 Requesting viewing key for ${token.symbol}...`);
+
+            // Use Keplr's getSecret20ViewingKey method
+            const viewingKey = await window.keplr.getSecret20ViewingKey(
+                WalletState.network, // secret-4
+                token.address
+            );
+
+            if (!viewingKey) {
+                throw new Error('No viewing key found');
+            }
+
+            console.log(`✅ Retrieved viewing key for ${token.symbol}`);
+            return viewingKey;
+
+        } catch (error) {
+            console.error(`Failed to get viewing key for ${token.symbol}:`, error);
+
+            // Check if it's a missing viewing key error and we should create one
+            if (createIfMissing && (error.message.includes('not found') || error.message.includes('No viewing key'))) {
+                console.log(`🔐 No viewing key found for ${token.symbol}, prompting user to create one...`);
+
+                try {
+                    // Create viewing key through Keplr
+                    await this.createViewingKey(tokenSymbol);
+
+                    // Try to get the viewing key again
+                    const newViewingKey = await window.keplr.getSecret20ViewingKey(
+                        WalletState.network,
+                        token.address
+                    );
+
+                    if (newViewingKey) {
+                        console.log(`✅ Successfully created and retrieved viewing key for ${token.symbol}`);
+                        return newViewingKey;
+                    }
+                } catch (createError) {
+                    console.error(`Failed to create viewing key for ${token.symbol}:`, createError);
+                    // Fall through to original error
+                }
+            }
+
+            throw error;
+        }
+    },
+
+    // Query SNIP-20 token balance directly using SecretJS
+    async querySnip20Balance(tokenSymbol) {
+        if (!WalletState.connected || !WalletState.secretjs) {
+            throw new Error('Wallet not connected or SecretJS not initialized');
+        }
+
+        const token = this.supportedTokens[tokenSymbol.toLowerCase()];
+        if (!token) {
+            throw new Error(`Unsupported token: ${tokenSymbol}`);
+        }
+
+        try {
+            // Get the viewing key first
+            const viewingKey = await this.getViewingKey(tokenSymbol);
+
+            console.log(`📊 Querying ${token.symbol} balance directly via SecretJS...`);
+
+            // Query the balance using SecretJS
+            const queryMsg = {
+                balance: {
+                    address: WalletState.address,
+                    key: viewingKey
+                }
+            };
+
+            const result = await WalletState.secretjs.query.compute.queryContract({
+                contract_address: token.address,
+                code_hash: this.getCodeHash(token.address),
+                query: queryMsg
+            });
+
+            console.log(`✅ ${token.symbol} balance result:`, result);
+
+            if (result.viewing_key_error) {
+                throw new Error(`Invalid viewing key: ${result.viewing_key_error.msg}`);
+            }
+
+            return {
+                success: true,
+                token: token.symbol,
+                balance: result.balance?.amount || "0",
+                formatted: this.formatBalance(result.balance?.amount || "0", token.decimals)
+            };
+
+        } catch (error) {
+            console.error(`Failed to query ${token.symbol} balance:`, error);
+            return {
+                success: false,
+                token: token.symbol,
+                error: error.message
+            };
+        }
+    },
+
+    // Format balance with decimals
+    formatBalance(rawAmount, decimals) {
+        const amount = BigInt(rawAmount);
+        const divisor = BigInt(10 ** decimals);
+        const whole = amount / divisor;
+        const remainder = amount % divisor;
+        const remainderStr = remainder.toString().padStart(decimals, '0');
+        return `${whole}.${remainderStr}`;
+    },
+
+    // Create viewing key for a token via Keplr
+    async createViewingKey(tokenSymbol) {
+        if (!WalletState.connected) {
+            throw new Error('Wallet not connected');
+        }
+
+        const token = this.supportedTokens[tokenSymbol.toLowerCase()];
+        if (!token) {
+            throw new Error(`Unsupported token: ${tokenSymbol}`);
+        }
+
+        try {
+            console.log(`🔨 Creating viewing key for ${token.symbol}...`);
+
+            // First suggest the token to Keplr if not already added
+            await this.suggestToken(tokenSymbol);
+
+            // Generate a new viewing key
+            const viewingKey = await window.keplr.createSecret20ViewingKey(
+                WalletState.network,
+                token.address
+            );
+
+            console.log(`✅ Created viewing key for ${token.symbol}`);
+            return viewingKey;
+
+        } catch (error) {
+            console.error(`Failed to create viewing key for ${token.symbol}:`, error);
+            throw error;
+        }
+    },
+
+    // Suggest token to Keplr wallet (add to wallet if not present)
+    async suggestToken(tokenSymbol) {
+        const token = this.supportedTokens[tokenSymbol.toLowerCase()];
+        if (!token) {
+            throw new Error(`Unsupported token: ${tokenSymbol}`);
+        }
+
+        try {
+            await window.keplr.suggestToken(WalletState.network, token.address);
+            console.log(`✅ Suggested ${token.symbol} to Keplr`);
+        } catch (error) {
+            // Ignore if token already exists or user rejects
+            console.log(`Token suggestion for ${token.symbol}:`, error.message);
+        }
+    },
+
+    // Handle viewing key errors from backend responses
+    async handleViewingKeyError(tokenSymbol, contractAddress) {
+        try {
+            // Try to get existing viewing key first
+            let viewingKey;
+            try {
+                viewingKey = await this.getViewingKey(tokenSymbol);
+            } catch (error) {
+                if (error.message.includes('viewing_key_not_found')) {
+                    // No viewing key exists, create one
+                    const result = await SecretGPTee.showModal({
+                        title: `🔑 Create Viewing Key`,
+                        content: `
+                            <p>To view your <strong>${tokenSymbol.toUpperCase()}</strong> balance, you need to create a viewing key.</p>
+                            <p>This allows the token contract to show your private balance while maintaining privacy.</p>
+                            <p>Click "Create" to generate a viewing key using your Keplr wallet.</p>
+                        `,
+                        buttons: [
+                            { text: 'Cancel', class: 'btn-secondary' },
+                            { text: 'Create Viewing Key', class: 'btn-primary' }
+                        ]
+                    });
+
+                    if (result === 1) { // User clicked "Create"
+                        viewingKey = await this.createViewingKey(tokenSymbol);
+                        SecretGPTee.showToast(`✅ Viewing key created for ${tokenSymbol.toUpperCase()}`, 'success');
+                    } else {
+                        return null; // User cancelled
+                    }
+                } else {
+                    throw error;
+                }
+            }
+
+            // Return the viewing key for backend to use
+            return viewingKey;
+
+        } catch (error) {
+            console.error('Failed to handle viewing key error:', error);
+            SecretGPTee.showToast(`Failed to create viewing key: ${error.message}`, 'error');
+            return null;
+        }
+    }
+};
+
+// Make SNIPTokenManager globally available
+window.SNIPTokenManager = SNIPTokenManager;
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {

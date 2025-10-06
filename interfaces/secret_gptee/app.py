@@ -83,12 +83,16 @@ class SecretGPTeeInterface:
         @self.app.get("/", response_class=HTMLResponse)
         async def home(request: Request):
             """SecretGPTee main page - modern chat interface"""
+            # Determine base path for static files based on how app is accessed
+            base_path = "/secret_gptee" if "ui" in request.query_params else ""
+
             return self.templates.TemplateResponse(
-                "index.html", 
+                "index.html",
                 {
-                    "request": request, 
+                    "request": request,
                     "title": "SecretGPTee - AI Chat with Secret Network",
-                    "interface_type": "secret_gptee"
+                    "interface_type": "secret_gptee",
+                    "base_path": base_path
                 }
             )
         
@@ -120,6 +124,7 @@ class SecretGPTeeInterface:
                 enable_tools = data.get("enable_tools", True)
                 wallet_connected = data.get("wallet_connected", False)
                 wallet_address = data.get("wallet_address", "")
+                viewing_keys = data.get("viewing_keys", {})
                 
                 if not message:
                     raise HTTPException(status_code=400, detail="Message is required")
@@ -137,7 +142,8 @@ class SecretGPTeeInterface:
                         "system_prompt": system_prompt,
                         "enable_tools": enable_tools,
                         "wallet_connected": wallet_connected,
-                        "wallet_address": wallet_address
+                        "wallet_address": wallet_address,
+                        "viewing_keys": viewing_keys
                     }
                 )
                 
@@ -175,8 +181,16 @@ class SecretGPTeeInterface:
                 temperature = data.get("temperature", 0.7)
                 system_prompt = data.get("system_prompt", "You are SecretGPTee, a helpful AI assistant integrated with the Secret Network blockchain.")
                 enable_tools = data.get("enable_tools", True)
+
+                # Debug logging for parameter extraction
+                logger.info(f"🔍 FLASK DEBUG: Full data received: {data}")
                 wallet_connected = data.get("wallet_connected", False)
                 wallet_address = data.get("wallet_address", "")
+                viewing_keys = data.get("viewing_keys", {})
+                snip_balances = data.get("snip_balances", {})
+                logger.info(f"🔍 FLASK DEBUG: Extracted wallet_connected={wallet_connected}, wallet_address={wallet_address}")
+                logger.info(f"🔍 FLASK DEBUG: Extracted viewing_keys={viewing_keys}")
+                logger.info(f"🔍 FLASK DEBUG: Extracted snip_balances={snip_balances}")
                 
                 if not message:
                     raise HTTPException(status_code=400, detail="Message is required")
@@ -198,7 +212,9 @@ class SecretGPTeeInterface:
                                 "system_prompt": system_prompt,
                                 "enable_tools": enable_tools,
                                 "wallet_connected": wallet_connected,
-                                "wallet_address": wallet_address
+                                "wallet_address": wallet_address,
+                                "viewing_keys": viewing_keys,
+                                "snip_balances": snip_balances
                             }
                         ):
                             logger.info(f"SecretGPTee: Received chunk: {chunk_response}")

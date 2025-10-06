@@ -4,11 +4,256 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    
+    <base href="/secret_gptee/">
+
     <!-- SecretGPTee Styling -->
-    <link rel="stylesheet" href="/static/css/main.css?v=2025010106">
-    <link rel="stylesheet" href="/static/css/chat.css?v=2025081413">
-    <link rel="stylesheet" href="/static/css/wallet.css?v=2025010106">
+    <link rel="stylesheet" href="/secret_gptee/static/css/main.css?v=2025010107">
+    <link rel="stylesheet" href="/secret_gptee/static/css/chat.css?v=2025081414">
+    <link rel="stylesheet" href="/secret_gptee/static/css/wallet.css?v=2025010107">
+
+    <!-- Inline CSS to fix immediate formatting issues -->
+    <style>
+        /* Critical styles for immediate fix */
+        :root {
+            --primary-color: #e8175d;
+            --primary-hover: #d1154f;
+            --secondary-color: #1a1b23;
+            --accent-color: #4ecdc4;
+            --bg-primary: #0d0e14;
+            --bg-secondary: #1a1b23;
+            --bg-tertiary: #2a2d3a;
+            --bg-input: #1e1f2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a3b5;
+            --text-muted: #6c7086;
+            --border-color: #313244;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .logo-icon {
+            height: 32px;
+            width: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-color);
+            border-radius: var(--radius-md);
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .app-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            background-color: var(--bg-primary);
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: var(--spacing-lg);
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+            scroll-behavior: smooth;
+        }
+
+        .input-area {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn.primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Chat message styles */
+        .message-wrapper {
+            margin-bottom: var(--spacing-md);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .message {
+            display: flex;
+            gap: var(--spacing-sm);
+            max-width: 80%;
+        }
+
+        .user-message {
+            margin-left: auto;
+        }
+
+        .user-message .message {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-color);
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            flex: 1;
+        }
+
+        .user-message .message-content {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .message-text {
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        /* Input area improvements */
+        #message-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        #message-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .send-btn {
+            margin-left: var(--spacing-sm);
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Wallet button improvements */
+        .wallet-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .wallet-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary-color);
+        }
+    </style>
     
     <!-- Modern fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -307,8 +552,8 @@
             
             // CDN sources to try in order
             const cdnSources = [
-                'https://unpkg.com/secretjs@1.15.1/dist/browser.js',
-                'https://cdn.jsdelivr.net/npm/secretjs@1.15.1/dist/browser.js', 
+                'https://unpkg.com/secretjs@1.21.2/dist/browser.js',
+                'https://cdn.jsdelivr.net/npm/secretjs@1.21.2/dist/browser.js',
                 '/static/js/secretjs.browser.js' // Local fallback
             ];
             
@@ -383,12 +628,152 @@
         }, 3000); // Longer timeout to allow for CDN fallbacks
     </script>
     
-    <script src="/static/js/app.js?v=2025010106"></script>
-    <script src="/static/js/chat.js?v=2025081412"></script>
-    <script src="/static/js/wallet.js?v=2025081406"></script>
-    <script src="/static/js/debug-wallet.js?v=2025010106"></script>
-    <script src="/static/js/settings.js?v=2025010106"></script>
+    <script src="/secret_gptee/static/js/app.js?v=2025010107"></script>
+    <script src="/secret_gptee/static/js/chat.js?v=20250923042200"></script>
+    <script src="/secret_gptee/static/js/wallet.js?v=20250923042300"></script>
+    <script src="/secret_gptee/static/js/debug-wallet.js?v=2025010107"></script>
+    <script src="/secret_gptee/static/js/settings.js?v=2025010107"></script>
     
+    <!-- Essential Functions -->
+    <script>
+        // Essential functions for basic functionality
+
+        // Wallet functions
+        function toggleWallet() {
+            console.log('Wallet toggle clicked');
+            if (window.keplr) {
+                connectKeplr();
+            } else {
+                alert('Keplr wallet not found. Please install Keplr extension.');
+            }
+        }
+
+        async function connectKeplr() {
+            try {
+                await window.keplr.enable('secret-4');
+                const offlineSigner = window.keplr.getOfflineSigner('secret-4');
+                const accounts = await offlineSigner.getAccounts();
+
+                if (accounts.length > 0) {
+                    const address = accounts[0].address;
+                    document.getElementById('wallet-status').textContent =
+                        address.slice(0, 10) + '...' + address.slice(-6);
+                    document.getElementById('wallet-connect-btn').style.backgroundColor = '#4ecdc4';
+                }
+            } catch (error) {
+                console.error('Failed to connect to Keplr:', error);
+                alert('Failed to connect to Keplr wallet');
+            }
+        }
+
+        function toggleWalletSidebar() {
+            const sidebar = document.getElementById('wallet-sidebar');
+            sidebar.classList.toggle('hidden');
+        }
+
+        // Settings functions
+        function toggleSettings() {
+            const sidebar = document.getElementById('settings-sidebar');
+            sidebar.classList.toggle('hidden');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+        }
+
+        function toggleStreaming() {
+            const btn = event.target;
+            btn.classList.toggle('active');
+            console.log('Streaming toggled');
+        }
+
+        // Chat functions
+        function sendMessage() {
+            // Use ChatInterface if available, otherwise use inline function
+            if (window.ChatInterface && window.ChatInterface.sendMessage) {
+                window.ChatInterface.sendMessage();
+            } else {
+                // Fallback inline implementation
+                const textarea = document.getElementById('message-input');
+                const message = textarea.value.trim();
+
+                if (!message) return;
+
+                // Add user message to chat
+                addMessageToChat('user', message);
+                textarea.value = '';
+
+                // Send to API
+                sendToAPI(message);
+            }
+        }
+
+        function addMessageToChat(role, content) {
+            const messagesArea = document.getElementById('messages'); // Fixed: was 'messages-area'
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-wrapper ${role}-message`;
+
+            messageDiv.innerHTML = `
+                <div class="message">
+                    <div class="message-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+                    <div class="message-content">
+                        <div class="message-text">${content}</div>
+                    </div>
+                </div>
+            `;
+
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        async function sendToAPI(message) {
+            try {
+                const response = await fetch('/secret_gptee/api/v1/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        wallet_address: null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.response) {
+                    addMessageToChat('assistant', data.response);
+                } else {
+                    addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                addMessageToChat('assistant', 'Sorry, I encountered a connection error. Please try again.');
+            }
+        }
+
+        // Utility functions
+        function autoResize() {
+            const textarea = event.target;
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        function updateCharCount(length) {
+            const charCountElement = document.querySelector('.char-count');
+            if (charCountElement) {
+                charCountElement.textContent = `${length} / 4000`;
+            }
+        }
+
+        // Stub functions for external JS files
+        function initializeApp() { console.log('App initialized'); }
+        function initializeChat() { console.log('Chat initialized'); }
+        function initializeWallet() { console.log('Wallet initialized'); }
+        function initializeSettings() { console.log('Settings initialized'); }
+        function loadUserSettings() { console.log('Settings loaded'); }
+    </script>
+
     <!-- Initialize App -->
     <script>
         // Initialize SecretGPTee app

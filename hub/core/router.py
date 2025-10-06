@@ -19,6 +19,7 @@ class ComponentType(Enum):
     MULTI_UI_SERVICE = "multi_ui_service"
     SECRET_GPTEE_UI = "secret_gptee_ui"
     WALLET_PROXY = "wallet_proxy"
+    SNIP_TOKEN_SERVICE = "snip_token_service"
 
 
 class HubRouter:
@@ -91,8 +92,15 @@ class HubRouter:
             logger.info(f"DEBUG: Normalized command: '{normalized_cmd}'")
             return await self._handle_mcp_debug_command(normalized_cmd, interface)
         
-        logger.info(f"DEBUG: Not an MCP command, proceeding with Keplr → MCP → LLM priority chain")
-        
+        logger.info(f"DEBUG: Not an MCP command, proceeding with smart routing...")
+
+        # SMART FILTER: Check if this is obviously a general AI query that should skip blockchain layers
+        if self._is_general_ai_query(message):
+            logger.info(f"🤖 SMART FILTER: Detected general AI query, routing directly to LLM layer")
+            return await self._route_to_llm_layer(interface, message, options)
+
+        logger.info(f"DEBUG: Not a general AI query, proceeding with Keplr → MCP → LLM priority chain")
+
         # LAYER 1: Check Keplr wallet data first (highest priority)
         wallet_connected = options.get("wallet_connected", False) if options else False
         wallet_address = options.get("wallet_address") if options else None
@@ -102,7 +110,7 @@ class HubRouter:
         
         if wallet_connected and wallet_address:
             logger.info(f"🔵 KEPLR LAYER: Checking if Keplr can handle query...")
-            keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address)
+            keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address, options)
             if keplr_response:
                 logger.info(f"🔵 KEPLR LAYER: Query handled directly by Keplr layer")
                 return keplr_response
@@ -293,14 +301,34 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         message_clean = message.strip().lower()
         logger.info(f"DEBUG STREAM: Cleaned message: '{message_clean}'")
         
+        # SMART FILTER: Check if this is obviously a general AI query that should skip blockchain layers
+        if self._is_general_ai_query(message):
+            logger.info(f"🤖 SMART FILTER STREAM: Detected general AI query, routing directly to LLM layer")
+            async for chunk in self._stream_to_llm_layer(interface, message, options):
+                yield chunk
+            return
+
+        logger.info(f"DEBUG STREAM: Not a general AI query, proceeding with Keplr → MCP → LLM priority chain")
+
+        print("🚨🚨🚨 CRITICAL: Reached priority chain implementation - PRINT VERSION")
+        logger.info("🚨🚨🚨 CRITICAL: Reached priority chain implementation")
+
         # Implement Keplr → MCP → LLM priority chain for streaming
+        logger.info("🔥 BEFORE WALLET OPTIONS EXTRACTION")
+        if options is None:
+            logger.info("🔥 OPTIONS is NONE!")
+        else:
+            logger.info("🔥 OPTIONS is NOT NONE")
         wallet_connected = options.get("wallet_connected", False) if options else False
         wallet_address = options.get("wallet_address") if options else None
-        
+        logger.info("🔥 AFTER WALLET OPTIONS EXTRACTION")
+
+        logger.info(f"🚨 CRITICAL DEBUG STREAM: wallet_connected={wallet_connected}, wallet_address={wallet_address}")
+
         # LAYER 1: Check Keplr wallet data first
         if wallet_connected and wallet_address:
             logger.info(f"🔵 KEPLR LAYER STREAM: Checking if Keplr can handle query...")
-            keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address)
+            keplr_response = await self._check_keplr_data(message, wallet_connected, wallet_address, options)
             if keplr_response:
                 logger.info(f"🔵 KEPLR LAYER STREAM: Query handled directly by Keplr layer")
                 
@@ -384,7 +412,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         
         # LAYER 3: Use LLM for general questions
         logger.info(f"🟢 LLM LAYER STREAM: Handling general query with AI...")
-        
+
         if (message.strip().startswith('/mcp') or 
             message_clean.startswith('mcp ') or
             message_clean in ['mcp test', 'mcp status', 'mcp tools', 'test mcp', 'mcp help']):
@@ -738,7 +766,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 "error": str(e)
             }
     
-    async def _check_keplr_data(self, message: str, wallet_connected: bool = False, wallet_address: str = None) -> Dict[str, Any]:
+    async def _check_keplr_data(self, message: str, wallet_connected: bool = False, wallet_address: str = None, options: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Check if query can be answered directly from connected Keplr wallet data
         This is the FIRST layer in the Keplr → MCP → LLM chain
@@ -756,23 +784,152 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
             
         message_lower = message.lower()
         logger.info(f"🔵 KEPLR: Checking message: '{message}' (lower: '{message_lower}')")
-        
+
         try:
-            # Personal balance queries - get directly from wallet API
-            personal_balance_keywords = [
-                'my balance', 'my scrt', 'my wallet balance', 'my account balance',
-                'what is my balance', 'show my balance', 'check my balance',
-                'how much scrt do i have', 'how much do i have',
-                'what\'s my balance', 'whats my balance',
-                'my scrt balance', 'my secret balance',
-                'what is my scrt balance'  # Exact match for user's query
+            # Import regex for more flexible matching
+            import re
+
+            # FIRST: Check if this is a SNIP token query (sSCRT, SHD, etc.)
+            # This must come before general balance checks
+            snip_service = self.get_component(ComponentType.SNIP_TOKEN_SERVICE)
+            if snip_service:
+                detected_token = snip_service.is_snip_token_query(message)
+                if detected_token:
+                    logger.info(f"🔵 KEPLR LAYER: SNIP token query detected: {detected_token}")
+                    logger.info("🚨 CRITICAL DEBUG: Inside SNIP token handling block")
+
+                    # Handle SNIP token query through the service
+                    try:
+                        # Get viewing keys and pre-fetched balances from options
+                        viewing_keys = options.get("viewing_keys", {}) if options else {}
+                        snip_balances = options.get("snip_balances", {}) if options else {}
+                        logger.info(f"🔍 ROUTER DEBUG: options = {options}")
+                        logger.info(f"🔍 ROUTER DEBUG: viewing_keys extracted = {viewing_keys}")
+                        logger.info(f"🔍 ROUTER DEBUG: snip_balances extracted = {snip_balances}")
+
+                        # Check if we already have pre-fetched balance data for this token
+                        if detected_token.lower() in snip_balances:
+                            balance_data = snip_balances[detected_token.lower()]
+                            logger.info(f"🎯 ROUTER: Using pre-fetched balance for {detected_token}: {balance_data}")
+
+                            if balance_data.get("success"):
+                                return {
+                                    "success": True,
+                                    "content": f"💎 **{detected_token.upper()} Token Balance**\n\n{balance_data.get('formatted', 'Unknown')}\n\nAddress: `{wallet_address}`",
+                                    "interface": "keplr_direct",
+                                    "model": "snip_token_service",
+                                    "source": "keplr_layer_prefetched",
+                                    "token": detected_token,
+                                    "snip_data": balance_data
+                                }
+                            else:
+                                return {
+                                    "success": False,
+                                    "content": f"❌ **Error querying {detected_token.upper()}**\n\n{balance_data.get('error', 'Unknown error')}",
+                                    "interface": "keplr_direct",
+                                    "model": "snip_token_service",
+                                    "source": "keplr_layer_prefetched"
+                                }
+
+                        logger.info(f"🔍 ROUTER: No pre-fetched balance for {detected_token}, proceeding with backend query")
+
+                        snip_response = await snip_service.handle_snip_query(
+                            wallet_address=wallet_address,
+                            message=message,
+                            viewing_keys=viewing_keys
+                        )
+
+                        if snip_response.get("success"):
+                            # Return successful SNIP balance
+                            return {
+                                "success": True,
+                                "content": f"💎 **{detected_token.upper()} Token Balance**\n\n{snip_response.get('formatted_balance', 'Unknown')}\n\nAddress: `{wallet_address}`",
+                                "interface": "keplr_direct",
+                                "model": "snip_token_service",
+                                "source": "keplr_layer",
+                                "token": detected_token,
+                                "snip_data": snip_response
+                            }
+                        elif snip_response.get("error_type") == "viewing_key_required":
+                            # Return viewing key required response
+                            return {
+                                "success": False,
+                                "error_type": "viewing_key_required",
+                                "content": f"🔑 **Viewing Key Required**\n\n{snip_response.get('message')}",
+                                "token": detected_token,
+                                "contract_address": snip_response.get("contract_address"),
+                                "interface": "keplr_direct",
+                                "model": "snip_token_service",
+                                "source": "keplr_layer"
+                            }
+                        else:
+                            # Return error response
+                            logger.warning(f"SNIP query failed: {snip_response.get('error')}")
+                            return {
+                                "success": False,
+                                "content": f"❌ **Error querying {detected_token.upper()}**\n\n{snip_response.get('error')}",
+                                "interface": "keplr_direct",
+                                "model": "snip_token_service",
+                                "source": "keplr_layer"
+                            }
+
+                    except Exception as e:
+                        logger.error(f"SNIP token query error: {e}")
+                        return {
+                            "success": False,
+                            "content": f"❌ **Error processing {detected_token.upper()} query**\n\n{str(e)}",
+                            "interface": "keplr_direct",
+                            "model": "snip_token_service",
+                            "source": "keplr_layer"
+                        }
+
+            # SECOND: Check for personal SCRT balance queries (only if not a SNIP token)
+            # Personal balance queries - use regex for flexible matching
+            # This handles typos, missing words, and variations
+            personal_balance_patterns = [
+                # Flexible "how much/many scrt/SCRT" patterns - but NOT sscrt
+                r'how\s+m(?:uch|any|ch)\s+scrt(?!\w)',  # Handles typos like "mch", but not "sscrt"
+                r'how\s+m(?:uch|any)\s+(?:do\s+)?i\s+have',   # Optional "do"
+                r'(?:what|whats|what\'s)\s+(?:is\s+)?my\s+scrt\s+balance',  # Specific SCRT balance
+                r'(?:show|check|get)\s+my\s+scrt\s+balance',
+                r'my\s+scrt\s+balance',
+                r'my\s+scrt(?!\w)',  # "my scrt" but not "my sscrt"
+                r'balance\s+(?:of\s+)?(?:my|mine)',
+                # Common variations without perfect grammar
+                r'(?<!s)scrt\s+balance',  # "scrt balance" but not "sscrt balance"
+                r'how\s+m\w+\s+scrt(?!\w)',  # Catches any variation but not sscrt
             ]
+
+            # Also keep simple keyword matching for common phrases (but be more careful)
+            simple_keywords = [
+                'my balance',  # Generic balance query
+                'my wallet',
+                'check balance', 'show balance'
+            ]
+
             keyword_matched = None
-            for keyword in personal_balance_keywords:
-                if keyword in message_lower:
-                    keyword_matched = keyword
+
+            # First try regex patterns for more flexible matching
+            for pattern in personal_balance_patterns:
+                if re.search(pattern, message_lower, re.IGNORECASE):
+                    keyword_matched = f"regex:{pattern}"
+                    logger.info(f"🔵 KEPLR LAYER: Regex pattern matched: '{pattern}'")
                     break
-                    
+
+            # Fallback to simple keyword matching if no regex match
+            # But ONLY if it's not asking about a specific token like sSCRT or SHD
+            if not keyword_matched:
+                # Check that message doesn't contain SNIP token names
+                snip_tokens = ['sscrt', 'stkd', 'shd', 'sienna', 'alter', 'button']
+                contains_snip_token = any(token in message_lower for token in snip_tokens)
+
+                if not contains_snip_token:
+                    for keyword in simple_keywords:
+                        if keyword in message_lower:
+                            keyword_matched = f"keyword:{keyword}"
+                            logger.info(f"🔵 KEPLR LAYER: Simple keyword matched: '{keyword}'")
+                            break
+
             if keyword_matched:
                 logger.info(f"🔵 KEPLR LAYER: Personal balance keyword matched: '{keyword_matched}'")
                 logger.info(f"🔵 KEPLR LAYER: Handling personal balance query for {wallet_address}")
@@ -782,11 +939,9 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                 if balance_result.get("success"):
                     balance_amount = balance_result.get("balance", {}).get("amount", "0")
                     formatted_balance = balance_result.get("formatted", "0.000000 SCRT")
-                    
+
                     response_text = f"💰 **Your SCRT Balance**\n\n**{formatted_balance}**\n\nAddress: `{wallet_address}`"
-                    if balance_result.get("mock_data"):
-                        response_text += "\n\n*Note: Using fallback data for testing*"
-                    
+
                     return {
                         "success": True,
                         "content": response_text,
@@ -795,44 +950,24 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                         "source": "keplr_layer",
                         "wallet_data": balance_result
                     }
-            
-            # Wallet address queries
-            elif any(keyword in message_lower for keyword in [
-                'my address', 'my wallet address', 'what is my address',
-                'show my address', 'my secret address', 'wallet address'
-            ]):
-                logger.info(f"🔵 KEPLR LAYER: Handling address query for {wallet_address}")
-                
-                # Format address for display
-                short_address = f"{wallet_address[:10]}...{wallet_address[-8:]}"
-                
-                return {
-                    "success": True,
-                    "content": f"🏠 **Your Wallet Address**\n\n**Full Address:**\n`{wallet_address}`\n\n**Short Address:**\n`{short_address}`",
-                    "interface": "keplr_direct", 
-                    "model": "keplr_wallet",
-                    "source": "keplr_layer"
-                }
-            
-            # Wallet connection status
-            elif any(keyword in message_lower for keyword in [
-                'am i connected', 'is my wallet connected', 'wallet status',
-                'connection status', 'is keplr connected'
-            ]):
-                logger.info(f"🔵 KEPLR LAYER: Handling connection status query")
-                
-                return {
-                    "success": True,
-                    "content": f"🟢 **Wallet Connected**\n\nYour Keplr wallet is connected and ready to use.\n\n**Address:** `{wallet_address}`\n**Network:** Secret Network (secret-4)",
-                    "interface": "keplr_direct",
-                    "model": "keplr_wallet", 
-                    "source": "keplr_layer"
-                }
-                
+                else:
+                    # Return error message for balance query failures
+                    error_msg = balance_result.get("error", "Unknown error retrieving balance")
+                    response_text = f"❌ **Balance Query Failed**\n\n{error_msg}\n\nAddress: `{wallet_address}`"
+
+                    return {
+                        "success": True,
+                        "content": response_text,
+                        "interface": "keplr_direct",
+                        "model": "keplr_wallet",
+                        "source": "keplr_layer",
+                        "error": error_msg
+                    }
+
         except Exception as e:
-            logger.error(f"Error in Keplr data layer: {e}")
-            
-        # If we get here, Keplr layer cannot handle this query
+            logger.error(f"Error in Keplr data check: {e}")
+            return None
+
         return None
     
     def _detect_secret_network_queries(self, message: str, wallet_address: str = None) -> List[Dict[str, Any]]:
@@ -1139,6 +1274,154 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         logger.info(f"🎯 MCP execution complete: {sum(1 for r in tool_results if r['success'])}/{len(tool_results)} tools succeeded")
         return tool_results
     
+    def _is_general_ai_query(self, message: str) -> bool:
+        """
+        Check if message is a general AI query that should skip blockchain layers
+        Returns True for general conversation, False for potential blockchain queries
+        """
+        message_lower = message.strip().lower()
+
+        # General greetings and conversation starters
+        general_patterns = [
+            # Greetings
+            'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+            'how are you', 'whats up', "what's up", 'how is it going',
+
+            # General questions
+            'what is', 'what are', 'how do', 'how does', 'explain', 'tell me about',
+            'can you', 'could you', 'would you', 'will you',
+
+            # Programming/general help (not blockchain specific)
+            'help me with', 'how to', 'write code', 'create a', 'build a',
+            'python', 'javascript', 'react', 'html', 'css',
+
+            # General knowledge
+            'who is', 'where is', 'when did', 'why does', 'what does',
+            'calculate', 'solve', 'find the', 'what time',
+        ]
+
+        # FIRST: Check for blockchain keywords (highest priority)
+        blockchain_keywords = [
+            'scrt', 'secret network', 'secret', 'balance', 'wallet', 'keplr',
+            'transaction', 'transfer', 'send', 'tokens', 'crypto', 'blockchain',
+            'contract', 'gas', 'fee', 'address', 'secret1', 'block', 'chain'
+        ]
+
+        # If message contains blockchain keywords, don't route to general AI
+        for keyword in blockchain_keywords:
+            if keyword in message_lower:
+                return False
+
+        # SECOND: Check if message starts with general patterns
+        for pattern in general_patterns:
+            if message_lower.startswith(pattern):
+                return True
+
+        # If message is very short and not blockchain-related, it's probably general
+        if len(message.strip()) <= 20:
+            return True
+
+        # Default: route through blockchain layers for safety
+        return False
+
+    async def _route_to_llm_layer(self, interface: str, message: str, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Route message directly to LLM layer, bypassing blockchain layers
+        """
+        logger.info(f"🟢 LLM LAYER DIRECT: Handling general query with AI...")
+
+        # Get Secret AI service
+        secret_ai = self.get_component(ComponentType.SECRET_AI)
+        if not secret_ai:
+            logger.error("🟢 LLM LAYER DIRECT: Secret AI service not registered")
+            return {
+                "success": False,
+                "error": "Secret AI service not available",
+                "interface": interface
+            }
+
+        try:
+            # Use default options if not provided
+            if options is None:
+                options = {}
+
+            # Use simple system prompt for general queries
+            system_prompt = options.get("system_prompt", "You are a helpful AI assistant.")
+
+            # Format messages using Secret AI's helper method
+            messages = secret_ai.format_messages(system_prompt, message)
+
+            # Route through Secret AI service
+            response = await secret_ai.ainvoke(messages)
+
+            # Add interface metadata
+            response["interface"] = interface
+            response["options"] = options
+            response["source"] = "llm_direct"
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Error in direct LLM routing: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "interface": interface
+            }
+
+    async def _stream_to_llm_layer(self, interface: str, message: str, options: Optional[Dict[str, Any]] = None) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Stream message directly to LLM layer, bypassing blockchain layers
+        """
+        logger.info(f"🟢 LLM LAYER DIRECT STREAM: Handling general query with AI...")
+
+        # Get Secret AI service
+        secret_ai = self.get_component(ComponentType.SECRET_AI)
+        if not secret_ai:
+            logger.error("Secret AI service not registered")
+            yield {
+                "success": False,
+                "error": "Secret AI service not available",
+                "interface": interface,
+                "chunk": {
+                    "type": "stream_error",
+                    "data": "Secret AI service not available",
+                    "metadata": {"error": True}
+                }
+            }
+            return
+
+        try:
+            # Use default options if not provided
+            if options is None:
+                options = {}
+
+            # Use simple system prompt for general queries
+            system_prompt = options.get("system_prompt", "You are a helpful AI assistant.")
+            messages = secret_ai.format_messages(system_prompt, message)
+
+            # Stream through Secret AI service
+            async for chunk_response in secret_ai.stream_invoke(messages):
+                # Add interface metadata to each chunk
+                chunk_response["interface"] = interface
+                chunk_response["options"] = options
+                chunk_response["source"] = "llm_direct_stream"
+
+                yield chunk_response
+
+        except Exception as e:
+            logger.error(f"Error streaming directly to LLM: {e}")
+            yield {
+                "success": False,
+                "error": str(e),
+                "interface": interface,
+                "chunk": {
+                    "type": "stream_error",
+                    "data": str(e),
+                    "metadata": {"error": True}
+                }
+            }
+
     def _format_tool_result(self, result: Any) -> str:
         """Format MCP tool result for display"""
         try:
@@ -1273,17 +1556,12 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                         
         except Exception as e:
             logger.error(f"Balance query failed: {e}")
-            # Return fallback data for testing
-            logger.warning(f"Using fallback balance data for address: {address}")
+            # Return actual error instead of fallback data
             return {
-                "success": True,
-                "balance": {
-                    "amount": "1000000",  # 1.000000 SCRT fallback
-                    "denom": "uscrt"
-                },
-                "formatted": "1.000000 SCRT",
-                "mock_data": True,
-                "error_msg": str(e)
+                "success": False,
+                "error": f"Failed to get balance: {str(e)}",
+                "balance": None,
+                "formatted": "Error retrieving balance"
             }
     
     async def get_transaction_status(self, tx_hash: str) -> Dict[str, Any]:

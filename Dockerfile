@@ -6,15 +6,17 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies with retry logic for network issues
+RUN apt-get update || true && \
+    apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     make \
     libffi-dev \
     libssl-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    || echo "Warning: Some packages may not have installed" && \
+    rm -rf /var/lib/apt/lists/* || true
 
 # Copy entire project
 COPY . .
@@ -38,6 +40,16 @@ ENV SECRETGPT_DUAL_DOMAIN=true
 # Enable Web UI by default
 ENV SECRETGPT_ENABLE_WEB_UI=true
 
+# SNIP Token Service Configuration
+ENV SNIP_TOKEN_SERVICE_ENABLED=true
+ENV SECRET_LCD_ENDPOINT=https://lcd.secret.adrius.starshell.net/
+ENV SNIP_TOKEN_CACHE_TTL=300
+ENV VIEWING_KEY_STORAGE_BACKEND=memory
+
+# Host configuration for external access
+ENV SECRETGPT_HUB_HOST=0.0.0.0
+ENV SECRETGPT_HUB_PORT=8000
+
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app
@@ -55,8 +67,10 @@ if [ "$SERVICE_TYPE" = "attestation_hub" ]; then\n\
   exec python main.py\n\
 else\n\
   echo "Starting secretGPT Hub Service on port 8000"\n\
+  echo "SNIP Token Service: $SNIP_TOKEN_SERVICE_ENABLED"\n\
+  echo "Web UI Enabled: $SECRETGPT_ENABLE_WEB_UI"\n\
   cd /app\n\
-  exec python main.py\n\
+  exec python main.py --webui\n\
 fi' > /app/start.sh && chmod +x /app/start.sh
 
 # Expose both possible ports

@@ -115,14 +115,40 @@ class MultiUIService:
         # Setup domain routing middleware
         @self.app.middleware("http")
         async def domain_routing_middleware(request: Request, call_next):
-            """Route requests based on domain"""
+            """Route requests based on domain or query parameter override"""
             try:
                 # Extract domain from host header
                 host = request.headers.get("host", "").lower()
                 domain = host.split(":")[0]  # Remove port if present
-                
-                # Determine target interface
-                interface_type = self.domain_mappings.get(domain, "attest_ai")
+
+                # Check for UI override in query parameters (highest priority)
+                ui_override = request.query_params.get('ui')
+                if ui_override:
+                    # Map friendly names to interface types
+                    ui_mappings = {
+                        'secretgptee': 'secret_gptee',
+                        'attestai': 'attest_ai',
+                        'secret_gptee': 'secret_gptee',
+                        'attest_ai': 'attest_ai',
+                        'secret-gptee': 'secret_gptee',  # Alternative format
+                        'attest-ai': 'attest_ai'  # Alternative format
+                    }
+                    interface_type = ui_mappings.get(ui_override.lower())
+                    if not interface_type:
+                        # If invalid UI parameter, fall back to domain-based routing
+                        logger.warning(f"Invalid UI parameter: {ui_override}, falling back to domain routing")
+                        interface_type = self.domain_mappings.get(domain, "attest_ai")
+                    else:
+                        logger.info(f"UI override detected: ?ui={ui_override} -> {interface_type}")
+                else:
+                    # Check if path already indicates interface type
+                    if request.url.path.startswith("/secret_gptee"):
+                        interface_type = "secret_gptee"
+                    elif request.url.path.startswith("/attest_ai"):
+                        interface_type = "attest_ai"
+                    else:
+                        # Fall back to domain-based routing
+                        interface_type = self.domain_mappings.get(domain, "attest_ai")
                 
                 # Rewrite path based on domain - avoid double prefixes
                 original_path = request.url.path
@@ -138,6 +164,11 @@ class MultiUIService:
                     request.scope["path"] = original_path.replace("/attest_ai", "/secret_gptee", 1)
                 elif interface_type == "attest_ai" and original_path.startswith("/secret_gptee"):
                     request.scope["path"] = original_path.replace("/secret_gptee", "/attest_ai", 1)
+                # If path already has correct prefix, don't change it
+                elif interface_type == "secret_gptee" and original_path.startswith("/secret_gptee"):
+                    pass  # Keep the path as is
+                elif interface_type == "attest_ai" and original_path.startswith("/attest_ai"):
+                    pass  # Keep the path as is
                 
                 # Add interface type to request state for downstream handlers
                 request.state.interface_type = interface_type

@@ -106,6 +106,17 @@ async def run_service_mode():
         mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
         
+        # Initialize and register SNIP Token service
+        logger.info("Initializing SNIP Token service...")
+        try:
+            from services.snip_token.service import SNIPTokenService
+            snip_service = SNIPTokenService()
+            await snip_service.initialize()
+            hub.register_component(ComponentType.SNIP_TOKEN_SERVICE, snip_service)
+            logger.info("SNIP Token service registered successfully")
+        except Exception as e:
+            logger.warning(f"SNIP Token service not available: {e}")
+        
         # Initialize wallet proxy service for SecretGPTee (Bridge-Ready)
         logger.info("Initializing Wallet Proxy service...")
         try:
@@ -178,6 +189,17 @@ async def run_with_web_ui():
         logger.info("Initializing MCP service...")
         mcp_service = HTTPMCPService()
         hub.register_component(ComponentType.MCP_SERVICE, mcp_service)
+        
+        # Initialize and register SNIP Token service
+        logger.info("Initializing SNIP Token service...")
+        try:
+            from services.snip_token.service import SNIPTokenService
+            snip_service = SNIPTokenService()
+            await snip_service.initialize()
+            hub.register_component(ComponentType.SNIP_TOKEN_SERVICE, snip_service)
+            logger.info("SNIP Token service registered successfully")
+        except Exception as e:
+            logger.warning(f"SNIP Token service not available: {e}")
         
         # Initialize wallet proxy service for SecretGPTee (Bridge-Ready)
         logger.info("Initializing Wallet Proxy service...")
