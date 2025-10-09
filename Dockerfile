@@ -64,7 +64,7 @@ RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Create startup script
+# Create startup script with error capture
 RUN echo '#!/bin/bash\n\
 SERVICE_TYPE=$(cat /app/service_type)\n\
 if [ "$SERVICE_TYPE" = "attestation_hub" ]; then\n\
@@ -78,8 +78,13 @@ else\n\
   echo "Starting secretGPT Hub Service on port 8000"\n\
   echo "SNIP Token Service: $SNIP_TOKEN_SERVICE_ENABLED"\n\
   echo "Web UI Enabled: $SECRETGPT_ENABLE_WEB_UI"\n\
+  echo "LOG_LEVEL: $LOG_LEVEL"\n\
+  echo "SECRET_AI_API_KEY: ${SECRET_AI_API_KEY:+set}"\n\
+  echo "Python version:"\n\
+  python --version\n\
+  echo "Starting Python application..."\n\
   cd /app\n\
-  exec python main.py --webui\n\
+  python main.py --webui 2>&1 || { echo "Python exited with code $?"; sleep 10; }\n\
 fi' > /app/start.sh && chmod +x /app/start.sh
 
 # Expose both possible ports
