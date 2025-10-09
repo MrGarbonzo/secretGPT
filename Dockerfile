@@ -33,12 +33,15 @@ RUN echo "Building secretGPT Hub Service"; \
 # Set environment variables for production
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
-# SECRET_MCP_URL now comes from .env file for security
+ENV LOG_LEVEL=DEBUG
 
 # Enable dual-domain mode for AttestAI and SecretGPTee
 ENV SECRETGPT_DUAL_DOMAIN=true
 # Enable Web UI by default
 ENV SECRETGPT_ENABLE_WEB_UI=true
+
+# MCP Configuration - disabled by default
+ENV MCP_ENABLED=false
 
 # SNIP Token Service Configuration
 ENV SNIP_TOKEN_SERVICE_ENABLED=true
@@ -46,9 +49,15 @@ ENV SECRET_LCD_ENDPOINT=https://lcd.secret.adrius.starshell.net/
 ENV SNIP_TOKEN_CACHE_TTL=300
 ENV VIEWING_KEY_STORAGE_BACKEND=memory
 
+# SecretVM Attestation Configuration
+ENV SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
+
 # Host configuration for external access
 ENV SECRETGPT_HUB_HOST=0.0.0.0
 ENV SECRETGPT_HUB_PORT=8000
+
+# SECRET_AI_API_KEY must be provided at runtime via docker-compose or -e flag
+# Do not hardcode the API key in the Dockerfile for security
 
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser

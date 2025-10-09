@@ -1,33 +1,15 @@
 services:
   secretgpt:
-    image: ghcr.io/mrgarbonzo/secretgpt:latest
+    image: ghcr.io/mrgarbonzo/secretgpt:tokens-latest
     container_name: secretgpt-hub
     restart: unless-stopped
-    
-    # Load environment variables from .env file (optional)
-    # env_file:
-    #   - ./usr/.env
-    
-    # Configuration merged with .env file for private values
+
+    # All configuration is now hardcoded in the Dockerfile
+    # Only the SECRET_AI_API_KEY needs to be provided at runtime
     environment:
-      # Core Application
-      - SECRETGPT_HUB_HOST=0.0.0.0
-      - SECRETGPT_HUB_PORT=8000
-      - ENVIRONMENT=production
-      - LOG_LEVEL=INFO
-      
-      # Features
-      - SECRETGPT_ENABLE_WEB_UI=true
-      - MCP_ENABLED=true
-      
-      # MCP Integration - HTTP External Server (TEMPORARILY HARDCODED - REMOVE WHEN ENV UPLOAD FIXED)
-      - SECRET_MCP_URL=http://67.215.13.103:8002
-      
-      # Secret AI API Key (override in usr/.env or use fallback)
-      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-bWFzdGVyQHNjcnRsYWJzLmNvbTpTZWNyZXROZXR3b3JrTWFzdGVyS2V5X18yMDI1}
-      
-      # SecretVM Integration
-      - SECRETGPT_ATTESTATION_ENDPOINT=https://host.docker.internal:29343/cpu.html
+      # Secret AI API Key - REQUIRED at runtime
+      # Provide via SecretVM environment configuration or docker-compose override
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-sk--J1fkFf7nMzxXznYoNoTLbRr-WIm1uf4Lv_8u1vsHglrnZmMl9p2-xbVIM_-8MlqY1AOfNN2}
     
     # Network configuration
     ports:
