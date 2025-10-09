@@ -93,21 +93,31 @@ settings = Settings()
 def validate_settings() -> bool:
     """
     Validate that required settings are present
-    
+
     Returns:
         bool: True if all required settings are valid
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info("Validating configuration settings...")
+    logger.info(f"SECRET_AI_API_KEY: {'set' if settings.secret_ai_api_key else 'not set'}")
+    logger.info(f"SECRETGPT_ENABLE_WEB_UI: {settings.enable_web_ui}")
+    logger.info(f"SECRETGPT_HUB_HOST: {settings.hub_host}")
+    logger.info(f"SECRETGPT_HUB_PORT: {settings.hub_port}")
+    logger.info(f"ENVIRONMENT: {settings.environment}")
+    logger.info(f"LOG_LEVEL: {settings.log_level}")
+
     # Phase 1: Only Secret AI API key is required
     if not settings.secret_ai_api_key or settings.secret_ai_api_key == "PLEASE_SET_IN_USR_DOT_ENV":
-        import logging
-        logger = logging.getLogger(__name__)
         logger.warning("SECRET_AI_API_KEY not set! Please create usr/.env file with your API key.")
         logger.warning("Copy .env.example to usr/.env and update with your values.")
         # Allow hub to start without API key for now
         return True
-    
-    
+
+
     # Phase 1: MCP is optional - hub can run without it
     # No validation needed for SECRET_MCP_URL - hub continues if MCP server unavailable
-    
+
+    logger.info("Configuration validation complete")
     return True

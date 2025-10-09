@@ -373,17 +373,22 @@ async def test_web_ui_integration():
 async def main():
     """Main entry point for secretGPT hub"""
     logger.info("Starting secretGPT Hub - Phase 1")
-    
+
     # Validate settings
     if not validate_settings():
         logger.error("Invalid settings configuration")
         return
-    
+
     logger.info("Settings validated successfully")
-    
+
     # Determine run mode
     run_mode = os.getenv("SECRETGPT_RUN_MODE", "service").lower()
     web_ui_enabled = os.getenv("SECRETGPT_ENABLE_WEB_UI", "false").lower() == "true"
+
+    # Support command-line arguments for backward compatibility
+    if "--webui" in sys.argv or "--web-ui" in sys.argv:
+        web_ui_enabled = True
+        logger.info("Web UI enabled via command-line argument")
     
     if run_mode == "test":
         logger.info("Running in test mode")
@@ -405,4 +410,13 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        logger.info(f"Command-line arguments: {sys.argv}")
+        logger.info(f"Environment: SECRETGPT_ENABLE_WEB_UI={os.getenv('SECRETGPT_ENABLE_WEB_UI', 'not set')}")
+        logger.info(f"Environment: SECRET_AI_API_KEY={'set' if os.getenv('SECRET_AI_API_KEY') else 'not set'}")
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt, shutting down gracefully")
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}", exc_info=True)
+        sys.exit(1)
