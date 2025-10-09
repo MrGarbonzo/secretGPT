@@ -2,9 +2,9 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main, master, responses, security, attest_fixes, website, mcp, scrt, gptee ]
+    branches: [ main, master, responses, security, attest_fixes, website, mcp, scrt, gptee, tokens ]
   pull_request:
-    branches: [ main, master, responses, security, attest_fixes, website, mcp, scrt, gptee ]
+    branches: [ main, master, responses, security, attest_fixes, website, mcp, scrt, gptee, tokens ]
 
 env:
   REGISTRY: ghcr.io
@@ -55,6 +55,8 @@ jobs:
           type=raw,value=scrt-latest,enable=${{ github.ref == 'refs/heads/scrt' }}
           type=raw,value=gptee,enable=${{ github.ref == 'refs/heads/gptee' }}
           type=raw,value=gptee-latest,enable=${{ github.ref == 'refs/heads/gptee' }}
+          type=raw,value=tokens,enable=${{ github.ref == 'refs/heads/tokens' }}
+          type=raw,value=tokens-latest,enable=${{ github.ref == 'refs/heads/tokens' }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
