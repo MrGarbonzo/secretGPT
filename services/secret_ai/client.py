@@ -11,40 +11,87 @@ from .streaming_handler import WebStreamingHandler, StreamingChunkFormatter
 
 logger = logging.getLogger(__name__)
 
+# Fallback LCD nodes for Secret AI model discovery
+# These are tried in order until one succeeds
+FALLBACK_NODES = [
+    {"chain_id": "secret-4", "node_url": "https://lcd.secret.tactus.starshell.net/", "name": "SDK Default (Tactus)"},
+    {"chain_id": "secret-4", "node_url": "https://lcd.secret.express", "name": "Secret Express (mainnet)"},
+    {"chain_id": "secret-4", "node_url": "https://lcd.secret.adrius.starshell.net/", "name": "StarShell (mainnet)"},
+    {"chain_id": "pulsar-3", "node_url": "https://lcd.testnet.secretsaturn.net", "name": "Saturn (testnet)"},
+]
+
 
 class SecretAIService:
     """
     Service class for interacting with Secret AI
     Implements the model discovery pattern and message handling
     """
-    
+
     def __init__(self):
         """Initialize the Secret AI service with model discovery"""
         self.secret_client = None
         self.models = []
         self.urls = []
         self.chat_client = None
+        self._initialization_attempted = False
+        self._working_node = None  # Cache the working node config
         self._initialize()
     
     def _initialize(self):
-        """Initialize the Secret AI client following the documentation pattern"""
+        """Initialize the Secret AI client with fallback node support"""
+        if self._initialization_attempted:
+            logger.debug("Initialization already attempted, skipping")
+            return
+
+        self._initialization_attempted = True
+
+        # Try custom node URL from environment first
+        from config.settings import settings
+        if settings.secret_ai_node_url:
+            chain_id = settings.secret_ai_chain_id or "secret-4"
+            logger.info(f"Trying custom node URL: {settings.secret_ai_node_url}")
+            if self._try_initialize_with_node(chain_id, settings.secret_ai_node_url, "Custom"):
+                return
+
+        # Try fallback nodes in order
+        for node_config in FALLBACK_NODES:
+            logger.info(f"Trying {node_config['name']}: {node_config['node_url']}")
+            if self._try_initialize_with_node(node_config['chain_id'], node_config['node_url'], node_config['name']):
+                return
+
+        # All nodes failed
+        logger.error("Failed to initialize Secret AI with all available nodes")
+        logger.warning("Secret AI service will start in degraded mode. Try again later or check configuration.")
+
+    def _try_initialize_with_node(self, chain_id: str, node_url: str, node_name: str) -> bool:
+        """
+        Try to initialize Secret AI client with a specific node
+
+        Returns:
+            bool: True if initialization successful, False otherwise
+        """
         try:
             # REFERENCE: secret-ai-getting-started-example.py lines 4-6
-            # Model discovery pattern - CRITICAL: Always use this pattern
-            self.secret_client = Secret()
+            # Model discovery pattern with explicit node
+            logger.debug(f"Creating Secret client with chain_id={chain_id}, node_url={node_url}")
+            self.secret_client = Secret(chain_id=chain_id, node_url=node_url)
+
+            logger.debug("Fetching available models...")
             self.models = self.secret_client.get_models()
-            
+
             if not self.models:
-                logger.error("No models available from Secret AI")
-                return
-            
+                logger.warning(f"No models available from {node_name}")
+                return False
+
+            logger.debug(f"Found models: {self.models}")
+
             # Get URLs for the first available model
             self.urls = self.secret_client.get_urls(model=self.models[0])
-            
+
             if not self.urls:
-                logger.error(f"No URLs available for model {self.models[0]}")
-                return
-            
+                logger.warning(f"No URLs available for model {self.models[0]} from {node_name}")
+                return False
+
             # REFERENCE: secret-ai-getting-started-example.py lines 8-12
             # Client initialization pattern
             self.chat_client = ChatSecret(
@@ -52,13 +99,35 @@ class SecretAIService:
                 model=self.models[0],
                 temperature=1.0
             )
-            
-            logger.info(f"Initialized Secret AI with model: {self.models[0]}")
-            logger.info(f"Using URL: {self.urls[0]}")
-            
+
+            # Cache the working node configuration
+            self._working_node = {"chain_id": chain_id, "node_url": node_url, "name": node_name}
+
+            logger.info(f"✓ Successfully initialized Secret AI with {node_name}")
+            logger.info(f"  Model: {self.models[0]}")
+            logger.info(f"  URL: {self.urls[0]}")
+
+            return True
+
         except Exception as e:
-            logger.error(f"Failed to initialize Secret AI: {e}")
-            raise
+            logger.warning(f"Failed to initialize with {node_name}: {e}")
+            return False
+
+    def retry_initialization(self) -> bool:
+        """
+        Retry initialization - useful for lazy loading on first request
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if self.chat_client is not None:
+            return True  # Already initialized
+
+        logger.info("Retrying Secret AI initialization...")
+        self._initialization_attempted = False  # Reset flag
+        self._initialize()
+
+        return self.chat_client is not None
     
     def get_available_models(self) -> List[str]:
         """Get list of available models"""
@@ -71,17 +140,23 @@ class SecretAIService:
     def invoke(self, messages: List[Tuple[str, str]], stream: bool = False) -> Dict[str, Any]:
         """
         Invoke the Secret AI chat with the given messages
-        
+
         Args:
             messages: List of tuples in format [("role", "content")]
                      MUST BE TUPLES, NOT DICTS - as per documentation
             stream: Whether to stream the response
-            
+
         Returns:
             Dict containing the response
         """
+        # Try lazy initialization if not yet initialized
         if not self.chat_client:
-            raise RuntimeError("Secret AI client not initialized")
+            if not self.retry_initialization():
+                return {
+                    "success": False,
+                    "error": "Secret AI service is not available. Please try again later or check your configuration.",
+                    "model": None
+                }
         
         try:
             # REFERENCE: secret-ai-getting-started-example.py line 22
@@ -107,15 +182,21 @@ class SecretAIService:
     async def ainvoke(self, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
         """
         Async invocation for Secret AI chat
-        
+
         Args:
             messages: List of tuples in format [("role", "content")]
-            
+
         Returns:
             Dict containing the response
         """
+        # Try lazy initialization if not yet initialized
         if not self.chat_client:
-            raise RuntimeError("Secret AI client not initialized")
+            if not self.retry_initialization():
+                return {
+                    "success": False,
+                    "error": "Secret AI service is not available. Please try again later or check your configuration.",
+                    "model": None
+                }
         
         try:
             # REFERENCE: secret-ai-streaming-example.py line 103
@@ -139,15 +220,27 @@ class SecretAIService:
     async def stream_invoke(self, messages: List[Tuple[str, str]]) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Stream responses from Secret AI using custom web streaming handler
-        
+
         Args:
             messages: List of tuples in format [("role", "content")]
-            
+
         Yields:
             Dict containing streaming chunks with type, data, and metadata
         """
+        # Try lazy initialization if not yet initialized
         if not self.chat_client:
-            raise RuntimeError("Secret AI client not initialized")
+            if not self.retry_initialization():
+                yield {
+                    "success": False,
+                    "chunk": {
+                        "type": "stream_error",
+                        "data": "Secret AI service is not available. Please try again later or check your configuration.",
+                        "metadata": {"error": True, "initialization_failed": True}
+                    },
+                    "error": "Secret AI service is not available",
+                    "model": None
+                }
+                return
         
         try:
             # Create web streaming handler

@@ -2,7 +2,8 @@
 # Phase 1: Core dependencies
 
 # Secret AI SDK and dependencies
-secret-ai-sdk>=0.1.4
+# Using SDK 0.1.5 (latest) with testnet configuration via env vars
+secret-ai-sdk==0.1.5
 secret-sdk>=1.8.1
 langchain==0.3.13
 langchain-core==0.3.28

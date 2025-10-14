@@ -21,11 +21,24 @@ class Settings(BaseSettings):
         env="SECRET_AI_API_KEY",
         description="API key for Secret AI authentication"
     )
-    
+
     secret_node_url: Optional[str] = Field(
         default=None,
         env="SECRET_NODE_URL",
         description="Optional custom Secret Network node URL"
+    )
+
+    # Secret AI Node Configuration (for model discovery)
+    secret_ai_node_url: Optional[str] = Field(
+        default=None,
+        env="SECRET_AI_NODE_URL",
+        description="LCD node URL for Secret AI model discovery"
+    )
+
+    secret_ai_chain_id: Optional[str] = Field(
+        default=None,
+        env="SECRET_AI_CHAIN_ID",
+        description="Secret Network chain ID (secret-4 for mainnet, pulsar-3 for testnet)"
     )
     
     # Hub Configuration

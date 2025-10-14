@@ -59,6 +59,12 @@ ENV SECRETGPT_HUB_PORT=8000
 # SECRET_AI_API_KEY must be provided at runtime via docker-compose or -e flag
 # Do not hardcode the API key in the Dockerfile for security
 
+# Secret AI Node Configuration - TESTNET (SDK 0.1.3)
+# Using testnet configuration for compatibility with SDK 0.1.3
+ENV SECRET_AI_NODE_URL=https://pulsar.lcd.secretnodes.com
+ENV SECRET_AI_CHAIN_ID=pulsar-3
+ENV SECRET_WORKER_SMART_CONTRACT=secret18cy3cgnmkft3ayma4nr37wgtj4faxfnrnngrlq
+
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app
