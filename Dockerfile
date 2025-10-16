@@ -42,6 +42,7 @@ ENV SECRETGPT_ENABLE_WEB_UI=true
 
 # MCP Configuration - disabled by default
 ENV MCP_ENABLED=false
+ENV SECRET_MCP_URL=http://host.docker.internal:8002
 
 # SNIP Token Service Configuration
 ENV SNIP_TOKEN_SERVICE_ENABLED=true
