@@ -44,15 +44,22 @@ class SecretAIService:
             if not api_key:
                 raise RuntimeError("SECRET_AI_API_KEY environment variable not set")
 
-            # Initialize OpenAI clients
+            # Initialize OpenAI clients with custom headers for Secret AI
+            # Secret AI/Ollama endpoints may expect API key in X-API-Key header
+            default_headers = {
+                "X-API-Key": api_key
+            }
+
             self.client = OpenAI(
                 base_url=self.base_url,
-                api_key=api_key
+                api_key=api_key,  # Still pass for compatibility
+                default_headers=default_headers
             )
 
             self.async_client = AsyncOpenAI(
                 base_url=self.base_url,
-                api_key=api_key
+                api_key=api_key,  # Still pass for compatibility
+                default_headers=default_headers
             )
 
             logger.info(f"✓ Initialized Secret AI with OpenAI-compatible client")
