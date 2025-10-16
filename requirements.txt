@@ -9,6 +9,9 @@ langchain==0.3.13
 langchain-core==0.3.28
 langchain-ollama==0.2.2
 
+# OpenAI client for Secret AI OpenAI-compatible endpoint
+openai>=1.0.0
+
 # Core dependencies
 pydantic==2.10.4
 pydantic-settings==2.6.1
