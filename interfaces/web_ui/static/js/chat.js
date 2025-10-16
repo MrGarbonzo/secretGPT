@@ -162,7 +162,11 @@ class ChatManager {
                 this.updateStreamControls(true);
                 break;
 
+            case 'content':
             case 'text_chunk':
+                if (!messageElement) {
+                    messageElement = this.createStreamingMessage();
+                }
                 if (messageElement) {
                     this.appendToStreamingMessage(messageElement, chunk);
                 }

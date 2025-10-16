@@ -156,6 +156,7 @@ class WebUIInterface:
                 
                 async def event_generator():
                     """Generate Server-Sent Events for streaming response"""
+                    chunk_count = 0
                     try:
                         # Stream through hub router
                         async for chunk_response in self.hub_router.stream_message(
@@ -166,6 +167,7 @@ class WebUIInterface:
                                 "system_prompt": system_prompt
                             }
                         ):
+                            chunk_count += 1
                             # Format as SSE event
                             event_data = {
                                 "success": chunk_response.get("success", True),
@@ -174,10 +176,10 @@ class WebUIInterface:
                                 "interface": chunk_response.get("interface"),
                                 "stream_id": chunk_response.get("stream_id")
                             }
-                            
+
                             if not chunk_response.get("success", True):
                                 event_data["error"] = chunk_response.get("error")
-                            
+
                             # Send as SSE format
                             sse_data = f"data: {json.dumps(event_data)}\n\n"
                             yield sse_data
