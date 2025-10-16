@@ -10,6 +10,9 @@ services:
       # Secret AI API Key - REQUIRED at runtime
       # Provide via SecretVM environment configuration or docker-compose override
       - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-sk-Y4bjL5ZrB4RVLgCL4vxDEyFZWTqsKjF-UYP3nFTXSFEzZlHB_qoIOXeyRDdlMuwGo-1pjHsO}
+
+      # MCP Service URL - use host.docker.internal to access host services from container
+      - SECRET_MCP_URL=${SECRET_MCP_URL:-http://host.docker.internal:8002}
     
     # Network configuration
     ports:
