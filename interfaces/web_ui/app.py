@@ -237,8 +237,8 @@ class WebUIInterface:
                 secret_ai_status = "unavailable"
                 try:
                     secret_ai = self.hub_router.get_component(ComponentType.SECRET_AI)
-                    if secret_ai and hasattr(secret_ai, 'chat_client'):
-                        secret_ai_status = "operational" if secret_ai.chat_client else "not_initialized"
+                    if secret_ai and hasattr(secret_ai, 'client'):
+                        secret_ai_status = "operational" if secret_ai.client else "not_initialized"
                     elif secret_ai:
                         secret_ai_status = "registered"
                 except Exception as e:

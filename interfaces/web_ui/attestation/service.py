@@ -553,15 +553,15 @@ class AttestationService:
                 logger.warning("No Secret AI service provided, cannot discover endpoint")
                 raise Exception("Secret AI service not available for endpoint discovery")
             
-            # Get discovered URLs from Secret AI SDK
-            urls = self.secret_ai_service.urls
-            if not urls:
-                logger.warning("No URLs available from Secret AI service")
-                raise Exception("No Secret AI URLs available for discovery")
-            
+            # Get base URL from Secret AI service (OpenAI-compatible client)
+            base_url = self.secret_ai_service.base_url
+            if not base_url:
+                logger.warning("No base URL available from Secret AI service")
+                raise Exception("No Secret AI base URL available for discovery")
+
             # Extract hostname from API URL
-            # Example: https://secretai-rytn.scrtlabs.com:21434 -> secretai-rytn.scrtlabs.com
-            api_url = urls[0]
+            # Example: https://secretai-rytn.scrtlabs.com:21434/v1 -> secretai-rytn.scrtlabs.com
+            api_url = base_url
             
             from urllib.parse import urlparse
             parsed = urlparse(api_url)
