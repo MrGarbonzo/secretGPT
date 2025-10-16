@@ -884,7 +884,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                         }
 
             # SNIP-721 NFT QUERIES
-            if snip_service:
+            if snip_service and hasattr(snip_service, 'is_nft_query'):
                 detected_nft = snip_service.is_nft_query(message)
                 if detected_nft:
                     logger.info(f"🎨 NFT query detected: {detected_nft}")
@@ -962,6 +962,91 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                             "model": "snip_nft_service",
                             "source": "keplr_layer"
                         }
+
+            # NATIVE SCRT BALANCE QUERIES (Direct LCD)
+            # Check for native SCRT balance queries using direct blockchain query
+            # This comes after SNIP tokens but before the MCP-based fallback
+            # Patterns for native SCRT balance queries
+            native_scrt_patterns = [
+                r'how\s+m(?:uch|any|ch)\s+scrt(?!\w)',  # "how much scrt" but not "sscrt"
+                r'how\s+m(?:uch|any)\s+(?:do\s+)?i\s+have',
+                r'(?:what|whats|what\'s)\s+(?:is\s+)?my\s+scrt\s+balance',
+                r'(?:show|check|get)\s+my\s+scrt\s+balance',
+                r'my\s+scrt\s+balance',
+                r'my\s+scrt(?!\w)',  # "my scrt" but not "my sscrt"
+                r'balance\s+(?:of\s+)?(?:my|mine)',
+                r'(?<!s)scrt\s+balance',  # "scrt balance" but not "sscrt balance"
+            ]
+
+            # Check if query matches native SCRT patterns
+            native_scrt_matched = False
+            for pattern in native_scrt_patterns:
+                if re.search(pattern, message_lower, re.IGNORECASE):
+                    native_scrt_matched = True
+                    logger.info(f"🔵 KEPLR LAYER: Native SCRT balance pattern matched: '{pattern}'")
+                    break
+
+            # Also match simple keywords if not a SNIP token query
+            if not native_scrt_matched:
+                simple_balance_keywords = ['my balance', 'my wallet', 'check balance', 'show balance']
+                snip_tokens = ['sscrt', 'stkd', 'shd', 'sienna', 'alter', 'button']
+                contains_snip_token = any(token in message_lower for token in snip_tokens)
+
+                if not contains_snip_token:
+                    for keyword in simple_balance_keywords:
+                        if keyword in message_lower:
+                            native_scrt_matched = True
+                            logger.info(f"🔵 KEPLR LAYER: Native SCRT balance keyword matched: '{keyword}'")
+                            break
+
+            if native_scrt_matched:
+                logger.info(f"🔵 KEPLR LAYER: Querying native SCRT balance directly from blockchain...")
+                try:
+                    # Import AsyncLCDClient for direct blockchain query
+                    from secret_sdk.client.lcd import AsyncLCDClient
+                    import os
+
+                    # Get LCD endpoint from environment
+                    lcd_endpoint = os.getenv("SECRET_LCD_ENDPOINT") or os.getenv("SECRET_NODE_URL") or "https://lcd.secret.tactus.starshell.net/"
+                    chain_id = os.getenv("SECRET_CHAIN_ID", "secret-4")
+
+                    logger.info(f"🔗 Using LCD endpoint: {lcd_endpoint}")
+                    logger.info(f"🔗 Chain ID: {chain_id}")
+
+                    # Create LCD client
+                    lcd_client = AsyncLCDClient(url=lcd_endpoint, chain_id=chain_id)
+
+                    # Query native SCRT balance using Cosmos bank module
+                    balance_response = await lcd_client.bank.balance(wallet_address, "uscrt")
+
+                    # Extract balance amount (in uscrt = micro-SCRT)
+                    balance_uscrt = int(balance_response[0].amount) if balance_response else 0
+
+                    # Convert uscrt to SCRT (divide by 1,000,000)
+                    balance_scrt = balance_uscrt / 1_000_000
+                    formatted_balance = f"{balance_scrt:.6f} SCRT"
+
+                    logger.info(f"✅ Native SCRT balance query successful: {formatted_balance}")
+
+                    response_text = f"💰 **Your SCRT Balance**\n\n**{formatted_balance}**\n\nAddress: `{wallet_address}`"
+
+                    return {
+                        "success": True,
+                        "content": response_text,
+                        "interface": "keplr_direct",
+                        "model": "lcd_direct",
+                        "source": "keplr_layer_lcd",
+                        "balance_data": {
+                            "amount": str(balance_uscrt),
+                            "denom": "uscrt",
+                            "formatted": formatted_balance
+                        }
+                    }
+
+                except Exception as e:
+                    logger.warning(f"Direct LCD balance query failed: {e}")
+                    logger.info("Falling through to MCP-based balance handler...")
+                    # Don't return error - fall through to the MCP-based handler below
 
             # SECOND: Check for personal SCRT balance queries (only if not a SNIP token)
             # Personal balance queries - use regex for flexible matching
