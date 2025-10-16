@@ -883,6 +883,86 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                             "source": "keplr_layer"
                         }
 
+            # SNIP-721 NFT QUERIES
+            if snip_service:
+                detected_nft = snip_service.is_nft_query(message)
+                if detected_nft:
+                    logger.info(f"🎨 NFT query detected: {detected_nft}")
+
+                    try:
+                        # Get viewing keys and permit from options
+                        viewing_keys = options.get("viewing_keys", {}) if options else {}
+                        nft_permit = options.get("nft_permit") if options else None
+
+                        nft_response = await snip_service.handle_nft_query(
+                            wallet_address=wallet_address,
+                            message=message,
+                            viewing_keys=viewing_keys,
+                            permit=nft_permit
+                        )
+
+                        if nft_response.get("success"):
+                            # Format successful NFT ownership response
+                            collection_name = nft_response.get("collection_name", "NFT Collection")
+                            token_count = nft_response.get("token_count", 0)
+                            tokens = nft_response.get("tokens", [])
+
+                            if token_count == 0:
+                                content = f"You don't own any {collection_name} NFTs."
+                            else:
+                                content = f"🎨 **{collection_name}**: You own **{token_count}** NFT{'s' if token_count != 1 else ''}\n\n"
+                                # Show first 10 tokens
+                                for token_id in tokens[:10]:
+                                    content += f"• {token_id}\n"
+                                if token_count > 10:
+                                    content += f"\n_...and {token_count - 10} more_"
+
+                            return {
+                                "success": True,
+                                "content": content,
+                                "interface": "keplr_direct",
+                                "model": "snip_nft_service",
+                                "source": "keplr_layer",
+                                "nft_data": nft_response
+                            }
+
+                        elif nft_response.get("error_type") in ["permit_required", "viewing_key_required"]:
+                            # Return permit/viewing key required response
+                            error_type = nft_response.get("error_type")
+                            title = "🔑 **NFT Query Permit Required**" if error_type == "permit_required" else "🔑 **NFT Viewing Key Required**"
+                            return {
+                                "success": False,
+                                "error_type": error_type,
+                                "content": f"{title}\n\n{nft_response.get('error_message')}",
+                                "collection": nft_response.get("collection_name"),
+                                "contract_address": nft_response.get("contract_address"),
+                                "requires_user_action": True,
+                                "interface": "keplr_direct",
+                                "model": "snip_nft_service",
+                                "source": "keplr_layer"
+                            }
+
+                        else:
+                            # Return error response
+                            logger.warning(f"NFT query failed: {nft_response.get('error')}")
+                            return {
+                                "success": False,
+                                "content": f"❌ **NFT Query Error**\n\n{nft_response.get('error_message', nft_response.get('error'))}",
+                                "interface": "keplr_direct",
+                                "model": "snip_nft_service",
+                                "source": "keplr_layer"
+                            }
+
+                    except Exception as e:
+                        logger.error(f"NFT query error: {e}")
+                        return {
+                            "success": False,
+                            "content": f"❌ **Error processing NFT query**\n\n{str(e)}",
+                            "interface": "keplr_direct",
+                            "model": "snip_nft_service",
+                            "source": "keplr_layer"
+                        }
+
             # SECOND: Check for personal SCRT balance queries (only if not a SNIP token)
             # Personal balance queries - use regex for flexible matching
             # This handles typos, missing words, and variations
@@ -1527,7 +1607,7 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
         import os
         
         # Check multiple possible env var names for MCP URL
-        mcp_url = os.getenv("SECRET_NETWORK_MCP_URL") or os.getenv("SECRET_MCP_URL") or "http://localhost:8002"
+        mcp_url = os.getenv("SECRET_NETWORK_MCP_URL") or os.getenv("SECRET_MCP_URL") or "http://host.docker.internal:8002"
         logger.info(f"Using MCP URL: {mcp_url}")
         
         try:

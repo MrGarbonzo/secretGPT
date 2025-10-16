@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     )
     
     secret_mcp_url: str = Field(
-        default="http://localhost:8002",
+        default="http://host.docker.internal:8002",
         env="SECRET_MCP_URL",
         description="URL for external Secret Network MCP server"
     )

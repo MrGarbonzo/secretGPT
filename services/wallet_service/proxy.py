@@ -39,7 +39,7 @@ class WalletProxyService:
     """
     
     def __init__(self):
-        self.mcp_base_url = os.getenv("SECRET_NETWORK_MCP_URL", "http://localhost:8002")
+        self.mcp_base_url = os.getenv("SECRET_NETWORK_MCP_URL", "http://host.docker.internal:8002")
         self.bridge_mode = BridgeMode.HTTP  # Will become ATTESTED later
         self.session: Optional[aiohttp.ClientSession] = None
         self.attestation_context = {
