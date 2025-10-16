@@ -9,7 +9,7 @@ services:
     environment:
       # Secret AI API Key - REQUIRED at runtime
       # Provide via SecretVM environment configuration or docker-compose override
-      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-sk--J1fkFf7nMzxXznYoNoTLbRr-WIm1uf4Lv_8u1vsHglrnZmMl9p2-xbVIM_-8MlqY1AOfNN2}
+      - SECRET_AI_API_KEY=${SECRET_AI_API_KEY:-sk-Y4bjL5ZrB4RVLgCL4vxDEyFZWTqsKjF-UYP3nFTXSFEzZlHB_qoIOXeyRDdlMuwGo-1pjHsO}
     
     # Network configuration
     ports:
