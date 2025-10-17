@@ -84,12 +84,6 @@ ENV SECRET_WORKER_SMART_CONTRACT=secret18cy3cgnmkft3ayma4nr37wgtj4faxfnrnngrlq
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app
-
-# Create and configure temporary directory for proof manager
-RUN mkdir -p /tmp /var/tmp /usr/tmp && \
-    chmod 1777 /tmp /var/tmp /usr/tmp && \
-    chown -R appuser:appuser /tmp /var/tmp /usr/tmp
-
 USER appuser
 
 # Create startup script with error capture

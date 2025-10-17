@@ -29,7 +29,10 @@ class ProofManager:
     def __init__(self, attestation_service: AttestationService):
         """Initialize proof manager with attestation service"""
         self.attestation_service = attestation_service
-        self.proof_directory = Path(tempfile.gettempdir()) / "secretgpt_proofs"
+        # Use /app/tmp instead of system temp directory for SecretVM compatibility
+        app_tmp = Path("/app/tmp")
+        app_tmp.mkdir(exist_ok=True)
+        self.proof_directory = app_tmp / "secretgpt_proofs"
         self.proof_directory.mkdir(exist_ok=True)
         logger.info("Proof manager initialized")
     
