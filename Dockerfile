@@ -3,6 +3,21 @@
 
 FROM python:3.12-slim
 
+# Build arguments for attestation
+ARG BUILD_TAG
+ARG BUILD_DATE
+ARG GIT_COMMIT
+ARG VERSION
+
+# Labels for image metadata and attestation
+LABEL org.opencontainers.image.title="secretGPT"
+LABEL org.opencontainers.image.description="SecretGPT Hub - Confidential AI with Secret Network"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
+LABEL org.opencontainers.image.source="https://github.com/mrgarbonzo/secretGPT"
+LABEL build.tag="${BUILD_TAG}"
+
 # Set working directory
 WORKDIR /app
 
@@ -69,6 +84,12 @@ ENV SECRET_WORKER_SMART_CONTRACT=secret18cy3cgnmkft3ayma4nr37wgtj4faxfnrnngrlq
 # Create a non-root user for security
 RUN useradd -m -u 1001 appuser
 RUN chown -R appuser:appuser /app
+
+# Create and configure temporary directory for proof manager
+RUN mkdir -p /tmp /var/tmp /usr/tmp && \
+    chmod 1777 /tmp /var/tmp /usr/tmp && \
+    chown -R appuser:appuser /tmp /var/tmp /usr/tmp
+
 USER appuser
 
 # Create startup script with error capture
