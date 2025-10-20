@@ -1017,13 +1017,22 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                     lcd_client = AsyncLCDClient(url=lcd_endpoint, chain_id=chain_id)
 
                     # Query native SCRT balance using Cosmos bank module
-                    # bank.balance() returns a Coins object - we need to get the specific denomination
-                    balance_coins = await lcd_client.bank.balance(wallet_address)
+                    # bank.balance() returns a tuple: (Coins, pagination_info)
+                    balance_result = await lcd_client.bank.balance(wallet_address)
+
+                    # Handle tuple return: (Coins, pagination) or just Coins
+                    if isinstance(balance_result, tuple):
+                        balance_coins = balance_result[0]
+                    else:
+                        balance_coins = balance_result
 
                     # Extract balance amount for uscrt denomination (in uscrt = micro-SCRT)
-                    # Use .get() method to retrieve the specific coin from the Coins collection
-                    uscrt_coin = balance_coins.get("uscrt")
-                    balance_uscrt = int(uscrt_coin.amount) if uscrt_coin else 0
+                    # Iterate through coins to find uscrt
+                    balance_uscrt = 0
+                    for coin in balance_coins:
+                        if coin.denom == "uscrt":
+                            balance_uscrt = int(coin.amount)
+                            break
 
                     # Convert uscrt to SCRT (divide by 1,000,000)
                     balance_scrt = balance_uscrt / 1_000_000
