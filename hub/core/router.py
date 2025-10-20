@@ -1047,90 +1047,21 @@ Respond with: USE_TOOL: tool_name with arguments {{...}}
                     }
 
                 except Exception as e:
-                    logger.warning(f"Direct LCD balance query failed: {e}")
-                    logger.info("Falling through to MCP-based balance handler...")
-                    # Don't return error - fall through to the MCP-based handler below
-
-            # SECOND: Check for personal SCRT balance queries (only if not a SNIP token)
-            # Personal balance queries - use regex for flexible matching
-            # This handles typos, missing words, and variations
-            personal_balance_patterns = [
-                # Flexible "how much/many scrt/SCRT" patterns - but NOT sscrt
-                r'how\s+m(?:uch|any|ch)\s+scrt(?!\w)',  # Handles typos like "mch", but not "sscrt"
-                r'how\s+m(?:uch|any)\s+(?:do\s+)?i\s+have',   # Optional "do"
-                r'(?:what|whats|what\'s)\s+(?:is\s+)?my\s+scrt\s+balance',  # Specific SCRT balance
-                r'(?:show|check|get)\s+my\s+scrt\s+balance',
-                r'my\s+scrt\s+balance',
-                r'my\s+scrt(?!\w)',  # "my scrt" but not "my sscrt"
-                r'balance\s+(?:of\s+)?(?:my|mine)',
-                # Common variations without perfect grammar
-                r'(?<!s)scrt\s+balance',  # "scrt balance" but not "sscrt balance"
-                r'how\s+m\w+\s+scrt(?!\w)',  # Catches any variation but not sscrt
-            ]
-
-            # Also keep simple keyword matching for common phrases (but be more careful)
-            simple_keywords = [
-                'my balance',  # Generic balance query
-                'my wallet',
-                'check balance', 'show balance'
-            ]
-
-            keyword_matched = None
-
-            # First try regex patterns for more flexible matching
-            for pattern in personal_balance_patterns:
-                if re.search(pattern, message_lower, re.IGNORECASE):
-                    keyword_matched = f"regex:{pattern}"
-                    logger.info(f"🔵 KEPLR LAYER: Regex pattern matched: '{pattern}'")
-                    break
-
-            # Fallback to simple keyword matching if no regex match
-            # But ONLY if it's not asking about a specific token like sSCRT or SHD
-            if not keyword_matched:
-                # Check that message doesn't contain SNIP token names
-                snip_tokens = ['sscrt', 'stkd', 'shd', 'sienna', 'alter', 'button']
-                contains_snip_token = any(token in message_lower for token in snip_tokens)
-
-                if not contains_snip_token:
-                    for keyword in simple_keywords:
-                        if keyword in message_lower:
-                            keyword_matched = f"keyword:{keyword}"
-                            logger.info(f"🔵 KEPLR LAYER: Simple keyword matched: '{keyword}'")
-                            break
-
-            if keyword_matched:
-                logger.info(f"🔵 KEPLR LAYER: Personal balance keyword matched: '{keyword_matched}'")
-                logger.info(f"🔵 KEPLR LAYER: Handling personal balance query for {wallet_address}")
-                
-                # Get balance directly from our wallet service
-                balance_result = await self.get_wallet_balance(wallet_address)
-                if balance_result.get("success"):
-                    balance_amount = balance_result.get("balance", {}).get("amount", "0")
-                    formatted_balance = balance_result.get("formatted", "0.000000 SCRT")
-
-                    response_text = f"💰 **Your SCRT Balance**\n\n**{formatted_balance}**\n\nAddress: `{wallet_address}`"
-
+                    logger.error(f"Direct LCD balance query failed: {e}", exc_info=True)
+                    # Return error instead of falling through to MCP
+                    error_text = f"❌ **Balance Query Failed**\n\nDirect blockchain query error: {str(e)}\n\nAddress: `{wallet_address}`"
                     return {
-                        "success": True,
-                        "content": response_text,
+                        "success": False,
+                        "content": error_text,
                         "interface": "keplr_direct",
-                        "model": "keplr_wallet",
-                        "source": "keplr_layer",
-                        "wallet_data": balance_result
+                        "model": "lcd_direct",
+                        "source": "keplr_layer_lcd",
+                        "error": str(e)
                     }
-                else:
-                    # Return error message for balance query failures
-                    error_msg = balance_result.get("error", "Unknown error retrieving balance")
-                    response_text = f"❌ **Balance Query Failed**\n\n{error_msg}\n\nAddress: `{wallet_address}`"
 
-                    return {
-                        "success": True,
-                        "content": response_text,
-                        "interface": "keplr_direct",
-                        "model": "keplr_wallet",
-                        "source": "keplr_layer",
-                        "error": error_msg
-                    }
+            # NOTE: Removed duplicate MCP-based balance handler
+            # All native SCRT balance queries are now handled by the direct LCD implementation above
+            # This eliminates the dependency on the external MCP service (port 8002)
 
         except Exception as e:
             logger.error(f"Error in Keplr data check: {e}")
